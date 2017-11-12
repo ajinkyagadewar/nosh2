@@ -23,8 +23,8 @@ class PostAuth
         $install = DB::table('practiceinfo')->first();
         // Check if Google refresh token registered
         if ($install->google_refresh_token == '') {
-            if (route('dashboard') != 'http://localhost/nosh') {
-                $google = File::get(base_path() . "/.google");
+            if (route('dashboard') != 'https://care.drjio.com/') {
+                $google = File::get(base_path() . "/public/.google");
                 if ($google !== '') {
                     return redirect()->route('googleoauth');
                 }

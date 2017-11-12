@@ -10,12 +10,12 @@
         @if (isset($title))
             {{ $title }}
         @else
-            NOSH ChartingSystem
+            DrJio Care
         @endif
     </title>
     {!! Minify::stylesheet($assets_css)->withFullUrl() !!}
     @yield('view.stylesheet')
-
+<link rel="shortcut icon" type="image/png" href="{{ URL::asset('assets/images/pulse_favicon.png') }}"/>
 </head>
 <body id="app-layout">
     <nav class="navbar navbar-default navbar-static-top" role="navigation">
@@ -27,12 +27,12 @@
                     <span class="sr-only">Toggle Navigation</span>
                     <span class="icon-bar"></span>
                     <span class="icon-bar"></span>
-                    <span class="icon-bar"></span>
+                    <span  class="icon-bar"></span>
                 </button>
 
                 <!-- Branding Image -->
                 <span class="navbar-brand" id="logo" data-toggle="offcanvas">
-                    Nosh
+                    <a href="https://pulse-sme.drjio.com/" class="navbar-left"><img src="{{ URL::asset('assets/images/pulse.png') }}"></a>
                 </span>
                 @if (Session::has('pid'))
                     <div class="navbar-brand">
@@ -151,13 +151,11 @@
                                 @if (Session::get('group_id') == '2')
                                     <li><a href="{{ route('user_signature') }}"><i class="fa fa-btn fa-pencil"></i>{{ trans('nosh.user_signature') }}</a></li>
                                 @endif
-                                @if (Session::get('patient_centric') == 'y')
+                               
                                     <li><a href="{{ route('fhir_connect') }}"><i class="fa fa-btn fa-plug"></i>{{ trans('nosh.fhir_connect') }}</a></li>
-                                    <li><a href="{{ str_replace('/nosh', '', route('dashboard')) }}"><i class="fa fa-btn fa-openid"></i>{{ trans('nosh.hieofone') }}</a></li>
-                                @endif
+                                    <li><a href="https://hie.drjio.com"><i class="fa fa-btn fa-openid"></i>{{ trans('nosh.hieofone') }}</a></li>
+                              
                                 <li><a href="{{ route('password_change') }}"><i class="fa fa-btn fa-cog"></i>{{ trans('nosh.password_change') }}</a></li>
-                                <li><a href="https://github.com/shihjay2/nosh2/issues/new" target="_blank" class="nosh-no-load"><i class="fa fa-btn fa-github-alt"></i>{{ trans('nosh.report_bug') }}</a></li>
-                                <li><a href="https://github.com/shihjay2/nosh2/issues/new" target="_blank" class="nosh-no-load"><i class="fa fa-btn fa-heart"></i>{{ trans('nosh.make_suggestion') }}</a></li>
                                 <li><a href="{{ route('logout') }}"><i class="fa fa-btn fa-sign-out"></i>{{ trans('nosh.logout') }}</a></li>
                             </ul>
                         </li>
@@ -405,13 +403,6 @@
             @yield('content')
         </div>
     </div>
-    @endif
-    @if (isset($noshversion))
-        <footer class="footer">
-            <div class="container">
-                <p class="text-muted pull-right">Version git-{{ $noshversion }}</p>
-            </div>
-        </footer>
     @endif
     <!-- Modals -->
     <div class="modal" id="loadingModal" role="dialog">
@@ -2198,5 +2189,7 @@
     </script>
     {{-- <script src="{{ elixir('js/app.js') }}"></script> --}}
     @yield('view.scripts')
-</body>
+<footer class="site-footer">
+    &copy; 2017. All rights reserved. Powered by Doctor Jio Healthcare Private Limited.
+</footer></body>
 </html>

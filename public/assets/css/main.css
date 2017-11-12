@@ -47,11 +47,9 @@ body {
     overflow:auto;
 }
 
-#logo{
-    font-family: 'Pacifico', arial, serif;
-    font-size: 30px;
-    text-shadow: 4px 4px 4px #aaa;
-    vertical-align: middle;
+#logo >  a >img{
+    max-height: 40px;
+    margin-right: 10px;
 }
 
 .panel-body,.modal-body {
@@ -253,7 +251,7 @@ body {
 
 div.list-category h5.list-category-title {
     display: block;
-    padding 14px 0 15px 0;
+    padding: 14px 0 15px 0;
     font-size: 15px;
     font-weight: 100;
     margin-bottom: 0px;
@@ -271,7 +269,7 @@ div.list-category li.list-group-item:first-child {
 :required:not(#search_patient):not(#search_rx) { border: 1px solid red; }
 
 .nav-stacked>li>a {
-    padding: 5px; //whatever values you want...
+    padding: 5px; 
 }
 
 /*
@@ -299,4 +297,54 @@ div.list-category li.list-group-item:first-child {
         position: absolute;
         top: 0;
     }
+}
+
+/*Custom Changes*/
+.navbar-brand {
+    padding: 5px 10px;
+    background: #fff;
+}
+
+.navbar-default {
+    background-color: rgba(47, 164, 231, 0.51);
+    border-color: rgba(25, 149, 220, 0.34);
+}
+
+.navbar-default {
+    background-image: -webkit-linear-gradient(#54b4eb, #2fa4e7 60%, #1d9ce5);
+    background-image: -o-linear-gradient(#54b4eb, #2fa4e7 60%, #1d9ce5);
+    background-image: -webkit-gradient(linear, left top, left bottom, from(#54b4eb), color-stop(60%, #2fa4e7), to(#1d9ce5));
+    background-image: linear-gradient(#54b4eb, rgba(47, 164, 231, 0.39) 60%, rgba(29, 156, 229, 0.33));
+    background-repeat: no-repeat;
+    filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#ff54b4eb', endColorstr='#ff1d9ce5', GradientType=0);
+    border-bottom: none;
+    -webkit-filter: none;
+    filter: none;
+    -webkit-box-shadow: 0 1px 10px rgba(0,0,0,0.1);
+    box-shadow: 0 1px 10px rgba(0,0,0,0.1);
+}
+
+/*.fa-user {
+    vertical-align: middle;
+    color: #2fa4e7;
+    margin-top: 10px;
+
+}*/
+
+.site-footer {
+    text-align: center;
+    background-color: #f5f5f5;
+    padding: 20px;
+    margin-bottom: -40px;
+
+}
+
+#login_practice_logo > img{
+    margin-bottom: 10px;
+    margin-left: 100px;
+    max-width: 30%;
+}
+
+.navbar-brand .fa-btn {
+    display:none;
 }

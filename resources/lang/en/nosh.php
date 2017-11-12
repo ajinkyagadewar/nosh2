@@ -18,14 +18,19 @@ return [
     "button_pnosh_login_with" => "Login with",
     "username" => "Username",
     "password" => "Password",
-    "organization_practice" => "Organization/Practice",
+    "organization_practice" => "Organization",
     "remember_me" => "Remember Me",
     "forgot_password" => "Forgot Your Password?",
     "new_patient_portal" => "Are you new to the Patient Portal?",
-    "instruct_patient_portal1" => "Enter the following fields to register as a patient portal user.  It is important that your answers are exactly what is provided to your practice such as the spelling of your name and date of birth.",
-    "instruct_patient_portal2" => "If you don't have a registration code, a registration request will be sent to the practice administrator.",
-    "instruct_patient_portal3" => "You will then receive a registration code sent to your e-mail address before you proceed further.",
-    "instruct_patient_portal4" => "Keep in mind that this may take some time depending on the response time of the practice administrator.",
+    "instruct_patient_portal1" => "Enter the following fields to register as a patient portal user.  "
+    . "It is important that your answers are exactly what is provided to your practice such as the "
+    . "spelling of your name and date of birth.",
+    "instruct_patient_portal2" => "If you don't have a registration code, a registration request "
+    . "will be sent to the DrJio Care administrator.",
+    "instruct_patient_portal3" => "You will then receive a registration code sent to your e-mail "
+    . "address before you proceed further.",
+    "instruct_patient_portal4" => "Keep in mind that this may take some time depending on the response time of the "
+    . "DrJio Care administrator.",
     "desired_username" => "Desired Username",
     "confirm_password" => "Confirm Password",
     "secret_question" => "Security Question",
@@ -35,7 +40,7 @@ return [
     "captcha_code" => "CAPTCHA Code",
     "captcha_code1" => "Enter CAPTCHA code here.",
     "button_register" => "Register",
-    "invite_title" => "Accept your invitation to access NOSH ChartingSystem",
+    "invite_title" => "Accept your invitation to access DrJio Care System",
     "accept_invitation" => "Accept Invitation",
     "reset_password" => "Reset Password",
     "new_password" => "New Password",
@@ -89,7 +94,7 @@ return [
     "superquery_tag" => "Tag Search",
     "superquery_hedis" => "HEDIS Audit",
     "configure" => "Configure",
-    "api_patient" => "mdNOSH Integration",
+    "api_patient" => "mdCare Integration",
     "addressbook" => "Address Book",
     "configure_form_list" => "My Forms",
     "practice_setup" => "Practice Setup",
@@ -370,7 +375,7 @@ return [
     "no_transaction" => "Transaction receipt not found",
 
     // Email
-    "api_provider_register1" => "This message is sent to you from one of your patients who has a NOSH ChartingSystem electronic health record system.",
+    "api_provider_register1" => "This message is sent to you from one of your patients who has a DrJio Care System electronic health record system.",
     "api_provider_register2" => "Your account has been added to your patient's system, but you'll need to click on the following link to complete your registration.",
     "api_provider_register3" => "Make sure you have your Provider NPI with you as you'll need this information to successfully register your account.",
     "api_provider_register4" => "Furthermore, if you do not register for your account within 24 hours, you'll need to contact your patient to add your account again.",
@@ -378,7 +383,7 @@ return [
     "api_provider_register6" => "Make sure you have your Practice NPI (not Provider NPI) with you as you'll need this information to successfully register your practice.",
     "api_provider_register7" => "Furthermore, if you do not register for your account within 24 hours, you'll need to contact your patient to add your practice again.",
     "api_uma_register1" => "This message is sent to you from one of your patients, ",
-    "api_uma_register2" => ", who has a NOSH ChartingSystem electronic health record system.",
+    "api_uma_register2" => ", who has a DrJio Care System electronic health record system.",
     "api_uma_register3" => "You have been invited to access your patient's health record.  Please click on the following link to complete your registration.",
     "api_uma_register4" => "Make sure you have your Provider NPI with you as you'll need this information to successfully register your account.",
     "api_uma_register5" => "Furthermore, if you do not register for your account within 24 hours, you'll need to contact your patient to send a valid invitation again.",

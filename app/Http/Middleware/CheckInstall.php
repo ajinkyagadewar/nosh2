@@ -42,7 +42,7 @@ class CheckInstall
         }
 
         // Check if Google file for sending email via Gmail exists
-        $google_file = base_path() . '/.google';
+        $google_file = base_path() . '/public/.google';
         if (!file_exists($google_file)) {
             return redirect()->route('google_start');
         }

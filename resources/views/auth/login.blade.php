@@ -399,10 +399,10 @@
 
 	// Uport
 	const Connect = window.uportconnect.Connect;
-	const appName = 'nosh';
+	const appName = 'DrJio Care';
 	const connect = new Connect(appName, {
-		'clientId': '2oyVF8cuGih6VQy7LseeXjaXHHFNzzoqBTk',
-		'signer': window.uportconnect.SimpleSigner('82de57b7883af687b673f7c6521e143d28e02d00ba39aed237beac97f2a96f2e'),
+		'clientId': '2odTk7dvtBULnVAuNYEUnBmRYTT9yKwTKNG',
+		'signer': window.uportconnect.SimpleSigner('a23751dd85e52abd2d3564d806a2d50cdd12d3f931a09c5a69ea62a7119a2af2'),
 		'network': 'rinkeby'
 	});
 	const web3 = connect.getWeb3();

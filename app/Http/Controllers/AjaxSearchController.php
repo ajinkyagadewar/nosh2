@@ -1646,7 +1646,7 @@ class AjaxSearchController extends Controller {
 
     public function md_nosh_providers(Request $request)
     {
-        $url = 'http://noshchartingsystem.com/oidc/providersearch?term=' . $request->input('term');
+        $url = 'https://hie.drjio.com/providersearch?term=' . $request->input('term');
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url);
         curl_setopt($ch, CURLOPT_HEADER, 0);

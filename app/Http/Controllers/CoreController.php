@@ -212,11 +212,11 @@ class CoreController extends Controller
         		$register_data = json_decode(json_encode($patient), true);
         		$register_data['api_key'] = $api_key;
         		$register_data['url'] = URL::to('/');
-        		$pos = stripos($request->input('practice_url'), 'cloud.noshchartingsystem.com');
+        		$pos = stripos($request->input('practice_url'), 'care.drjio.com');
         		if ($pos !== false) {
         			$url_explode = explode('/', $request->input('practice_url'));
-        			$url = 'https://cloud.noshchartingsystem.com/nosh/api_check/' . $url_explode[5];
-        			$url1 = 'https://cloud.noshchartingsystem.com/nosh/api_register';
+        			$url = 'https://care.drjio.com/api_check/' . $url_explode[5];
+        			$url1 = 'https://care.drjio.com/api_register';
         			$register_data['practicehandle'] = $url_explode[5];
         		} else {
         			$url = $request->input('practice_url') . '/api_check/0';
@@ -267,7 +267,7 @@ class CoreController extends Controller
         			$message = 'Practice added with mdNOSH integration.';
         			$message .= '  Response from server: ' . $result['status'];
         		}
-    		    //$this->send_mail('emails.apiregister', $data_message, 'NOSH ChartingSystem API Registration', $request->input('email'), '1');
+    		    //$this->send_mail('emails.apiregister', $data_message, 'DrJio Care System API Registration', $request->input('email'), '1');
             } else {
                 $data3['practice_api_url'] = 'nosync';
                 DB::table('practiceinfo')->where('practice_id', '=', $practice_id)->update($data);
@@ -756,8 +756,8 @@ class CoreController extends Controller
                     $data['password'] = $this->gen_secret();
                     $data['created_at'] = date('Y-m-d H:i:s');
                     $url = URL::to('accept_invitation') . '/' . $data['password'];
-                    $email['message_data'] = 'You are invited to use the NOSH ChartingSystem for ' . $practice->practice_name . '.<br>Go to ' . $url . ' to get registered.';
-                    $this->send_mail('auth.emails.generic', $email, 'Invitation to NOSH ChartingSystem', $data['email'], Session::get('practice_id'));
+                    $email['message_data'] = 'You are invited to use the DrJio Care System for ' . $practice->practice_name . '.<br>Go to ' . $url . ' to get registered.';
+                    $this->send_mail('auth.emails.generic', $email, 'Invitation to DrJio Care System', $data['email'], Session::get('practice_id'));
                 }
                 $data['displayname'] = $data['firstname'] . " " . $data['lastname'];
                 if ($data['title'] !== ''){
@@ -1566,7 +1566,7 @@ class CoreController extends Controller
 
     public function dashboard(Request $request)
     {
-        $data['title'] = 'NOSH ChartingSystem';
+        $data['title'] = 'DrJio Care System';
         $user_id = Session::get('user_id');
         if (Session::get('group_id') == '100') {
             $row = DB::table('demographics_relate')->where('id', '=', $user_id)->first();
@@ -5134,7 +5134,7 @@ class CoreController extends Controller
         $data2['message_data'] = 'This message is to notify you that you have reset your password with mdNOSH Gateway.<br>';
         $data2['message_data'] .= 'To finish this process, please click on the following link or point your web browser to:<br>';
         $data2['message_data'] .= $url;
-        $this->send_mail('auth.emails.generic', $data2, 'Reset password to NOSH ChartingSystem', $query->email, $query->practice_id);
+        $this->send_mail('auth.emails.generic', $data2, 'Reset password to DrJio Care System', $query->email, $query->practice_id);
         Session::put('message_action', 'Password reset.  Check your email for further instructions');
         return redirect(Session::get('last_page'));
     }
@@ -5624,7 +5624,7 @@ class CoreController extends Controller
             Session::put('provider_id', $provider_id);
         }
         // Just show provider selector
-        $data['title'] = 'NOSH ChartingSystem';
+        $data['title'] = 'DrJio Care System';
         if (Session::has('pid')) {
             $data = array_merge($data, $this->sidebar_build('chart'));
         }
@@ -7489,7 +7489,7 @@ class CoreController extends Controller
             }
         }
         // Get AAT
-        $url_array = array('/nosh/oidc','/nosh/fhir/oidc');
+        $url_array = array('/oidc','/fhir/oidc');
         $as_uri = Session::get('uma_uri');
         $client_id = Session::get('uma_client_id');
         $client_secret = Session::get('uma_client_secret');
@@ -7497,7 +7497,7 @@ class CoreController extends Controller
         $oidc->requestAAT();
         Session::put('uma_aat', $oidc->getAccessToken());
         // Get permission ticket
-        $urlinit = $as_uri . '/nosh/fhir/' . Session::get('type') . '?subject:Patient=1';
+        $urlinit = $as_uri . '/fhir/' . Session::get('type') . '?subject:Patient=1';
         $result = $this->fhir_request($urlinit,true);
         if (isset($result['error'])) {
             // error - return something
@@ -7589,7 +7589,7 @@ class CoreController extends Controller
             $rpt = Session::get('rpt');
         }
         // Contact pNOSH again, now with RPT
-        $urlinit = $as_uri . '/nosh/fhir/' . Session::get('type') . '?subject:Patient=1';
+        $urlinit = $as_uri . '/fhir/' . Session::get('type') . '?subject:Patient=1';
         $result3 = $this->fhir_request($urlinit,false,$rpt);
         if (isset($result3['ticket'])) {
             // New permission ticket issued, expire rpt session
@@ -7667,7 +7667,7 @@ class CoreController extends Controller
                         $data['panel_header'] = 'Add Patient';
                         $data['content'] .= '<li class="list-group-item">' . $entry['resource']['text']['div'];
                         // Preview medication list
-                        $urlinit1 = $as_uri . '/nosh/fhir/MedicationStatement?subject:Patient=1';
+                        $urlinit1 = $as_uri . '/fhir/MedicationStatement?subject:Patient=1';
                         $result4 = $this->fhir_request($urlinit1,false,$rpt);
                         if (isset($result4['total'])) {
                             if ($result4['total'] != '0') {
@@ -7762,7 +7762,7 @@ class CoreController extends Controller
                     $dob = date('m/d/Y', strtotime($row->DOB));
                     $arr['label'] = $row->lastname . ', ' . $row->firstname . ' (DOB: ' . $dob . ') (ID: ' . $row->pid . ')';
                     $arr['view'] = route('uma_resources', [$row->pid]);
-                    $arr['jump'] = $row->hieofone_as_url . '/nosh/uma_auth';
+                    $arr['jump'] = $row->hieofone_as_url . '/uma_auth';
                     $list_array[] = $arr;
                 }
                 $data['content'] .= $this->result_build($list_array, 'fhir_list');
@@ -7794,7 +7794,7 @@ class CoreController extends Controller
         $data['panel_dropdown'] = $this->dropdown_build($dropdown_array);
         // Look for pNOSH link through registered client to mdNOSH Gateway
         $data['content'] = '<div class="list-group">';
-        $data['content'] .= '<a href="' . $patient->hieofone_as_url . '/nosh/uma_auth" target="_blank" class="list-group-item"><span style="margin:10px;">Patient Centered Health Record (pNOSH) for ' . $client->hieofone_as_name . '</span><span class="label label-success">Patient Centered Health Record</span></a>';
+        $data['content'] .= '<a href="' . $patient->hieofone_as_url . '/uma_auth" target="_blank" class="list-group-item"><span style="margin:10px;">Patient Centered Health Record (pNOSH) for ' . $client->hieofone_as_name . '</span><span class="label label-success">Patient Centered Health Record</span></a>';
         $data['content'] .= '<a href="' . route('uma_resource_view', ['Condition']) . '" class="list-group-item"><i class="fa fa-bars fa-fw"></i><span style="margin:10px;">Conditions</span></a>';
         $data['content'] .= '<a href="' . route('uma_resource_view', ['MedicationStatement']) . '" class="list-group-item"><i class="fa fa-eyedropper fa-fw"></i><span style="margin:10px;">Medication List</span></a>';
         $data['content'] .= '<a href="' . route('uma_resource_view', ['AllergyIntolerance']) . '" class="list-group-item"><i class="fa fa-exclamation-triangle fa-fw"></i><span style="margin:10px;">Allergy List</span></a>';
@@ -7902,7 +7902,7 @@ class CoreController extends Controller
             foreach ($result as $row) {
                 $arr = [];
                 $arr['label'] = '<b>' . $row->displayname . '</b> - ' . $row->username;
-                $google = File::get(base_path() . "/.google");
+                $google = File::get(base_path() . "/public/.google");
                 if ($google == '') {
                     if ($row->secret_question == null) {
                         $arr['label'] .= '<br><a href="' . route('accept_invitation', [$row->password]) . '" target="_blank">' . route('accept_invitation', [$row->password]) . '</a>';

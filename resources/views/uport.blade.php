@@ -57,14 +57,14 @@
 <script type="text/javascript">
     const Connect = window.uportconnect.Connect;
     const Mnid = window.mnid;
-	const appName = 'nosh';
-    const connect = new Connect(appName, {'clientId': '2oyVF8cuGih6VQy7LseeXjaXHHFNzzoqBTk'});
+	const appName = 'DrJio Care';
+    const connect = new Connect(appName, {'clientId': '2odTk7dvtBULnVAuNYEUnBmRYTT9yKwTKNG'});
     // const connect = new Connect(appName, {'clientId': '0xe56550b7b094b37e722082ccfe13b0c5b4e441df'});
 	const web3 = connect.getWeb3();
 	const globalState = {
 		uportId: "{!! $uport_id !!}",
 		txHash: "",
-		sendToAddr: "0x7d86a87178d28f805716828837D1677Fb7aF6Ff7", //back to B9 testnet faucet
+		sendToAddr: "0x049bdac0ed78b5e81d3fe3096adcabf734e1e6271e08d20c6be7b7ec88a4cf798cb36203d311ba914f518838e610dab022a451e7272a3a4ddd0f3056e0acc3a78a", //back to B9 testnet faucet
 		sendToVal: "1"
 	};
     const value = parseFloat(globalState.sendToVal) * 1.0e18;

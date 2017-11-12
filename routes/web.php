@@ -236,8 +236,8 @@ Route::any('t_message_view/{t_messages_id}', ['as' => 't_message_view', 'uses' =
 Route::post('test_reminder', ['as' => 'test_reminder', 'uses' => 'AjaxChartController@test_reminder']);
 Route::get('treedata', ['as' => 'treedata', 'uses' => 'ChartController@treedata']);
 Route::any('uma_invite', ['as' => 'uma_invite', 'uses' => 'ChartController@uma_invite']);
-Route::any('uma_register', ['as' => 'uma_register', 'uses' => 'CoreController@uma_register']);
-Route::any('uma_register_auth', ['as' => 'uma_register_auth', 'uses' => 'CoreController@uma_register_auth']);
+Route::any('uma_register', ['as' => 'uma_register', 'uses' => 'ChartController@uma_register']);
+Route::any('uma_register_auth', ['as' => 'uma_register_auth', 'uses' => 'ChartController@uma_register_auth']);
 Route::any('upload_ccda', ['as' => 'upload_ccda', 'uses' => 'ChartController@upload_ccda']);
 Route::get('upload_ccda_view/{id}/{type}', ['as' => 'upload_ccda_view', 'uses' => 'ChartController@upload_ccda_view']);
 Route::any('upload_ccr', ['as' => 'upload_ccr', 'uses' => 'ChartController@upload_ccr']);

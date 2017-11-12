@@ -21,6 +21,8 @@ class Fhir
     {
         $payload = $request->header('Authorization');
         $open_id_url = str_replace('/nosh', '', URL::to('/'));
+       # $open_id_url = "https://hie.drjio.com/";
+        
         $practice = DB::table('practiceinfo')->where('practice_id', '=', '1')->first();
         $client_id = $practice->uma_client_id;
         $client_secret = $practice->uma_client_secret;

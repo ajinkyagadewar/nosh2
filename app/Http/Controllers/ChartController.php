@@ -768,7 +768,7 @@ class ChartController extends Controller {
                 $grade_d = '<div class="alert alert-danger"><h5>Grade D</h5><p>Discourage the use of this service:</p><ul>';
                 $grade_i = '<div class="alert alert-info"><h5>Grade I</h5><p>Read the clinical considerations section of USPSTF Recommendation Statement. If the service is offered, patients should understand the uncertainty about the balance of benefits and harms:</p><ul>';
                  foreach ($epss['specificRecommendations'] as $rec) {
-                    $rec_text = '<li>' . $rec['title'] . rtrim($rec['text']) . ', Grade: ' . $rec['grade'] .'</li>';
+                    $rec_text = '<li>' . $rec['title'] . rtrim($rec['text']) .'</li>';
                     if ($rec['grade'] == 'A' || $rec['grade'] == 'B') {
                         $grade_ab .= $rec_text;
                     }
@@ -5126,7 +5126,7 @@ class ChartController extends Controller {
             }
         }
         // Get AAT
-        $url_array = ['/nosh/oidc','/nosh/fhir/oidc'];
+        $url_array = ['/oidc','/fhir/oidc'];
         $as_uri = Session::get('uma_uri');
         $client_id = Session::get('uma_client_id');
         $client_secret = Session::get('uma_client_secret');
@@ -5134,7 +5134,7 @@ class ChartController extends Controller {
         $oidc->requestAAT();
         Session::put('uma_aat', $oidc->getAccessToken());
         // Get permission ticket
-        $urlinit = $as_uri . '/nosh/fhir/' . Session::get('type') . '?subject:Patient=1';
+        $urlinit = $as_uri . '/fhir/' . Session::get('type') . '?subject:Patient=1';
         $result = $this->fhir_request($urlinit,true);
         if (isset($result['error'])) {
             // error - return something
@@ -5184,7 +5184,7 @@ class ChartController extends Controller {
             $rpt = Session::get('rpt');
         }
         // Contact pNOSH again, now with RPT
-        $urlinit = $as_uri . '/nosh/fhir/' . Session::get('type') . '?subject:Patient=1';
+        $urlinit = $as_uri . '/fhir/' . Session::get('type') . '?subject:Patient=1';
         $result3 = $this->fhir_request($urlinit,false,$rpt);
         if (isset($result3['ticket'])) {
             // New permission ticket issued, expire rpt session
@@ -5218,7 +5218,7 @@ class ChartController extends Controller {
                     if ($request->session()->get('type') == 'Patient' && $request->session()->get('hnosh') == 'true') {
                         $data['title'] = $title_array[$request->session()->get('type')];
                         $data['content'] .= '<li class="list-group-item">' . $entry['resource']['text']['div'];
-                        $urlinit1 = $as_uri . '/nosh/fhir/MedicationStatement?subject:Patient=1';
+                        $urlinit1 = $as_uri . '/fhir/MedicationStatement?subject:Patient=1';
                         $result4 = $this->fhir_request($urlinit1,false,$rpt);
                         if (isset($result4['total'])) {
                             if ($result4['total'] != '0') {

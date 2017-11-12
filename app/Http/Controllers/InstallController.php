@@ -65,11 +65,11 @@ class InstallController extends Controller {
                 Session::put('message_action', 'Error - This is not a json file.  Try again');
                 return redirect()->route('google_start');
             }
-            $config_file = base_path() . '/.google';
+            $config_file = base_path() . '/public/.google';
             if (file_exists($config_file)) {
                 unlink($config_file);
             }
-            $directory = base_path();
+            $directory = base_path().'/public/';
             $new_name = ".google";
             $file->move($directory, $new_name);
             Session::put('message_action', 'Google JSON file uploaded successfully');
@@ -87,14 +87,18 @@ class InstallController extends Controller {
             $data['document_upload'] = route('google_start');
             $type_arr = ['json'];
             $data['document_type'] = json_encode($type_arr);
-            $text = "<p>You're' here because you have not installed a Google OAuth2 Client ID file.  You'll need to set this up first before configuring NOSH Charting System.'</p>";
+            $text = "<p>You're' here because you have not installed a Google OAuth2 Client ID file.  "
+                    . "You'll need to set this up first before configuring DrJio Care System.'</p>";
             if ($query) {
                 $dropdown_array['default_button_text'] = '<i class="fa fa-chevron-left fa-fw fa-btn"></i>Back';
                 $dropdown_array['default_button_text_url'] = route('dashboard');
                 $data['panel_dropdown'] = $this->dropdown_build($dropdown_array);
                 $text = "<p>A Google OAuth2 Client ID file is already installed.  Uploading a new file will overwrite the existing file!</p>";
             }
-            $data['content'] = '<div class="alert alert-success">' . $text . '<ul><li>Instructions are on ' . HTML::link('https://github.com/shihjay2/nosh-in-a-box/wiki/How-to-get-Gmail-to-work-with-NOSH', 'this Wiki page.', ['target'=>'_blank']) . ' Please refer to it carefully.</li><li>Once you have you JSON file, upload it here.</li></ul></div>';
+            $data['content'] = '<div class="alert alert-success">' . $text 
+                    . '<ul><li>Please refer Google developers area ' 
+                    . HTML::link('https://console.developers.google.com', 'this link.'
+                            , ['target'=>'_blank']) . ' Please refer to it carefully.</li><li>Once you have you JSON file, upload it here.</li></ul></div>';
             $data['assets_js'] = $this->assets_js('document_upload');
             $data['assets_css'] = $this->assets_css('document_upload');
             return view('document_upload', $data);
@@ -284,7 +288,7 @@ class InstallController extends Controller {
             Session::put('patient_centric', $data2['patient_centric']);
             return redirect()->route('dashboard');
         } else {
-            $data['panel_header'] = 'NOSH ChartingSystem Installation';
+            $data['panel_header'] = 'DrJio Care System Installation';
             $items[] = [
                 'name' => 'username',
                 'label' => 'Administrator Username',
@@ -419,9 +423,9 @@ class InstallController extends Controller {
                     'default_value' => null
                 ];
             }
-            $documents_dir = '/noshdocuments/';
-            if (file_exists(base_path() . '/.noshdir')) {
-                $documents_dir = trim(File::get(base_path() . '/.noshdir'));
+            $documents_dir = '/home/ubuntu/caredocuments/';
+            if (file_exists(base_path() . '/.caredir')) {
+                $documents_dir = trim(File::get(base_path() . '/.caredir'));
             }
             $items[] = [
                 'name' => 'documents_dir',
@@ -443,7 +447,7 @@ class InstallController extends Controller {
                 'items' => $items,
                 'save_button_label' => 'Install'
             ];
-            $data['content'] = '<p>Please fill out the entries to complete the installation of NOSH ChartingSystem.</p><p>You will need to establish a Google Gmail account to be able to send e-mail from the system for patient appointment reminders, non-Protected Health Information messages, and faxes.</p>';
+            $data['content'] = '<p>Please fill out the entries to complete the installation of DrJio Care System.</p><p>You will need to establish a Google Gmail account to be able to send e-mail from the system for patient appointment reminders, non-Protected Health Information messages, and faxes.</p>';
             $data['content'] .= $this->form_build($form_array);
             $data['assets_js'] = $this->assets_js();
             $data['assets_css'] = $this->assets_css();

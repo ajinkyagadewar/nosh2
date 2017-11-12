@@ -7,7 +7,6 @@ use Illuminate\Routing\Controller as BaseController;
 use Illuminate\Foundation\Validation\ValidatesRequests;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Foundation\Auth\Access\AuthorizesResources;
-
 use App\Libraries\OpenIDConnectClient;
 use App\Libraries\Phaxio;
 use Config;
@@ -31,12 +30,13 @@ use Swift_SmtpTransport;
 use Session;
 use SoapBox\Formatter\Formatter;
 use URL;
-
 use Exception;
 
-class Controller extends BaseController
-{
-    use AuthorizesRequests, DispatchesJobs, ValidatesRequests;
+class Controller extends BaseController {
+
+    use AuthorizesRequests,
+        DispatchesJobs,
+        ValidatesRequests;
 
     // ACL filters
     // 1 = Providers, Assistants, Billers
@@ -47,8 +47,7 @@ class Controller extends BaseController
     // 6 = Admin + Patient Centric Providers
     // 7 = Providers, Assistants, Patient
     // 8 = Providers, Assistanats, Admin
-    protected function access_level($type)
-    {
+    protected function access_level($type) {
         if ($type == '1') {
             if (Session::get('group_id') == '2' || Session::get('group_id') == '3' || Session::get('group_id') == '4') {
                 return true;
@@ -94,8 +93,7 @@ class Controller extends BaseController
         return false;
     }
 
-    protected function actions_build($table, $index, $id, $column='actions')
-    {
+    protected function actions_build($table, $index, $id, $column = 'actions') {
         $return = '';
         $query = DB::table($table)->where($index, '=', $id)->first();
         if ($query) {
@@ -104,7 +102,7 @@ class Controller extends BaseController
                     $formatter = Formatter::make($query->{$column}, Formatter::YAML);
                     $arr = $formatter->toArray();
                     $list_array = [];
-                    foreach ($arr as $k=>$v) {
+                    foreach ($arr as $k => $v) {
                         if ($column == 'proc_description') {
                             $arr['label'] = '<b>' . $v['timestamp'] . ':</b> ' . $v['type'];
                         } else {
@@ -122,8 +120,7 @@ class Controller extends BaseController
         return $return;
     }
 
-    protected function add_closed($repeat_start, $repeat_end, $end, $day, $events)
-    {
+    protected function add_closed($repeat_start, $repeat_end, $end, $day, $events) {
         while ($repeat_start <= $end) {
             $events[] = [
                 'id' => $day,
@@ -142,32 +139,28 @@ class Controller extends BaseController
         return $events;
     }
 
-    protected function add_closed1($day, $minTime, $day2, $events, $start, $end)
-    {
+    protected function add_closed1($day, $minTime, $day2, $events, $start, $end) {
         $repeat_start = strtotime('this ' . $day . ' ' . $minTime, $start);
         $repeat_end = strtotime('this ' . $day . ' ' . $day2, $start);
         $events = $this->add_closed($repeat_start, $repeat_end, $end, $day, $events);
         return $events;
     }
 
-    protected function add_closed2($day, $maxTime, $day2, $events, $start, $end)
-    {
+    protected function add_closed2($day, $maxTime, $day2, $events, $start, $end) {
         $repeat_start = strtotime('this ' . $day . ' ' . $day2, $start);
         $repeat_end = strtotime('this ' . $day . ' ' . $maxTime, $start);
         $events = $this->add_closed($repeat_start, $repeat_end, $end, $day, $events);
         return $events;
     }
 
-    protected function add_closed3($day, $minTime, $maxTime, $events, $start, $end)
-    {
+    protected function add_closed3($day, $minTime, $maxTime, $events, $start, $end) {
         $repeat_start = strtotime('this ' . $day . ' ' . $minTime, $start);
         $repeat_end = strtotime('this ' . $day . ' ' . $maxTime, $start);
         $events = $this->add_closed($repeat_start, $repeat_end, $end, $day, $events);
         return $events;
     }
 
-    protected function add_mtm_alert($pid, $type)
-    {
+    protected function add_mtm_alert($pid, $type) {
         $practice_id = Session::get('practice_id');
         if ($type == 'issues') {
             $query = DB::table('issues')->where('pid', '=', $pid)->where('issue_date_inactive', '=', '0000-00-00 00:00:00')->first();
@@ -175,14 +168,14 @@ class Controller extends BaseController
         if ($type == 'medications') {
             $query = DB::table('rx_list')->where('pid', '=', $pid)->where('rxl_date_inactive', '=', '0000-00-00 00:00:00')->where('rxl_date_old', '=', '0000-00-00 00:00:00')->first();
         }
-        if($query) {
+        if ($query) {
             $query1 = DB::table('alerts')
-                ->where('pid', '=', $pid)
-                ->where('alert_date_complete', '=', '0000-00-00 00:00:00')
-                ->where('alert_reason_not_complete', '=', '')
-                ->where('alert', '=', 'Medication Therapy Management')
-                ->where('practice_id', '=', $practice_id)
-                ->first();
+                    ->where('pid', '=', $pid)
+                    ->where('alert_date_complete', '=', '0000-00-00 00:00:00')
+                    ->where('alert_reason_not_complete', '=', '')
+                    ->where('alert', '=', 'Medication Therapy Management')
+                    ->where('practice_id', '=', $practice_id)
+                    ->first();
             if (!$query1) {
                 $data = [
                     'alert' => 'Medication Therapy Management',
@@ -200,34 +193,32 @@ class Controller extends BaseController
         return true;
     }
 
-    protected function age_calc($num, $type)
-    {
+    protected function age_calc($num, $type) {
         if ($type == 'year') {
-            $a = 31556926*$num;
+            $a = 31556926 * $num;
         }
         if ($type == 'month') {
-            $a = 2629743*$num;
+            $a = 2629743 * $num;
         }
         $b = time() - $a;
         return $b;
     }
 
-    protected function alert_message_send()
-    {
+    protected function alert_message_send() {
         $i = 0;
         $query = DB::table('alerts')
-            ->where('alert_send_message', '=', 'y')
-            ->where('alert_date_complete', '=', '0000-00-00 00:00:00')
-            ->where('alert_reason_not_complete', '=', '')
-            ->where('alert_date_active', '<=', date('Y-m-d H:i:s', time() + 604800))
-            ->get();
+                ->where('alert_send_message', '=', 'y')
+                ->where('alert_date_complete', '=', '0000-00-00 00:00:00')
+                ->where('alert_reason_not_complete', '=', '')
+                ->where('alert_date_active', '<=', date('Y-m-d H:i:s', time() + 604800))
+                ->get();
         if ($query) {
             foreach ($query as $alert) {
                 $row = DB::table('demographics')->where('pid', '=', $alert->pid)->first();
                 $row_relate = DB::table('demographics_relate')
-                    ->where('pid', '=', $alert->pid)
-                    ->where('practice_id', '=', $alert->practice_id)
-                    ->first();
+                        ->where('pid', '=', $alert->pid)
+                        ->where('practice_id', '=', $alert->practice_id)
+                        ->first();
                 $practice = DB::table('practiceinfo')->where('practice_id', '=', $alert->practice_id)->first();
                 $from = $alert->alert_provider;
                 $patient_name = $row->lastname . ', ' . $row->firstname . ' (DOB: ' . date('m/d/Y', strtotime($row->DOB)) . ') (ID: ' . $row->pid . ')';
@@ -274,67 +265,65 @@ class Controller extends BaseController
         return $i;
     }
 
-    protected function api_data($action, $table, $primary, $id)
-	{
-		$check = DB::table('demographics_relate')->where('pid', '=', Session::get('pid'))->whereNotNull('api_key')->first();
-		if ($check) {
-			$row = DB::table($table)->where($primary, '=', $id)->first();
+    protected function api_data($action, $table, $primary, $id) {
+        $check = DB::table('demographics_relate')->where('pid', '=', Session::get('pid'))->whereNotNull('api_key')->first();
+        if ($check) {
+            $row = DB::table($table)->where($primary, '=', $id)->first();
             $row_data = json_decode(json_encode($row), true);
-			unset($row_data[$primary]);
-			$remote_id = '0';
-			$proceed = true;
-			if ($action == 'update' || $action == 'delete') {
-				$check1 = DB::table('api_queue')
-					->where('table', '=', $table)
-					->where('local_id', '=', $id)
-					->where('remote_id', '!=', '0')
-					->where('action', '!=', 'delete')
-					->first();
-				if ($check1) {
-					$remote_id = $check1->remote_id;
-				} else {
-					if ($action == 'delete') {
-						$action = 'add';
-					} else {
-						$proceed = false;
-					}
-				}
-			}
-			$json_data = [
-				'api_key' => $check->api_key,
-				'table' => $table,
-				'primary' => $primary,
-				'remote_id' => $remote_id,
-				'action' => $action,
-				'data' => $row_data
-			];
-			$json = serialize(json_encode($json_data));
-			$practice = DB::table('practiceinfo')->where('practice_id', '=', Session::get('practice_id'))->first();
-			$login_data = [
-				'api_key' => $check->api_key,
-				'npi' => $practice->npi
-			];
-			$login = serialize(json_encode($login_data));
-			$data = [
-				'table' => $table,
-				'primary' => $primary,
-				'local_id' => $id,
-				'remote_id' => $remote_id,
-				'action' => $action,
-				'json' => $json,
-				'login' => $login,
-				'url' => $check->url,
-				'api_key' => $check->api_key
-			];
-			if ($proceed == true) {
-				DB::table('api_queue')->insert($data);
-				$this->audit('Add');
-			}
-		}
-	}
+            unset($row_data[$primary]);
+            $remote_id = '0';
+            $proceed = true;
+            if ($action == 'update' || $action == 'delete') {
+                $check1 = DB::table('api_queue')
+                        ->where('table', '=', $table)
+                        ->where('local_id', '=', $id)
+                        ->where('remote_id', '!=', '0')
+                        ->where('action', '!=', 'delete')
+                        ->first();
+                if ($check1) {
+                    $remote_id = $check1->remote_id;
+                } else {
+                    if ($action == 'delete') {
+                        $action = 'add';
+                    } else {
+                        $proceed = false;
+                    }
+                }
+            }
+            $json_data = [
+                'api_key' => $check->api_key,
+                'table' => $table,
+                'primary' => $primary,
+                'remote_id' => $remote_id,
+                'action' => $action,
+                'data' => $row_data
+            ];
+            $json = serialize(json_encode($json_data));
+            $practice = DB::table('practiceinfo')->where('practice_id', '=', Session::get('practice_id'))->first();
+            $login_data = [
+                'api_key' => $check->api_key,
+                'npi' => $practice->npi
+            ];
+            $login = serialize(json_encode($login_data));
+            $data = [
+                'table' => $table,
+                'primary' => $primary,
+                'local_id' => $id,
+                'remote_id' => $remote_id,
+                'action' => $action,
+                'json' => $json,
+                'login' => $login,
+                'url' => $check->url,
+                'api_key' => $check->api_key
+            ];
+            if ($proceed == true) {
+                DB::table('api_queue')->insert($data);
+                $this->audit('Add');
+            }
+        }
+    }
 
-    protected function api_data_send($url, $data, $username, $password)
-    {
+    protected function api_data_send($url, $data, $username, $password) {
         if (is_array($data)) {
             $data_string = json_encode($data);
         } else {
@@ -353,7 +342,7 @@ class Controller extends BaseController
         );
         $result = curl_exec($ch);
         $result_arr = json_decode($result, true);
-        if(curl_errno($ch)){
+        if (curl_errno($ch)) {
             $result_arr['url_error'] = 'Error:' . curl_error($ch);
         } else {
             $result_arr['url_error'] = '';
@@ -362,8 +351,7 @@ class Controller extends BaseController
         return $result_arr;
     }
 
-    protected function api_process()
-    {
+    protected function api_process() {
         $i = 0;
         $apis = DB::table('api_queue')->where('success', '=', 'n')->get();
         foreach ($apis as $api) {
@@ -409,8 +397,7 @@ class Controller extends BaseController
         }
     }
 
-    protected function appointment_reminder($practice_id)
-    {
+    protected function appointment_reminder($practice_id) {
         $practice = DB::table('practiceinfo')->where('practice_id', '=', $practice_id)->first();
         if ($practice->timezone != null) {
             date_default_timezone_set($practice->timezone);
@@ -418,13 +405,13 @@ class Controller extends BaseController
         $date = date('Y-m-d');
         $i = 0;
         $query = DB::table('demographics')
-            ->join('demographics_relate', 'demographics_relate.pid', '=', 'demographics.pid')
-            ->select('demographics.firstname', 'demographics.reminder_to', 'demographics.reminder_method', 'demographics.preferred_provider')
-            ->where('demographics_relate.practice_id', '=', $practice_id)
-            ->where('demographics.active', '=', '1')
-            ->where('demographics.reminder_to', '!=', '')
-            ->where('demographics_relate.appointment_reminder', '=', $date)
-            ->get();
+                ->join('demographics_relate', 'demographics_relate.pid', '=', 'demographics.pid')
+                ->select('demographics.firstname', 'demographics.reminder_to', 'demographics.reminder_method', 'demographics.preferred_provider')
+                ->where('demographics_relate.practice_id', '=', $practice_id)
+                ->where('demographics.active', '=', '1')
+                ->where('demographics.reminder_to', '!=', '')
+                ->where('demographics_relate.appointment_reminder', '=', $date)
+                ->get();
         if ($query) {
             foreach ($query as $row) {
                 $to = $row->reminder_to;
@@ -454,20 +441,19 @@ class Controller extends BaseController
         return $i;
     }
 
-    protected function appointment_screen($practice_id)
-    {
+    protected function appointment_screen($practice_id) {
         $practice = DB::table('practiceinfo')->where('practice_id', '=', $practice_id)->first();
         if ($practice->timezone != null) {
             date_default_timezone_set($practice->timezone);
         }
         $i = 0;
         $query = DB::table('demographics')
-            ->join('demographics_relate', 'demographics_relate.pid', '=', 'demographics.pid')
-            ->select('demographics_relate.appointment_reminder', 'demographics.pid', 'demographics_relate.demographics_relate_id')
-            ->where('demographics_relate.practice_id', '=', $practice_id)
-            ->where('demographics.active', '=', '1')
-            ->where('demographics.reminder_to', '!=', '')
-            ->get();
+                ->join('demographics_relate', 'demographics_relate.pid', '=', 'demographics.pid')
+                ->select('demographics_relate.appointment_reminder', 'demographics.pid', 'demographics_relate.demographics_relate_id')
+                ->where('demographics_relate.practice_id', '=', $practice_id)
+                ->where('demographics.active', '=', '1')
+                ->where('demographics.reminder_to', '!=', '')
+                ->get();
         if ($query) {
             foreach ($query as $row) {
                 $row2 = DB::table('schedule')->where('pid', '=', $row->pid)->where('start', '>', time())->first();
@@ -489,8 +475,7 @@ class Controller extends BaseController
         return $i;
     }
 
-    protected function array_assessment()
-    {
+    protected function array_assessment() {
         $return = [
             'assessment_other' => [
                 'standardmtm' => 'SOAP Note',
@@ -508,14 +493,13 @@ class Controller extends BaseController
         return $return;
     }
 
-    protected function array_assessment_billing($eid)
-    {
+    protected function array_assessment_billing($eid) {
         $data = DB::table('assessment')->where('eid', '=', $eid)->first();
         $return = [];
         // $return[''] = 'Choose Assessment';
         if ($data) {
             $a = 'A';
-            for ($i=1; $i<=12; $i++) {
+            for ($i = 1; $i <= 12; $i++) {
                 $col = 'assessment_' . $i;
                 if ($data->{$col} !== '' && $data->{$col} !== null) {
                     $return[$a] = $a . ' - ' . $data->{$col};
@@ -526,8 +510,7 @@ class Controller extends BaseController
         return $return;
     }
 
-    protected function array_color()
-    {
+    protected function array_color() {
         $return = [
             'colorblue' => 'Blue',
             'colorred' => 'Red',
@@ -540,8 +523,7 @@ class Controller extends BaseController
         return $return;
     }
 
-    protected function array_duration()
-    {
+    protected function array_duration() {
         $return = [
             '900' => '15 minutes',
             '1200' => '20 minutes',
@@ -559,8 +541,7 @@ class Controller extends BaseController
         return $return;
     }
 
-    protected function array_encounter_type()
-    {
+    protected function array_encounter_type() {
         $return = [
             'medical' => 'Medical Encounter',
             'phone' => 'Phone Encounter',
@@ -575,8 +556,7 @@ class Controller extends BaseController
         return $return;
     }
 
-    protected function array_ethnicity()
-    {
+    protected function array_ethnicity() {
         $ethnicity = [
             '' => '',
             'Hispanic or Latino' => '2135-2',
@@ -585,8 +565,7 @@ class Controller extends BaseController
         return $ethnicity;
     }
 
-    protected function array_gender()
-    {
+    protected function array_gender() {
         $gender = [
             'm' => 'Male',
             'f' => 'Female',
@@ -595,8 +574,7 @@ class Controller extends BaseController
         return $gender;
     }
 
-    protected function array_gender1()
-    {
+    protected function array_gender1() {
         $gender = [
             'Male' => 'Male',
             'Female' => 'Female',
@@ -605,8 +583,7 @@ class Controller extends BaseController
         return $gender;
     }
 
-    protected function array_gender2()
-    {
+    protected function array_gender2() {
         $gender = [
             'm' => 'M',
             'f' => 'F',
@@ -615,8 +592,7 @@ class Controller extends BaseController
         return $gender;
     }
 
-    protected function array_gc()
-    {
+    protected function array_gc() {
         $return = [
             'weight-age' => [
                 'f' => 'wfa_girls_p_exp.txt',
@@ -646,8 +622,7 @@ class Controller extends BaseController
         return $return;
     }
 
-    protected function array_groups()
-    {
+    protected function array_groups() {
         $user_arr = [
             '2' => 'Physician',
             '3' => 'Assistant',
@@ -657,8 +632,7 @@ class Controller extends BaseController
         return $user_arr;
     }
 
-    protected function array_insurance_active()
-    {
+    protected function array_insurance_active() {
         $return['Bill Client'] = 'Bill Client';
         $query = DB::table('insurance')->where('pid', '=', Session::get('pid'))->orderBy('insurance_order', 'asc')->where('insurance_plan_active', '=', 'Yes')->get();
         if ($query->count()) {
@@ -679,8 +653,7 @@ class Controller extends BaseController
         return $return;
     }
 
-    protected function array_labs()
-    {
+    protected function array_labs() {
         $ua = [
             'labs_ua_urobili' => 'Urobilinogen',
             'labs_ua_bilirubin' => 'Bilirubin',
@@ -693,7 +666,7 @@ class Controller extends BaseController
             'labs_ua_ph' => 'pH',
             'labs_ua_spgr' => 'Specific Gravity',
             'labs_ua_color' => 'Color',
-            'labs_ua_clarity'=> 'Clarity'
+            'labs_ua_clarity' => 'Clarity'
         ];
         $single = [
             'labs_upt' => 'Urine HcG',
@@ -711,8 +684,7 @@ class Controller extends BaseController
         return $return;
     }
 
-    protected function array_marital()
-    {
+    protected function array_marital() {
         $marital = [
             'Single' => 'Single',
             'Married' => 'Married',
@@ -734,8 +706,7 @@ class Controller extends BaseController
         return $marital;
     }
 
-    protected function array_marital1()
-    {
+    protected function array_marital1() {
         $marital = [
             'Single' => 'S',
             'Married' => 'M',
@@ -757,8 +728,7 @@ class Controller extends BaseController
         return $marital;
     }
 
-    protected function array_modifier()
-    {
+    protected function array_modifier() {
         $return = [
             '' => '',
             '25' => '25 - Significant, Separately Identifiable E & M Service.',
@@ -768,8 +738,7 @@ class Controller extends BaseController
         return $return;
     }
 
-    protected function array_oh()
-    {
+    protected function array_oh() {
         $return = [
             'oh_pmh' => 'Past Medical History',
             'oh_psh' => 'Past Surgical History',
@@ -792,8 +761,7 @@ class Controller extends BaseController
         return $return;
     }
 
-    protected function array_orders_provider($type, $specialty='')
-    {
+    protected function array_orders_provider($type, $specialty = '') {
         $return = [];
         $query = DB::table('addressbook');
         if ($type == 'Referral') {
@@ -801,10 +769,10 @@ class Controller extends BaseController
                 $query->where('specialty', '=', $specialty);
             } else {
                 $query->where('specialty', '!=', 'Pharmacy')
-                    ->where('specialty', '!=', 'Laboratory')
-                    ->where('specialty', '!=', 'Radiology')
-                    ->where('specialty', '!=', 'Cardiopulmonary')
-                    ->where('specialty', '!=', 'Insurance');
+                        ->where('specialty', '!=', 'Laboratory')
+                        ->where('specialty', '!=', 'Radiology')
+                        ->where('specialty', '!=', 'Cardiopulmonary')
+                        ->where('specialty', '!=', 'Insurance');
             }
         } else {
             $query->where('specialty', '=', $type);
@@ -825,8 +793,7 @@ class Controller extends BaseController
         return $return;
     }
 
-    protected function array_payment_type()
-    {
+    protected function array_payment_type() {
         $data = [];
         $query = DB::table('billing_core')->where('practice_id', '=', Session::get('practice_id'))->whereNotNull('payment_type')->select('payment_type')->distinct()->orderBy('payment_type', 'asc')->get();
         if ($query->count()) {
@@ -837,8 +804,7 @@ class Controller extends BaseController
         return $data;
     }
 
-    protected function array_payment_year()
-    {
+    protected function array_payment_year() {
         $data = [];
         $query = DB::table('billing_core')->where('practice_id', '=', Session::get('practice_id'))->select('dos_f')->distinct()->get();
         if ($query->count()) {
@@ -855,8 +821,7 @@ class Controller extends BaseController
         return $data;
     }
 
-    protected function array_pe()
-    {
+    protected function array_pe() {
         $return = [
             "pe" => "",
             "pe_gen1" => "General",
@@ -926,8 +891,7 @@ class Controller extends BaseController
         return $return;
     }
 
-    protected function array_plan()
-    {
+    protected function array_plan() {
         $return = [
             'plan' => 'Recommendations',
             'followup' => 'Followup',
@@ -936,11 +900,9 @@ class Controller extends BaseController
             'duration' => 'Counseling and face-to-face time consists of more than 50 percent of the visit.  Total face-to-face time is '
         ];
         return $return;
-
     }
 
-    protected function array_pos()
-    {
+    protected function array_pos() {
         $return = [
             '1' => 'Pharmacy',
             '3' => 'School',
@@ -991,8 +953,7 @@ class Controller extends BaseController
         return $return;
     }
 
-    protected function array_practices($active='')
-    {
+    protected function array_practices($active = '') {
         $query = DB::table('practiceinfo');
         if ($active == 'y') {
             $query->where('active', 'Y');
@@ -1007,8 +968,7 @@ class Controller extends BaseController
         return $return;
     }
 
-    protected function array_procedure()
-    {
+    protected function array_procedure() {
         $return = [
             'proc_type' => 'Procedure',
             'proc_description' => 'Description of Procedure',
@@ -1018,8 +978,7 @@ class Controller extends BaseController
         return $return;
     }
 
-    protected function array_procedure_codes()
-    {
+    protected function array_procedure_codes() {
         $data = [];
         $query = DB::table('billing_core')->where('practice_id', '=', Session::get('practice_id'))->select('cpt')->orderBy('cpt', 'asc')->distinct()->get();
         if ($query->count()) {
@@ -1030,16 +989,15 @@ class Controller extends BaseController
         return $data;
     }
 
-    protected function array_providers()
-    {
+    protected function array_providers() {
         $return = [];
         $query = DB::table('users')
-            ->where('group_id', '=', '2')
-            ->where('practice_id', '=', Session::get('practice_id'))
-            ->where('active', '=', '1')
-            ->select('displayname', 'id')
-            ->distinct()
-            ->get();
+                ->where('group_id', '=', '2')
+                ->where('practice_id', '=', Session::get('practice_id'))
+                ->where('active', '=', '1')
+                ->select('displayname', 'id')
+                ->distinct()
+                ->get();
         if ($query->count()) {
             foreach ($query as $row) {
                 $return[$row->id] = $row->displayname;
@@ -1048,8 +1006,7 @@ class Controller extends BaseController
         return $return;
     }
 
-    protected function array_race()
-    {
+    protected function array_race() {
         $race = [
             '' => '',
             'American Indian or Alaska Native' => '1002-5',
@@ -1061,8 +1018,7 @@ class Controller extends BaseController
         return $race;
     }
 
-    protected function array_reminder_interval()
-    {
+    protected function array_reminder_interval() {
         $method = [
             'Default' => 'Default (48 hours prior)',
             '24' => '24 hours prior',
@@ -1073,8 +1029,7 @@ class Controller extends BaseController
         return $method;
     }
 
-    protected function array_reminder_method()
-    {
+    protected function array_reminder_method() {
         $method = [
             '' => '',
             'Email' => 'Email',
@@ -1083,8 +1038,7 @@ class Controller extends BaseController
         return $method;
     }
 
-    protected function array_ros()
-    {
+    protected function array_ros() {
         $return = [
             'ros' => '',
             'ros_gen' => 'General',
@@ -1116,8 +1070,7 @@ class Controller extends BaseController
         return $return;
     }
 
-    protected function array_route()
-    {
+    protected function array_route() {
         $yaml = File::get(resource_path() . '/routes.yaml');
         $formatter = Formatter::make($yaml, Formatter::YAML);
         $arr = $formatter->toArray();
@@ -1129,8 +1082,7 @@ class Controller extends BaseController
         return $route;
     }
 
-    protected function array_route1()
-    {
+    protected function array_route1() {
         $route = [
             '' => ['', ''],
             'by mouth' => ['C1522409', 'Oropharyngeal Route of Administration'],
@@ -1149,8 +1101,7 @@ class Controller extends BaseController
         return $route;
     }
 
-    protected function array_rx()
-    {
+    protected function array_rx() {
         $return = [
             'rx_rx' => 'Prescriptions Given',
             'rx_supplements' => 'Supplements Recommended',
@@ -1159,18 +1110,17 @@ class Controller extends BaseController
         return $return;
     }
 
-    protected function array_specialty()
-    {
+    protected function array_specialty() {
         $return = [];
         $query = DB::table('addressbook')
-            ->where('specialty', '!=', 'Pharmacy')
-            ->where('specialty', '!=', 'Laboratory')
-            ->where('specialty', '!=', 'Radiology')
-            ->where('specialty', '!=', 'Cardiopulmonary')
-            ->where('specialty', '!=', 'Insurance')
-            ->select('specialty')
-            ->distinct()
-            ->get();
+                ->where('specialty', '!=', 'Pharmacy')
+                ->where('specialty', '!=', 'Laboratory')
+                ->where('specialty', '!=', 'Radiology')
+                ->where('specialty', '!=', 'Cardiopulmonary')
+                ->where('specialty', '!=', 'Insurance')
+                ->select('specialty')
+                ->distinct()
+                ->get();
         if ($query->count()) {
             foreach ($query as $row) {
                 $return[$row->specialty] = $row->specialty;
@@ -1179,80 +1129,57 @@ class Controller extends BaseController
         return $return;
     }
 
-    protected function array_states()
-    {
+    protected function array_states() {
         $states = [
             '' => '',
-            'AL' => 'Alabama',
-            'AK' => 'Alaska',
-            'AS' => 'America Samoa',
-            'AZ' => 'Arizona',
-            'AR' => 'Arkansas',
-            'CA' => 'California',
-            'CO' => 'Colorado',
-            'CT' => 'Connecticut',
-            'DE' => 'Delaware',
-            'DC' => 'District of Columbia',
-            'FM' => 'Federated States of Micronesia',
-            'FL' => 'Florida',
-            'GA' => 'Georgia',
-            'GU' => 'Guam',
-            'HI' => 'Hawaii',
-            'ID' => 'Idaho',
-            'IL' => 'Illinois',
-            'IN' => 'Indiana',
-            'IA' => 'Iowa',
-            'KS' => 'Kansas',
-            'KY' => 'Kentucky',
-            'LA' => 'Louisiana',
-            'ME' => 'Maine',
-            'MH' => 'Marshall Islands',
-            'MD' => 'Maryland',
-            'MA' => 'Massachusetts',
-            'MI' => 'Michigan',
-            'MN' => 'Minnesota',
-            'MS' => 'Mississippi',
-            'MO' => 'Missouri',
-            'MT' => 'Montana',
-            'NE' => 'Nebraska',
-            'NV' => 'Nevada',
-            'NH' => 'New Hampshire',
-            'NJ' => 'New Jersey',
-            'NM' => 'New Mexico',
-            'NY' => 'New York',
-            'NC' => 'North Carolina',
-            'ND' => 'North Dakota',
-            'OH' => 'Ohio',
-            'OK' => 'Oklahoma',
-            'OR' => 'Oregon',
-            'PW' => 'Palau',
-            'PA' => 'Pennsylvania',
-            'PR' => 'Puerto Rico',
-            'RI' => 'Rhode Island',
-            'SC' => 'South Carolina',
-            'SD' => 'South Dakota',
-            'TN' => 'Tennessee',
-            'TX' => 'Texas',
-            'UT' => 'Utah',
-            'VT' => 'Vermont',
-            'VI' => 'Virgin Island',
-            'VA' => 'Virginia',
-            'WA' => 'Washington',
-            'WV' => 'West Virginia',
-            'WI' => 'Wisconsin',
-            'WY' => 'Wyoming'
+            'AP' => 'Andhra Pradesh',
+            'AR' => 'Arunachal Pradesh',
+            'AS' => 'Assam',
+            'BR' => 'Bihar',
+            'CG' => 'Chhattisgarh',
+            'GA' => 'Goa',
+            'GJ' => 'Gujarat',
+            'HR' => 'Haryana',
+            'HP' => 'Himachal Pradesh',
+            'JK' => 'Jammu and Kashmir',
+            'JH' => 'Jharkhand',
+            'KA' => 'Karnataka',
+            'KL' => 'Kerala',
+            'MP' => 'Madhya Pradesh',
+            'MH' => 'Maharashtra',
+            'MN' => 'Manipur',
+            'ML' => 'Meghalaya',
+            'MZ' => 'Mizoram',
+            'NL' => 'Nagaland',
+            'OR' => 'Orissa',
+            'PB' => 'Punjab',
+            'RJ' => 'Rajasthan',
+            'SK' => 'Sikkim',
+            'TN' => 'Tamil Nadu',
+            'TR' => 'Tripura',
+            'UK' => 'Uttarakhand',
+            'UP' => 'Uttar Pradesh',
+            'WB' => 'West Bengal',
+            'TN' => 'Tamil Nadu',
+            'TR' => 'Tripura',
+            'AN' => 'Andaman and Nicobar Islands',
+            'CH' => 'Chandigarh',
+            'DH' => 'Dadra and Nagar Haveli',
+            'DD' => 'Daman and Diu',
+            'DL' => 'Delhi',
+            'LD' => 'Lakshadweep',
+            'PY' => 'Pondicherry'
         ];
         return $states;
     }
 
-    protected function array_supplement_inventory()
-    {
+    protected function array_supplement_inventory() {
         $data = [];
         $query = DB::table('supplement_inventory')
-            ->where('quantity1', '>', '0')
-            ->where('practice_id', '=', Session::get('practice_id'))
-            ->orderBy('sup_description', 'asc')
-            ->get();
+                ->where('quantity1', '>', '0')
+                ->where('practice_id', '=', Session::get('practice_id'))
+                ->orderBy('sup_description', 'asc')
+                ->get();
         if ($query->count()) {
             foreach ($query as $row) {
                 $data[$row->supplement_id] = $row->sup_description . ', ' . $row->sup_strength . ' (' . $row->quantity1 . ')';
@@ -1261,15 +1188,14 @@ class Controller extends BaseController
         return $data;
     }
 
-    protected function array_tags()
-    {
+    protected function array_tags() {
         $data = [];
         $query = DB::table('tags')
-            ->join('tags_relate', 'tags_relate.tags_id', '=', 'tags.tags_id')
-            ->select('tags.tags_id','tags.tag')
-            ->where('tags_relate.practice_id', '=', Session::get('practice_id'))
-            ->distinct()
-            ->get();
+                ->join('tags_relate', 'tags_relate.tags_id', '=', 'tags.tags_id')
+                ->select('tags.tags_id', 'tags.tag')
+                ->where('tags_relate.practice_id', '=', Session::get('practice_id'))
+                ->distinct()
+                ->get();
         if ($query->count()) {
             foreach ($query as $row) {
                 $data[$row->tags_id] = $row->tag;
@@ -1278,8 +1204,7 @@ class Controller extends BaseController
         return $data;
     }
 
-    protected function array_template()
-    {
+    protected function array_template() {
         $data = [];
         if (Session::has('pid')) {
             $pid = Session::get('pid');
@@ -1291,18 +1216,18 @@ class Controller extends BaseController
             ];
             $lastvisit = "";
             $encounter = DB::table('encounters')->where('pid', '=', $pid)
-                ->where('eid', '!=', '')
-                ->where('practice_id', '=', Session::get('practice_id'))
-                ->orderBy('eid', 'desc')
-                ->first();
+                    ->where('eid', '!=', '')
+                    ->where('practice_id', '=', Session::get('practice_id'))
+                    ->orderBy('eid', 'desc')
+                    ->first();
             if ($encounter) {
-                $lastvisit =  $patient->firstname . ' was last seen by me on ' . date('F jS, Y', strtotime($encounter->encounter_DOS));
+                $lastvisit = $patient->firstname . ' was last seen by me on ' . date('F jS, Y', strtotime($encounter->encounter_DOS));
             }
             $problem = 'Active Issues:';
             $problems = DB::table('issues')->where('pid', '=', $pid)->where('issue_date_inactive', '=', '0000-00-00 00:00:00')->get();
             if ($problems) {
                 foreach ($problems as $problems_row) {
-                    $problem .= "\n". $problems_row->issue;
+                    $problem .= "\n" . $problems_row->issue;
                 }
             } else {
                 $problem .= ' None.';
@@ -1370,8 +1295,7 @@ class Controller extends BaseController
         return $data;
     }
 
-    protected function array_test_flag()
-    {
+    protected function array_test_flag() {
         $test_arr = [
             '' => '',
             'L' => 'Below low normal',
@@ -1396,17 +1320,16 @@ class Controller extends BaseController
         return $test_arr;
     }
 
-    protected function array_users($type='1')
-    {
+    protected function array_users($type = '1') {
         $return = [];
         $query = DB::table('users')
-            ->where('group_id', '!=', '100')
-            ->where('group_id', '!=', '1')
-            ->where('practice_id', '=', Session::get('practice_id'))
-            ->where('active', '=', '1')
-            ->select('displayname', 'id')
-            ->distinct()
-            ->get();
+                ->where('group_id', '!=', '100')
+                ->where('group_id', '!=', '1')
+                ->where('practice_id', '=', Session::get('practice_id'))
+                ->where('active', '=', '1')
+                ->select('displayname', 'id')
+                ->distinct()
+                ->get();
         if ($query->count()) {
             foreach ($query as $row) {
                 if ($type == '1') {
@@ -1421,8 +1344,7 @@ class Controller extends BaseController
         return $return;
     }
 
-    protected function array_users_all($type='1')
-    {
+    protected function array_users_all($type = '1') {
         $return = [];
         if (Session::get('group_id') == '100') {
             if (Session::get('patient_centric') == 'y') {
@@ -1451,14 +1373,13 @@ class Controller extends BaseController
         return $return;
     }
 
-    protected function array_vaccine_inventory()
-    {
+    protected function array_vaccine_inventory() {
         $data = [];
         $query = DB::table('vaccine_inventory')
-            ->where('quantity', '>', '0')
-            ->where('practice_id', '=', Session::get('practice_id'))
-            ->orderBy('imm_immunization', 'asc')
-            ->get();
+                ->where('quantity', '>', '0')
+                ->where('practice_id', '=', Session::get('practice_id'))
+                ->orderBy('imm_immunization', 'asc')
+                ->get();
         if ($query->count()) {
             foreach ($query as $row) {
                 $data[$row->vaccine_id] = $row->imm_immunization . ' (' . $row->quantity . ')';
@@ -1467,8 +1388,7 @@ class Controller extends BaseController
         return $data;
     }
 
-    protected function array_vitals()
-    {
+    protected function array_vitals() {
         $practice = DB::table('practiceinfo')->where('practice_id', '=', Session::get('practice_id'))->first();
         $return = [
             'weight' => [
@@ -1535,8 +1455,7 @@ class Controller extends BaseController
         return $return;
     }
 
-    protected function array_vitals1()
-    {
+    protected function array_vitals1() {
         $return = [
             'wt_percentile' => 'Weight to Age Percentile',
             'ht_percentile' => 'Height to Age Percentile',
@@ -1547,8 +1466,7 @@ class Controller extends BaseController
         return $return;
     }
 
-    protected function ascvd_calc()
-    {
+    protected function ascvd_calc() {
         $url = 'http://aha.indicoebm.com/api/RiskCalculatorManager/GetBaselineRiskResult';
         $row = DB::table('demographics')->where('pid', '=', Session::get('pid'))->first();
         $missing_arr = [
@@ -1606,11 +1524,11 @@ class Controller extends BaseController
         if ($rx->count()) {
             $htn_url = 'https://rxnav.nlm.nih.gov/REST/rxclass/classMembers.json?classId=N0000001616&relaSource=NDFRT&rela=may_treat';
             $htn_ch = curl_init();
-            curl_setopt($htn_ch,CURLOPT_URL, $htn_url);
-            curl_setopt($htn_ch,CURLOPT_FAILONERROR,1);
-            curl_setopt($htn_ch,CURLOPT_FOLLOWLOCATION,1);
-            curl_setopt($htn_ch,CURLOPT_RETURNTRANSFER,1);
-            curl_setopt($htn_ch,CURLOPT_TIMEOUT, 15);
+            curl_setopt($htn_ch, CURLOPT_URL, $htn_url);
+            curl_setopt($htn_ch, CURLOPT_FAILONERROR, 1);
+            curl_setopt($htn_ch, CURLOPT_FOLLOWLOCATION, 1);
+            curl_setopt($htn_ch, CURLOPT_RETURNTRANSFER, 1);
+            curl_setopt($htn_ch, CURLOPT_TIMEOUT, 15);
             $htn_json = curl_exec($htn_ch);
             curl_close($htn_ch);
             $htn_group = json_decode($htn_json, true);
@@ -1620,11 +1538,11 @@ class Controller extends BaseController
             }
             $chol_url = 'https://rxnav.nlm.nih.gov/REST/rxclass/classMembers.json?classId=N0000001592&relaSource=NDFRT&rela=may_treat';
             $chol_ch = curl_init();
-            curl_setopt($chol_ch,CURLOPT_URL, $chol_url);
-            curl_setopt($chol_ch,CURLOPT_FAILONERROR,1);
-            curl_setopt($chol_ch,CURLOPT_FOLLOWLOCATION,1);
-            curl_setopt($chol_ch,CURLOPT_RETURNTRANSFER,1);
-            curl_setopt($chol_ch,CURLOPT_TIMEOUT, 15);
+            curl_setopt($chol_ch, CURLOPT_URL, $chol_url);
+            curl_setopt($chol_ch, CURLOPT_FAILONERROR, 1);
+            curl_setopt($chol_ch, CURLOPT_FOLLOWLOCATION, 1);
+            curl_setopt($chol_ch, CURLOPT_RETURNTRANSFER, 1);
+            curl_setopt($chol_ch, CURLOPT_TIMEOUT, 15);
             $chol_json = curl_exec($chol_ch);
             curl_close($chol_ch);
             $chol_group = json_decode($chol_json, true);
@@ -1698,8 +1616,7 @@ class Controller extends BaseController
         return $result_arr;
     }
 
-    protected function assets_css($type='')
-    {
+    protected function assets_css($type = '') {
         $return = [
             '/assets/css/font-awesome.min.css',
             '/assets/css/bootstrap.min.css',
@@ -1710,6 +1627,7 @@ class Controller extends BaseController
             '/assets/css/bootstrap-datetimepicker.css'
         ];
         if ($type == 'chart') {
+            
         }
         if ($type == 'schedule') {
             $return[] = '/assets/css/fullcalendar.min.css';
@@ -1727,8 +1645,7 @@ class Controller extends BaseController
         return $return;
     }
 
-    protected function assets_js($type='')
-    {
+    protected function assets_js($type = '') {
         $return = [
             '/assets/js/jquery-3.1.1.min.js',
             '/assets/js/bootstrap.min.js',
@@ -1786,12 +1703,11 @@ class Controller extends BaseController
     }
 
     /**
-    * Audit
-    * @param string  $action - Add, Update, Delete
-    * @return Response
-    */
-    protected function audit($action)
-    {
+     * Audit
+     * @param string  $action - Add, Update, Delete
+     * @return Response
+     */
+    protected function audit($action) {
         $queries = DB::getQueryLog();
         $sql = end($queries);
         if (!empty($sql['bindings'])) {
@@ -1804,7 +1720,7 @@ class Controller extends BaseController
             'user_id' => Session::get('user_id'),
             'displayname' => Session::get('displayname'),
             'pid' => Session::get('pid'),
-            'group_id' =>  Session::get('group_id'),
+            'group_id' => Session::get('group_id'),
             'action' => $action,
             'query' => $sql['query'],
             'practice_id' => Session::get('practice_id')
@@ -1813,17 +1729,15 @@ class Controller extends BaseController
         return true;
     }
 
-    protected function base64url_encode($data)
-    {
+    protected function base64url_encode($data) {
         return rtrim(strtr(base64_encode($data), '+/', '-_'), '=');
     }
 
-    protected function billing_save_common($insurance_id_1, $insurance_id_2, $eid)
-    {
+    protected function billing_save_common($insurance_id_1, $insurance_id_2, $eid) {
         DB::table('billing')->where('eid', '=', $eid)->delete();
         $this->audit('Delete');
         $pid = Session::get('pid');
-        $practiceInfo = DB::table('practiceinfo')->where('practice_id', '=',Session::get('practice_id'))->first();
+        $practiceInfo = DB::table('practiceinfo')->where('practice_id', '=', Session::get('practice_id'))->first();
         $encounterInfo = DB::table('encounters')->where('eid', '=', $eid)->first();
         $bill_complex = $encounterInfo->bill_complex;
         $row = DB::table('demographics')->where('pid', '=', $pid)->first();
@@ -1841,7 +1755,7 @@ class Controller extends BaseController
             DB::table('encounters')->where('eid', '=', $eid)->update($data_encounter);
             $this->audit('Update');
             return 'Billing Saved!';
-             exit ( 0 );
+            exit(0);
         }
         $data_encounter['bill_submitted'] = 'No';
         DB::table('encounters')->where('eid', '=', $eid)->update($data_encounter);
@@ -2080,10 +1994,10 @@ class Controller extends BaseController
         $bill_Box33C = $this->string_format($bill_Box33C, 29);
         $bill_Box33D = $this->string_format($practiceInfo->billing_city . ', ' . $practiceInfo->billing_state . ' ' . $practiceInfo->billing_zip, 29);
         $result5 = DB::table('billing_core')
-            ->where('eid', '=', $eid)
-            ->where('cpt', 'NOT LIKE', "sp%")
-            ->orderBy('cpt_charge', 'desc')
-            ->get();
+                ->where('eid', '=', $eid)
+                ->where('cpt', 'NOT LIKE', "sp%")
+                ->orderBy('cpt_charge', 'desc')
+                ->get();
         $num_rows5 = $result5->count();
         $result5 = json_decode(json_encode($result5), true);
         if ($num_rows5 > 0) {
@@ -2116,12 +2030,12 @@ class Controller extends BaseController
                 $cpt_final[$i]['cpt'] = $this->string_format($cpt_final[$i]['cpt'], 6);
                 $cpt_final[$i]['modifier'] = $this->string_format($cpt_final[$i]['modifier'], 11);
                 $cpt_final[$i]['unit1'] = $cpt_final[$i]['unit'];
-                $cpt_final[$i]['unit'] = $this->string_format($cpt_final[$i]['unit'] ,5);
+                $cpt_final[$i]['unit'] = $this->string_format($cpt_final[$i]['unit'], 5);
                 $cpt_final[$i]['cpt_charge1'] = $cpt_final[$i]['cpt_charge'];
                 $cpt_final[$i]['cpt_charge'] = number_format($cpt_final[$i]['cpt_charge'], 2, ' ', '');
                 $cpt_final[$i]['cpt_charge'] = $this->string_format($cpt_final[$i]['cpt_charge'], 8);
                 $cpt_final[$i]['npi'] = $this->string_format($npi, 11);
-                $cpt_final[$i]['icd_pointer'] =  $this->string_format($cpt_final[$i]['icd_pointer'], 4);
+                $cpt_final[$i]['icd_pointer'] = $this->string_format($cpt_final[$i]['icd_pointer'], 4);
                 $i++;
             }
             if ($num_rows5 < 6) {
@@ -2135,11 +2049,11 @@ class Controller extends BaseController
                 $array['cpt_charge1'] = '0';
                 $array['cpt_charge'] = $this->string_format('', 8);
                 $array['npi'] = $this->string_format('', 11);
-                $array['icd_pointer'] =  $this->string_format('', 4);
+                $array['icd_pointer'] = $this->string_format('', 4);
                 $cpt_final = array_pad($cpt_final, 6, $array);
             }
             $bill_Box28 = 0;
-            for ($n=0; $n<=5; $n++) {
+            for ($n = 0; $n <= 5; $n++) {
                 if ($cpt_final[$n]['cpt_charge1'] !== 0 && $cpt_final[$n]['unit1'] !== 0) {
                     $bill_Box28 += $cpt_final[$n]['cpt_charge1'] * $cpt_final[$n]['unit1'];
                 }
@@ -2149,146 +2063,146 @@ class Controller extends BaseController
             $bill_Box29 = $this->string_format('0 00', 8);
             $bill_Box30 = $this->string_format($bill_Box28, 8);
             $data1 = [
-                'eid'                         => $eid,
-                'pid'                         => $pid,
-                'insurance_id_1'             => $insurance_id_1,
-                'insurance_id_2'             => $insurance_id_2,
-                'bill_complex'                => $bill_complex,
-                'bill_Box11C'                 => $bill_Box11C,    //Insurance Plan Name
-                'bill_payor_id'                => $bill_payor_id,
-                'bill_ins_add1'                => $bill_ins_add1,
-                'bill_ins_add2'                => $bill_ins_add2,
-                'bill_Box1'                    => $bill_Box1,
-                'bill_Box1P'                => $bill_Box1P,
-                'bill_Box1A'                 => $bill_Box1A,     //Insured ID Number
-                'bill_Box2'                 => $bill_Box2,         //Patient Name
-                'bill_Box3A'                 => $bill_Box3A,     //Patient Date of Birth
-                'bill_Box3B'                 => $bill_Box3B,     //Patient Sex
-                'bill_Box3BP'                 => $bill_Box3BP,
-                'bill_Box4'                    => $bill_Box4,         //Insured Name
-                'bill_Box5A'                 => $bill_Box5A,     //Patient Address
-                'bill_Box6'                    => $bill_Box6,         //Patient Relationship to Insured
-                'bill_Box6P'                => $bill_Box6P,
-                'bill_Box7A'                => $bill_Box7A,     //Insured Address
-                'bill_Box5B'                 => $bill_Box5B,     //Patient City
-                'bill_Box5C'                 => $bill_Box5C,     //Patient State
-                'bill_Box8A'                => $bill_Box8A,     //Patient Marital Status
-                'bill_Box8AP'                => $bill_Box8AP,
-                'bill_Box7B'                => $bill_Box7B,     //Insured City
-                'bill_Box7C'                => $bill_Box7C,     //Insured State
-                'bill_Box5D'                => $bill_Box5D,        //Patient Zip
-                'bill_Box5E'                => $bill_Box5E,
-                'bill_Box8B'                => $bill_Box8B,        //Patient Employment
-                'bill_Box8BP'                => $bill_Box8BP,
-                'bill_Box7D'                => $bill_Box7D,        //Insured Zip
-                'bill_Box9'                    => $bill_Box9,         //Other Insured Name
-                'bill_Box11'                => $bill_Box11,     //Insured Group Number
-                'bill_Box9A'                => $bill_Box9A,     //Other Insured Group Number
-                'bill_Box10'                => $bill_Box10,
-                'bill_Box10A'                => $bill_Box10A,    //Condition Employment
-                'bill_Box10AP'                => $bill_Box10AP,    //Condition Employment
-                'bill_Box11A1'                => $bill_Box11A1,    //Insured Date of Birth
-                'bill_Box11A2'                => $bill_Box11A2,    //Insured Sex
-                'bill_Box11A2P'                => $bill_Box11A2P,
-                'bill_Box9B1'                => $bill_Box9B1,    //Other Insured Date of Birth
-                'bill_Box9B2'                => $bill_Box9B2,    //Other Insured Sex
-                'bill_Box9B2P'                => $bill_Box9B2P,
-                'bill_Box10B1'                => $bill_Box10B1,    //Condition Auto Accident
-                'bill_Box10B1P'                => $bill_Box10B1P,    //Condition Auto Accident
-                'bill_Box10B2'                => $bill_Box10B2,    //Condition Auto Accident State
-                'bill_Box11B'                => $bill_Box11B,    //Insured Employer
-                'bill_Box9C'                => $bill_Box9C,        //Other Insured Employer
-                'bill_Box10C'                => $bill_Box10C,    //Condition Other Accident
-                'bill_Box10CP'                => $bill_Box10CP,    //Condition Other Accident
-                'bill_Box9D'                => $bill_Box9D,        //Other Insurance Plan Name
-                'bill_Box11D'                => $bill_Box11D,
-                'bill_Box11DP'                => $bill_Box11DP,    //Other Insurance Plan Exist
-                'bill_Box17'                 => $bill_Box17,        //Provider Use for Box 31 and 33B too
-                'bill_Box17A'                 => $bill_Box17A,    //Provider NPI
-                'bill_Box21A'                => $bill_Box21A,    //ICD9 or 10
-                'bill_Box21_1'                 => $bill_Box21_1,    //ICD1
-                'bill_Box21_2'                 => $bill_Box21_2,    //ICD2
-                'bill_Box21_3'                 => $bill_Box21_3,    //ICD3
-                'bill_Box21_4'                 => $bill_Box21_4,    //ICD4
-                'bill_Box21_5'                 => $bill_Box21_5,    //ICD5
-                'bill_Box21_6'                 => $bill_Box21_6,    //ICD6
-                'bill_Box21_7'                 => $bill_Box21_7,    //ICD7
-                'bill_Box21_8'                 => $bill_Box21_8,    //ICD8
-                'bill_Box21_9'                 => $bill_Box21_9,    //ICD9
-                'bill_Box21_10'             => $bill_Box21_10,    //ICD10
-                'bill_Box21_11'             => $bill_Box21_11,    //ICD11
-                'bill_Box21_12'             => $bill_Box21_12,    //ICD12
-                'bill_DOS1F'                 => $cpt_final[0]['dos_f'],
-                'bill_DOS1T'                 => $cpt_final[0]['dos_t'],
-                'bill_DOS2F'                 => $cpt_final[1]['dos_f'],
-                'bill_DOS2T'                 => $cpt_final[1]['dos_t'],
-                'bill_DOS3F'                 => $cpt_final[2]['dos_f'],
-                'bill_DOS3T'                 => $cpt_final[2]['dos_t'],
-                'bill_DOS4F'                 => $cpt_final[3]['dos_f'],
-                'bill_DOS4T'                 => $cpt_final[3]['dos_t'],
-                'bill_DOS5F'                 => $cpt_final[4]['dos_f'],
-                'bill_DOS5T'                => $cpt_final[4]['dos_t'],
-                'bill_DOS6F'                 => $cpt_final[5]['dos_f'],
-                'bill_DOS6T'                 => $cpt_final[5]['dos_t'],
-                'bill_Box24B1'                 => $cpt_final[0]['pos'],    //Place of Service 1
-                'bill_Box24B2'                 => $cpt_final[1]['pos'],    //Place of Service 2
-                'bill_Box24B3'                => $cpt_final[2]['pos'],    //Place of Service 3
-                'bill_Box24B4'                 => $cpt_final[3]['pos'],    //Place of Service 4
-                'bill_Box24B5'                 => $cpt_final[4]['pos'],    //Place of Service 5
-                'bill_Box24B6'                 => $cpt_final[5]['pos'],    //Place of Service 6
-                'bill_Box24D1'                 => $cpt_final[0]['cpt'],    //CPT1
-                'bill_Box24D2'                => $cpt_final[1]['cpt'],    //CPT2
-                'bill_Box24D3'                 => $cpt_final[2]['cpt'],    //CPT3
-                'bill_Box24D4'                 => $cpt_final[3]['cpt'],    //CPT4
-                'bill_Box24D5'                 => $cpt_final[4]['cpt'],    //CPT5
-                'bill_Box24D6'                 => $cpt_final[5]['cpt'],    //CPT6
-                'bill_Modifier1'            => $cpt_final[0]['modifier'],
-                'bill_Modifier2'            => $cpt_final[1]['modifier'],
-                'bill_Modifier3'            => $cpt_final[2]['modifier'],
-                'bill_Modifier4'            => $cpt_final[3]['modifier'],
-                'bill_Modifier5'            => $cpt_final[4]['modifier'],
-                'bill_Modifier6'            => $cpt_final[5]['modifier'],
-                'bill_Box24E1'                => $cpt_final[0]['icd_pointer'],    //Diagnosis Pointer 1
-                'bill_Box24E2'                => $cpt_final[1]['icd_pointer'],    //Diagnosis Pointer 2
-                'bill_Box24E3'                => $cpt_final[2]['icd_pointer'],    //Diagnosis Pointer 3
-                'bill_Box24E4'                => $cpt_final[3]['icd_pointer'],    //Diagnosis Pointer 4
-                'bill_Box24E5'                => $cpt_final[4]['icd_pointer'],    //Diagnosis Pointer 5
-                'bill_Box24E6'                => $cpt_final[5]['icd_pointer'],    //Diagnosis Pointer 6
-                'bill_Box24F1'                 => number_format($cpt_final[0]['cpt_charge1'] * $cpt_final[0]['unit1'], 2, ' ', ''),    //Charges 1
-                'bill_Box24F2'                => number_format($cpt_final[1]['cpt_charge1'] * $cpt_final[1]['unit1'], 2, ' ', ''),    //Charges 2
-                'bill_Box24F3'                 => number_format($cpt_final[2]['cpt_charge1'] * $cpt_final[2]['unit1'], 2, ' ', ''),    //Charges 3
-                'bill_Box24F4'                 => number_format($cpt_final[3]['cpt_charge1'] * $cpt_final[3]['unit1'], 2, ' ', ''),    //Charges 4
-                'bill_Box24F5'                 => number_format($cpt_final[4]['cpt_charge1'] * $cpt_final[4]['unit1'], 2, ' ', ''),    //Charges 5
-                'bill_Box24F6'                 => number_format($cpt_final[5]['cpt_charge1'] * $cpt_final[5]['unit1'], 2, ' ', ''),    //Charges 6
-                'bill_Box24G1'                => $cpt_final[0]['unit'],    //Units 1
-                'bill_Box24G2'                => $cpt_final[1]['unit'],    //Units 2
-                'bill_Box24G3'                => $cpt_final[2]['unit'],    //Units 3
-                'bill_Box24G4'                => $cpt_final[3]['unit'],    //Units 4
-                'bill_Box24G5'                => $cpt_final[4]['unit'],    //Units 5
-                'bill_Box24G6'                => $cpt_final[5]['unit'],    //Units 6
-                'bill_Box24J1'                 => $cpt_final[0]['npi'],    //NPI 1
-                'bill_Box24J2'                 => $cpt_final[1]['npi'],    //NPI 2
-                'bill_Box24J3'                 => $cpt_final[2]['npi'],    //NPI 3
-                'bill_Box24J4'                 => $cpt_final[3]['npi'],    //NPI 4
-                'bill_Box24J5'                 => $cpt_final[4]['npi'],    //NPI 5
-                'bill_Box24J6'                 => $cpt_final[5]['npi'],    //NPI 6
-                'bill_Box25'                 => $bill_Box25,        //Clinic Tax ID
-                'bill_Box26'                 => $bill_Box26,        //pid_eid
-                'bill_Box27'                => $bill_Box27,        //Accept Assignment
-                'bill_Box27P'                => $bill_Box27P,    //Accept Assignment
-                'bill_Box28'                 => $bill_Box28,        //Total Charges
-                'bill_Box29'                => $bill_Box29,
-                'bill_Box30'                => $bill_Box30,
-                'bill_Box31'                => $bill_Box31,
-                'bill_Box32A'                 => $bill_Box32A,    //Clinic Name
-                'bill_Box32B'                 => $bill_Box32B,    //Clinic Address 1
-                'bill_Box32C'                => $bill_Box32C,    //Clinic Address 2
-                'bill_Box32D'                 => $bill_Box32D,    //Clinic NPI use for 33E too
-                'bill_Box33A'                 => $bill_Box33A,    //Clinic Phone
-                'bill_Box33B'                => $bill_Box33B,
-                'bill_Box33C'                => $bill_Box33C,    //Billing Address 1
-                'bill_Box33D'                => $bill_Box33D,    //Billing Address 2
-                'bill_Box33E'                => $bill_Box32D
+                'eid' => $eid,
+                'pid' => $pid,
+                'insurance_id_1' => $insurance_id_1,
+                'insurance_id_2' => $insurance_id_2,
+                'bill_complex' => $bill_complex,
+                'bill_Box11C' => $bill_Box11C, //Insurance Plan Name
+                'bill_payor_id' => $bill_payor_id,
+                'bill_ins_add1' => $bill_ins_add1,
+                'bill_ins_add2' => $bill_ins_add2,
+                'bill_Box1' => $bill_Box1,
+                'bill_Box1P' => $bill_Box1P,
+                'bill_Box1A' => $bill_Box1A, //Insured ID Number
+                'bill_Box2' => $bill_Box2, //Patient Name
+                'bill_Box3A' => $bill_Box3A, //Patient Date of Birth
+                'bill_Box3B' => $bill_Box3B, //Patient Sex
+                'bill_Box3BP' => $bill_Box3BP,
+                'bill_Box4' => $bill_Box4, //Insured Name
+                'bill_Box5A' => $bill_Box5A, //Patient Address
+                'bill_Box6' => $bill_Box6, //Patient Relationship to Insured
+                'bill_Box6P' => $bill_Box6P,
+                'bill_Box7A' => $bill_Box7A, //Insured Address
+                'bill_Box5B' => $bill_Box5B, //Patient City
+                'bill_Box5C' => $bill_Box5C, //Patient State
+                'bill_Box8A' => $bill_Box8A, //Patient Marital Status
+                'bill_Box8AP' => $bill_Box8AP,
+                'bill_Box7B' => $bill_Box7B, //Insured City
+                'bill_Box7C' => $bill_Box7C, //Insured State
+                'bill_Box5D' => $bill_Box5D, //Patient Zip
+                'bill_Box5E' => $bill_Box5E,
+                'bill_Box8B' => $bill_Box8B, //Patient Employment
+                'bill_Box8BP' => $bill_Box8BP,
+                'bill_Box7D' => $bill_Box7D, //Insured Zip
+                'bill_Box9' => $bill_Box9, //Other Insured Name
+                'bill_Box11' => $bill_Box11, //Insured Group Number
+                'bill_Box9A' => $bill_Box9A, //Other Insured Group Number
+                'bill_Box10' => $bill_Box10,
+                'bill_Box10A' => $bill_Box10A, //Condition Employment
+                'bill_Box10AP' => $bill_Box10AP, //Condition Employment
+                'bill_Box11A1' => $bill_Box11A1, //Insured Date of Birth
+                'bill_Box11A2' => $bill_Box11A2, //Insured Sex
+                'bill_Box11A2P' => $bill_Box11A2P,
+                'bill_Box9B1' => $bill_Box9B1, //Other Insured Date of Birth
+                'bill_Box9B2' => $bill_Box9B2, //Other Insured Sex
+                'bill_Box9B2P' => $bill_Box9B2P,
+                'bill_Box10B1' => $bill_Box10B1, //Condition Auto Accident
+                'bill_Box10B1P' => $bill_Box10B1P, //Condition Auto Accident
+                'bill_Box10B2' => $bill_Box10B2, //Condition Auto Accident State
+                'bill_Box11B' => $bill_Box11B, //Insured Employer
+                'bill_Box9C' => $bill_Box9C, //Other Insured Employer
+                'bill_Box10C' => $bill_Box10C, //Condition Other Accident
+                'bill_Box10CP' => $bill_Box10CP, //Condition Other Accident
+                'bill_Box9D' => $bill_Box9D, //Other Insurance Plan Name
+                'bill_Box11D' => $bill_Box11D,
+                'bill_Box11DP' => $bill_Box11DP, //Other Insurance Plan Exist
+                'bill_Box17' => $bill_Box17, //Provider Use for Box 31 and 33B too
+                'bill_Box17A' => $bill_Box17A, //Provider NPI
+                'bill_Box21A' => $bill_Box21A, //ICD9 or 10
+                'bill_Box21_1' => $bill_Box21_1, //ICD1
+                'bill_Box21_2' => $bill_Box21_2, //ICD2
+                'bill_Box21_3' => $bill_Box21_3, //ICD3
+                'bill_Box21_4' => $bill_Box21_4, //ICD4
+                'bill_Box21_5' => $bill_Box21_5, //ICD5
+                'bill_Box21_6' => $bill_Box21_6, //ICD6
+                'bill_Box21_7' => $bill_Box21_7, //ICD7
+                'bill_Box21_8' => $bill_Box21_8, //ICD8
+                'bill_Box21_9' => $bill_Box21_9, //ICD9
+                'bill_Box21_10' => $bill_Box21_10, //ICD10
+                'bill_Box21_11' => $bill_Box21_11, //ICD11
+                'bill_Box21_12' => $bill_Box21_12, //ICD12
+                'bill_DOS1F' => $cpt_final[0]['dos_f'],
+                'bill_DOS1T' => $cpt_final[0]['dos_t'],
+                'bill_DOS2F' => $cpt_final[1]['dos_f'],
+                'bill_DOS2T' => $cpt_final[1]['dos_t'],
+                'bill_DOS3F' => $cpt_final[2]['dos_f'],
+                'bill_DOS3T' => $cpt_final[2]['dos_t'],
+                'bill_DOS4F' => $cpt_final[3]['dos_f'],
+                'bill_DOS4T' => $cpt_final[3]['dos_t'],
+                'bill_DOS5F' => $cpt_final[4]['dos_f'],
+                'bill_DOS5T' => $cpt_final[4]['dos_t'],
+                'bill_DOS6F' => $cpt_final[5]['dos_f'],
+                'bill_DOS6T' => $cpt_final[5]['dos_t'],
+                'bill_Box24B1' => $cpt_final[0]['pos'], //Place of Service 1
+                'bill_Box24B2' => $cpt_final[1]['pos'], //Place of Service 2
+                'bill_Box24B3' => $cpt_final[2]['pos'], //Place of Service 3
+                'bill_Box24B4' => $cpt_final[3]['pos'], //Place of Service 4
+                'bill_Box24B5' => $cpt_final[4]['pos'], //Place of Service 5
+                'bill_Box24B6' => $cpt_final[5]['pos'], //Place of Service 6
+                'bill_Box24D1' => $cpt_final[0]['cpt'], //CPT1
+                'bill_Box24D2' => $cpt_final[1]['cpt'], //CPT2
+                'bill_Box24D3' => $cpt_final[2]['cpt'], //CPT3
+                'bill_Box24D4' => $cpt_final[3]['cpt'], //CPT4
+                'bill_Box24D5' => $cpt_final[4]['cpt'], //CPT5
+                'bill_Box24D6' => $cpt_final[5]['cpt'], //CPT6
+                'bill_Modifier1' => $cpt_final[0]['modifier'],
+                'bill_Modifier2' => $cpt_final[1]['modifier'],
+                'bill_Modifier3' => $cpt_final[2]['modifier'],
+                'bill_Modifier4' => $cpt_final[3]['modifier'],
+                'bill_Modifier5' => $cpt_final[4]['modifier'],
+                'bill_Modifier6' => $cpt_final[5]['modifier'],
+                'bill_Box24E1' => $cpt_final[0]['icd_pointer'], //Diagnosis Pointer 1
+                'bill_Box24E2' => $cpt_final[1]['icd_pointer'], //Diagnosis Pointer 2
+                'bill_Box24E3' => $cpt_final[2]['icd_pointer'], //Diagnosis Pointer 3
+                'bill_Box24E4' => $cpt_final[3]['icd_pointer'], //Diagnosis Pointer 4
+                'bill_Box24E5' => $cpt_final[4]['icd_pointer'], //Diagnosis Pointer 5
+                'bill_Box24E6' => $cpt_final[5]['icd_pointer'], //Diagnosis Pointer 6
+                'bill_Box24F1' => number_format($cpt_final[0]['cpt_charge1'] * $cpt_final[0]['unit1'], 2, ' ', ''), //Charges 1
+                'bill_Box24F2' => number_format($cpt_final[1]['cpt_charge1'] * $cpt_final[1]['unit1'], 2, ' ', ''), //Charges 2
+                'bill_Box24F3' => number_format($cpt_final[2]['cpt_charge1'] * $cpt_final[2]['unit1'], 2, ' ', ''), //Charges 3
+                'bill_Box24F4' => number_format($cpt_final[3]['cpt_charge1'] * $cpt_final[3]['unit1'], 2, ' ', ''), //Charges 4
+                'bill_Box24F5' => number_format($cpt_final[4]['cpt_charge1'] * $cpt_final[4]['unit1'], 2, ' ', ''), //Charges 5
+                'bill_Box24F6' => number_format($cpt_final[5]['cpt_charge1'] * $cpt_final[5]['unit1'], 2, ' ', ''), //Charges 6
+                'bill_Box24G1' => $cpt_final[0]['unit'], //Units 1
+                'bill_Box24G2' => $cpt_final[1]['unit'], //Units 2
+                'bill_Box24G3' => $cpt_final[2]['unit'], //Units 3
+                'bill_Box24G4' => $cpt_final[3]['unit'], //Units 4
+                'bill_Box24G5' => $cpt_final[4]['unit'], //Units 5
+                'bill_Box24G6' => $cpt_final[5]['unit'], //Units 6
+                'bill_Box24J1' => $cpt_final[0]['npi'], //NPI 1
+                'bill_Box24J2' => $cpt_final[1]['npi'], //NPI 2
+                'bill_Box24J3' => $cpt_final[2]['npi'], //NPI 3
+                'bill_Box24J4' => $cpt_final[3]['npi'], //NPI 4
+                'bill_Box24J5' => $cpt_final[4]['npi'], //NPI 5
+                'bill_Box24J6' => $cpt_final[5]['npi'], //NPI 6
+                'bill_Box25' => $bill_Box25, //Clinic Tax ID
+                'bill_Box26' => $bill_Box26, //pid_eid
+                'bill_Box27' => $bill_Box27, //Accept Assignment
+                'bill_Box27P' => $bill_Box27P, //Accept Assignment
+                'bill_Box28' => $bill_Box28, //Total Charges
+                'bill_Box29' => $bill_Box29,
+                'bill_Box30' => $bill_Box30,
+                'bill_Box31' => $bill_Box31,
+                'bill_Box32A' => $bill_Box32A, //Clinic Name
+                'bill_Box32B' => $bill_Box32B, //Clinic Address 1
+                'bill_Box32C' => $bill_Box32C, //Clinic Address 2
+                'bill_Box32D' => $bill_Box32D, //Clinic NPI use for 33E too
+                'bill_Box33A' => $bill_Box33A, //Clinic Phone
+                'bill_Box33B' => $bill_Box33B,
+                'bill_Box33C' => $bill_Box33C, //Billing Address 1
+                'bill_Box33D' => $bill_Box33D, //Billing Address 2
+                'bill_Box33E' => $bill_Box32D
             ];
             DB::table('billing')->insert($data1);
             $this->audit('Add');
@@ -2300,7 +2214,7 @@ class Controller extends BaseController
             unset($cpt_final[5]);
             if ($num_rows5 > 6 && $num_rows5 < 11) {
                 $k = 6;
-                foreach ($cpt_final as $k=>$v) {
+                foreach ($cpt_final as $k => $v) {
                     $l = $k - 6;
                     $cpt_final[$l] = $cpt_final[$k];
                     unset($cpt_final[$k]);
@@ -2318,11 +2232,11 @@ class Controller extends BaseController
                     $array1['cpt_charge1'] = '0';
                     $array1['cpt_charge'] = $this->string_format('', 8);
                     $array1['npi'] = $this->string_format('', 11);
-                    $array1['icd_pointer'] =  $this->string_format('', 4);
+                    $array1['icd_pointer'] = $this->string_format('', 4);
                     $cpt_final = array_pad($cpt_final, 6, $array1);
                 }
                 $bill_Box28 = 0;
-                for ($m=0; $m<=5; $m++) {
+                for ($m = 0; $m <= 5; $m++) {
                     if ($cpt_final[$m]['cpt_charge1'] !== 0 && $cpt_final[$m]['unit1'] !== 0) {
                         $bill_Box28 += $cpt_final[$m]['cpt_charge1'] * $cpt_final[$m]['unit1'];
                     }
@@ -2332,148 +2246,148 @@ class Controller extends BaseController
                 $bill_Box29 = $this->string_format('0 00', 8);
                 $bill_Box30 = $this->string_format($bill_Box28, 8);
                 $data2 = [
-                    'eid'                         => $eid,
-                    'pid'                         => $pid,
-                    'insurance_id_1'             => $insurance_id_1,
-                    'insurance_id_2'             => $insurance_id_2,
-                    'bill_complex'                => $bill_complex,
-                    'bill_Box11C'                 => $bill_Box11C,    //Insurance Plan Name
-                    'bill_payor_id'                => $bill_payor_id,
-                    'bill_ins_add1'                => $bill_ins_add1,
-                    'bill_ins_add2'                => $bill_ins_add2,
-                    'bill_Box1'                    => $bill_Box1,
-                    'bill_Box1P'                => $bill_Box1P,
-                    'bill_Box1A'                 => $bill_Box1A,     //Insured ID Number
-                    'bill_Box2'                 => $bill_Box2,         //Patient Name
-                    'bill_Box3A'                 => $bill_Box3A,     //Patient Date of Birth
-                    'bill_Box3B'                 => $bill_Box3B,     //Patient Sex
-                    'bill_Box3BP'                 => $bill_Box3BP,
-                    'bill_Box4'                    => $bill_Box4,         //Insured Name
-                    'bill_Box5A'                 => $bill_Box5A,     //Patient Address
-                    'bill_Box6'                    => $bill_Box6,         //Patient Relationship to Insured
-                    'bill_Box6P'                => $bill_Box6P,
-                    'bill_Box7A'                => $bill_Box7A,     //Insured Address
-                    'bill_Box5B'                 => $bill_Box5B,     //Patient City
-                    'bill_Box5C'                 => $bill_Box5C,     //Patient State
-                    'bill_Box8A'                => $bill_Box8A,     //Patient Marital Status
-                    'bill_Box8AP'                => $bill_Box8AP,
-                    'bill_Box7B'                => $bill_Box7B,     //Insured City
-                    'bill_Box7C'                => $bill_Box7C,     //Insured State
-                    'bill_Box5D'                => $bill_Box5D,        //Patient Zip
-                    'bill_Box5E'                => $bill_Box5E,
-                    'bill_Box8B'                => $bill_Box8B,        //Patient Employment
-                    'bill_Box8BP'                => $bill_Box8BP,
-                    'bill_Box7D'                => $bill_Box7D,        //Insured Zip
-                    'bill_Box9'                    => $bill_Box9,         //Other Insured Name
-                    'bill_Box11'                => $bill_Box11,     //Insured Group Number
-                    'bill_Box9A'                => $bill_Box9A,     //Other Insured Group Number
-                    'bill_Box10'                => $bill_Box10,
-                    'bill_Box10A'                => $bill_Box10A,    //Condition Employment
-                    'bill_Box10AP'                => $bill_Box10AP,    //Condition Employment
-                    'bill_Box11A1'                => $bill_Box11A1,    //Insured Date of Birth
-                    'bill_Box11D'                => $bill_Box11D,
-                    'bill_Box11DP'                => $bill_Box11DP,
-                    'bill_Box11A2'                => $bill_Box11A2,    //Insured Sex
-                    'bill_Box11A2P'                => $bill_Box11A2P,
-                    'bill_Box9B1'                => $bill_Box9B1,    //Other Insured Date of Birth
-                    'bill_Box9B2'                => $bill_Box9B2,    //Other Insured Sex
-                    'bill_Box9B2P'                => $bill_Box9B2P,
-                    'bill_Box10B1'                => $bill_Box10B1,    //Condition Auto Accident
-                    'bill_Box10B1P'                => $bill_Box10B1P,    //Condition Auto Accident
-                    'bill_Box10B2'                => $bill_Box10B2,    //Condition Auto Accident State
-                    'bill_Box11B'                => $bill_Box11B,    //Insured Employer
-                    'bill_Box9C'                => $bill_Box9C,        //Other Insured Employer
-                    'bill_Box10C'                => $bill_Box10C,    //Condition Other Accident
-                    'bill_Box10CP'                => $bill_Box10CP,    //Condition Other Accident
-                    'bill_Box9D'                => $bill_Box9D,        //Other Insurance Plan Name
-                    'bill_Box11D'                => $bill_Box11D,    //Other Insurance Plan Exist
-                    'bill_Box11DP'                => $bill_Box11DP,
-                    'bill_Box17'                 => $bill_Box17,        //Provider Use for Box 31 and 33B too
-                    'bill_Box17A'                 => $bill_Box17A,    //Provider NPI
-                    'bill_Box21A'                => $bill_Box21A,    //ICD9 or 10
-                    'bill_Box21_1'                 => $bill_Box21_1,    //ICD1
-                    'bill_Box21_2'                 => $bill_Box21_2,    //ICD2
-                    'bill_Box21_3'                 => $bill_Box21_3,    //ICD3
-                    'bill_Box21_4'                 => $bill_Box21_4,    //ICD4
-                    'bill_Box21_5'                 => $bill_Box21_5,    //ICD5
-                    'bill_Box21_6'                 => $bill_Box21_6,    //ICD6
-                    'bill_Box21_7'                 => $bill_Box21_7,    //ICD7
-                    'bill_Box21_8'                 => $bill_Box21_8,    //ICD8
-                    'bill_Box21_9'                 => $bill_Box21_9,    //ICD9
-                    'bill_Box21_10'             => $bill_Box21_10,    //ICD10
-                    'bill_Box21_11'             => $bill_Box21_11,    //ICD11
-                    'bill_Box21_12'             => $bill_Box21_12,    //ICD12
-                    'bill_DOS1F'                 => $cpt_final[0]['dos_f'],
-                    'bill_DOS1T'                 => $cpt_final[0]['dos_t'],
-                    'bill_DOS2F'                 => $cpt_final[1]['dos_f'],
-                    'bill_DOS2T'                 => $cpt_final[1]['dos_t'],
-                    'bill_DOS3F'                 => $cpt_final[2]['dos_f'],
-                    'bill_DOS3T'                 => $cpt_final[2]['dos_t'],
-                    'bill_DOS4F'                 => $cpt_final[3]['dos_f'],
-                    'bill_DOS4T'                 => $cpt_final[3]['dos_t'],
-                    'bill_DOS5F'                 => $cpt_final[4]['dos_f'],
-                    'bill_DOS5T'                => $cpt_final[4]['dos_t'],
-                    'bill_DOS6F'                 => $cpt_final[5]['dos_f'],
-                    'bill_DOS6T'                 => $cpt_final[5]['dos_t'],
-                    'bill_Box24B1'                 => $cpt_final[0]['pos'],    //Place of Service 1
-                    'bill_Box24B2'                 => $cpt_final[1]['pos'],    //Place of Service 2
-                    'bill_Box24B3'                => $cpt_final[2]['pos'],    //Place of Service 3
-                    'bill_Box24B4'                 => $cpt_final[3]['pos'],    //Place of Service 4
-                    'bill_Box24B5'                 => $cpt_final[4]['pos'],    //Place of Service 5
-                    'bill_Box24B6'                 => $cpt_final[5]['pos'],    //Place of Service 6
-                    'bill_Box24D1'                 => $cpt_final[0]['cpt'],    //CPT1
-                    'bill_Box24D2'                => $cpt_final[1]['cpt'],    //CPT2
-                    'bill_Box24D3'                 => $cpt_final[2]['cpt'],    //CPT3
-                    'bill_Box24D4'                 => $cpt_final[3]['cpt'],    //CPT4
-                    'bill_Box24D5'                 => $cpt_final[4]['cpt'],    //CPT5
-                    'bill_Box24D6'                 => $cpt_final[5]['cpt'],    //CPT6
-                    'bill_Modifier1'            => $cpt_final[0]['modifier'],
-                    'bill_Modifier2'            => $cpt_final[1]['modifier'],
-                    'bill_Modifier3'            => $cpt_final[2]['modifier'],
-                    'bill_Modifier4'            => $cpt_final[3]['modifier'],
-                    'bill_Modifier5'            => $cpt_final[4]['modifier'],
-                    'bill_Modifier6'            => $cpt_final[5]['modifier'],
-                    'bill_Box24E1'                => $cpt_final[0]['icd_pointer'],    //Diagnosis Pointer 1
-                    'bill_Box24E2'                => $cpt_final[1]['icd_pointer'],    //Diagnosis Pointer 2
-                    'bill_Box24E3'                => $cpt_final[2]['icd_pointer'],    //Diagnosis Pointer 3
-                    'bill_Box24E4'                => $cpt_final[3]['icd_pointer'],    //Diagnosis Pointer 4
-                    'bill_Box24E5'                => $cpt_final[4]['icd_pointer'],    //Diagnosis Pointer 5
-                    'bill_Box24E6'                => $cpt_final[5]['icd_pointer'],    //Diagnosis Pointer 6
-                    'bill_Box24F1'                 => number_format($cpt_final[0]['cpt_charge1'] * $cpt_final[0]['unit1'], 2, ' ', ''),    //Charges 1
-                    'bill_Box24F2'                => number_format($cpt_final[1]['cpt_charge1'] * $cpt_final[1]['unit1'], 2, ' ', ''),    //Charges 2
-                    'bill_Box24F3'                 => number_format($cpt_final[2]['cpt_charge1'] * $cpt_final[2]['unit1'], 2, ' ', ''),    //Charges 3
-                    'bill_Box24F4'                 => number_format($cpt_final[3]['cpt_charge1'] * $cpt_final[3]['unit1'], 2, ' ', ''),    //Charges 4
-                    'bill_Box24F5'                 => number_format($cpt_final[4]['cpt_charge1'] * $cpt_final[4]['unit1'], 2, ' ', ''),    //Charges 5
-                    'bill_Box24F6'                 => number_format($cpt_final[5]['cpt_charge1'] * $cpt_final[5]['unit1'], 2, ' ', ''),    //Charges 6
-                    'bill_Box24G1'                => $cpt_final[0]['unit'],    //Units 1
-                    'bill_Box24G2'                => $cpt_final[1]['unit'],    //Units 2
-                    'bill_Box24G3'                => $cpt_final[2]['unit'],    //Units 3
-                    'bill_Box24G4'                => $cpt_final[3]['unit'],    //Units 4
-                    'bill_Box24G5'                => $cpt_final[4]['unit'],    //Units 5
-                    'bill_Box24G6'                => $cpt_final[5]['unit'],    //Units 6
-                    'bill_Box24J1'                 => $cpt_final[0]['npi'],    //NPI 1
-                    'bill_Box24J2'                 => $cpt_final[1]['npi'],    //NPI 2
-                    'bill_Box24J3'                 => $cpt_final[2]['npi'],    //NPI 3
-                    'bill_Box24J4'                 => $cpt_final[3]['npi'],    //NPI 4
-                    'bill_Box24J5'                 => $cpt_final[4]['npi'],    //NPI 5
-                    'bill_Box24J6'                 => $cpt_final[5]['npi'],    //NPI 6
-                    'bill_Box25'                 => $bill_Box25,        //Clinic Tax ID
-                    'bill_Box26'                 => $bill_Box26,        //pid
-                    'bill_Box27'                => $bill_Box27,        //Accept Assignment
-                    'bill_Box27P'                => $bill_Box27P,    //Accept Assignment
-                    'bill_Box28'                 => $bill_Box28,        //Total Charges
-                    'bill_Box29'                => $bill_Box29,
-                    'bill_Box30'                => $bill_Box30,
-                    'bill_Box31'                => $bill_Box31,
-                    'bill_Box32A'                 => $bill_Box32A,    //Clinic Name
-                    'bill_Box32B'                 => $bill_Box32B,    //Clinic Address 1
-                    'bill_Box32C'                => $bill_Box32C,    //Clinic Address 2
-                    'bill_Box32D'                 => $bill_Box32D,    //Clinic NPI use for 33E too
-                    'bill_Box33A'                 => $bill_Box33A,    //Clinic Phone
-                    'bill_Box33B'                => $bill_Box33B,
-                    'bill_Box33C'                => $bill_Box33C,    //Billing Address 1
-                    'bill_Box33D'                => $bill_Box33D,    //Billing Address 2
-                    'bill_Box33E'                => $bill_Box32D
+                    'eid' => $eid,
+                    'pid' => $pid,
+                    'insurance_id_1' => $insurance_id_1,
+                    'insurance_id_2' => $insurance_id_2,
+                    'bill_complex' => $bill_complex,
+                    'bill_Box11C' => $bill_Box11C, //Insurance Plan Name
+                    'bill_payor_id' => $bill_payor_id,
+                    'bill_ins_add1' => $bill_ins_add1,
+                    'bill_ins_add2' => $bill_ins_add2,
+                    'bill_Box1' => $bill_Box1,
+                    'bill_Box1P' => $bill_Box1P,
+                    'bill_Box1A' => $bill_Box1A, //Insured ID Number
+                    'bill_Box2' => $bill_Box2, //Patient Name
+                    'bill_Box3A' => $bill_Box3A, //Patient Date of Birth
+                    'bill_Box3B' => $bill_Box3B, //Patient Sex
+                    'bill_Box3BP' => $bill_Box3BP,
+                    'bill_Box4' => $bill_Box4, //Insured Name
+                    'bill_Box5A' => $bill_Box5A, //Patient Address
+                    'bill_Box6' => $bill_Box6, //Patient Relationship to Insured
+                    'bill_Box6P' => $bill_Box6P,
+                    'bill_Box7A' => $bill_Box7A, //Insured Address
+                    'bill_Box5B' => $bill_Box5B, //Patient City
+                    'bill_Box5C' => $bill_Box5C, //Patient State
+                    'bill_Box8A' => $bill_Box8A, //Patient Marital Status
+                    'bill_Box8AP' => $bill_Box8AP,
+                    'bill_Box7B' => $bill_Box7B, //Insured City
+                    'bill_Box7C' => $bill_Box7C, //Insured State
+                    'bill_Box5D' => $bill_Box5D, //Patient Zip
+                    'bill_Box5E' => $bill_Box5E,
+                    'bill_Box8B' => $bill_Box8B, //Patient Employment
+                    'bill_Box8BP' => $bill_Box8BP,
+                    'bill_Box7D' => $bill_Box7D, //Insured Zip
+                    'bill_Box9' => $bill_Box9, //Other Insured Name
+                    'bill_Box11' => $bill_Box11, //Insured Group Number
+                    'bill_Box9A' => $bill_Box9A, //Other Insured Group Number
+                    'bill_Box10' => $bill_Box10,
+                    'bill_Box10A' => $bill_Box10A, //Condition Employment
+                    'bill_Box10AP' => $bill_Box10AP, //Condition Employment
+                    'bill_Box11A1' => $bill_Box11A1, //Insured Date of Birth
+                    'bill_Box11D' => $bill_Box11D,
+                    'bill_Box11DP' => $bill_Box11DP,
+                    'bill_Box11A2' => $bill_Box11A2, //Insured Sex
+                    'bill_Box11A2P' => $bill_Box11A2P,
+                    'bill_Box9B1' => $bill_Box9B1, //Other Insured Date of Birth
+                    'bill_Box9B2' => $bill_Box9B2, //Other Insured Sex
+                    'bill_Box9B2P' => $bill_Box9B2P,
+                    'bill_Box10B1' => $bill_Box10B1, //Condition Auto Accident
+                    'bill_Box10B1P' => $bill_Box10B1P, //Condition Auto Accident
+                    'bill_Box10B2' => $bill_Box10B2, //Condition Auto Accident State
+                    'bill_Box11B' => $bill_Box11B, //Insured Employer
+                    'bill_Box9C' => $bill_Box9C, //Other Insured Employer
+                    'bill_Box10C' => $bill_Box10C, //Condition Other Accident
+                    'bill_Box10CP' => $bill_Box10CP, //Condition Other Accident
+                    'bill_Box9D' => $bill_Box9D, //Other Insurance Plan Name
+                    'bill_Box11D' => $bill_Box11D, //Other Insurance Plan Exist
+                    'bill_Box11DP' => $bill_Box11DP,
+                    'bill_Box17' => $bill_Box17, //Provider Use for Box 31 and 33B too
+                    'bill_Box17A' => $bill_Box17A, //Provider NPI
+                    'bill_Box21A' => $bill_Box21A, //ICD9 or 10
+                    'bill_Box21_1' => $bill_Box21_1, //ICD1
+                    'bill_Box21_2' => $bill_Box21_2, //ICD2
+                    'bill_Box21_3' => $bill_Box21_3, //ICD3
+                    'bill_Box21_4' => $bill_Box21_4, //ICD4
+                    'bill_Box21_5' => $bill_Box21_5, //ICD5
+                    'bill_Box21_6' => $bill_Box21_6, //ICD6
+                    'bill_Box21_7' => $bill_Box21_7, //ICD7
+                    'bill_Box21_8' => $bill_Box21_8, //ICD8
+                    'bill_Box21_9' => $bill_Box21_9, //ICD9
+                    'bill_Box21_10' => $bill_Box21_10, //ICD10
+                    'bill_Box21_11' => $bill_Box21_11, //ICD11
+                    'bill_Box21_12' => $bill_Box21_12, //ICD12
+                    'bill_DOS1F' => $cpt_final[0]['dos_f'],
+                    'bill_DOS1T' => $cpt_final[0]['dos_t'],
+                    'bill_DOS2F' => $cpt_final[1]['dos_f'],
+                    'bill_DOS2T' => $cpt_final[1]['dos_t'],
+                    'bill_DOS3F' => $cpt_final[2]['dos_f'],
+                    'bill_DOS3T' => $cpt_final[2]['dos_t'],
+                    'bill_DOS4F' => $cpt_final[3]['dos_f'],
+                    'bill_DOS4T' => $cpt_final[3]['dos_t'],
+                    'bill_DOS5F' => $cpt_final[4]['dos_f'],
+                    'bill_DOS5T' => $cpt_final[4]['dos_t'],
+                    'bill_DOS6F' => $cpt_final[5]['dos_f'],
+                    'bill_DOS6T' => $cpt_final[5]['dos_t'],
+                    'bill_Box24B1' => $cpt_final[0]['pos'], //Place of Service 1
+                    'bill_Box24B2' => $cpt_final[1]['pos'], //Place of Service 2
+                    'bill_Box24B3' => $cpt_final[2]['pos'], //Place of Service 3
+                    'bill_Box24B4' => $cpt_final[3]['pos'], //Place of Service 4
+                    'bill_Box24B5' => $cpt_final[4]['pos'], //Place of Service 5
+                    'bill_Box24B6' => $cpt_final[5]['pos'], //Place of Service 6
+                    'bill_Box24D1' => $cpt_final[0]['cpt'], //CPT1
+                    'bill_Box24D2' => $cpt_final[1]['cpt'], //CPT2
+                    'bill_Box24D3' => $cpt_final[2]['cpt'], //CPT3
+                    'bill_Box24D4' => $cpt_final[3]['cpt'], //CPT4
+                    'bill_Box24D5' => $cpt_final[4]['cpt'], //CPT5
+                    'bill_Box24D6' => $cpt_final[5]['cpt'], //CPT6
+                    'bill_Modifier1' => $cpt_final[0]['modifier'],
+                    'bill_Modifier2' => $cpt_final[1]['modifier'],
+                    'bill_Modifier3' => $cpt_final[2]['modifier'],
+                    'bill_Modifier4' => $cpt_final[3]['modifier'],
+                    'bill_Modifier5' => $cpt_final[4]['modifier'],
+                    'bill_Modifier6' => $cpt_final[5]['modifier'],
+                    'bill_Box24E1' => $cpt_final[0]['icd_pointer'], //Diagnosis Pointer 1
+                    'bill_Box24E2' => $cpt_final[1]['icd_pointer'], //Diagnosis Pointer 2
+                    'bill_Box24E3' => $cpt_final[2]['icd_pointer'], //Diagnosis Pointer 3
+                    'bill_Box24E4' => $cpt_final[3]['icd_pointer'], //Diagnosis Pointer 4
+                    'bill_Box24E5' => $cpt_final[4]['icd_pointer'], //Diagnosis Pointer 5
+                    'bill_Box24E6' => $cpt_final[5]['icd_pointer'], //Diagnosis Pointer 6
+                    'bill_Box24F1' => number_format($cpt_final[0]['cpt_charge1'] * $cpt_final[0]['unit1'], 2, ' ', ''), //Charges 1
+                    'bill_Box24F2' => number_format($cpt_final[1]['cpt_charge1'] * $cpt_final[1]['unit1'], 2, ' ', ''), //Charges 2
+                    'bill_Box24F3' => number_format($cpt_final[2]['cpt_charge1'] * $cpt_final[2]['unit1'], 2, ' ', ''), //Charges 3
+                    'bill_Box24F4' => number_format($cpt_final[3]['cpt_charge1'] * $cpt_final[3]['unit1'], 2, ' ', ''), //Charges 4
+                    'bill_Box24F5' => number_format($cpt_final[4]['cpt_charge1'] * $cpt_final[4]['unit1'], 2, ' ', ''), //Charges 5
+                    'bill_Box24F6' => number_format($cpt_final[5]['cpt_charge1'] * $cpt_final[5]['unit1'], 2, ' ', ''), //Charges 6
+                    'bill_Box24G1' => $cpt_final[0]['unit'], //Units 1
+                    'bill_Box24G2' => $cpt_final[1]['unit'], //Units 2
+                    'bill_Box24G3' => $cpt_final[2]['unit'], //Units 3
+                    'bill_Box24G4' => $cpt_final[3]['unit'], //Units 4
+                    'bill_Box24G5' => $cpt_final[4]['unit'], //Units 5
+                    'bill_Box24G6' => $cpt_final[5]['unit'], //Units 6
+                    'bill_Box24J1' => $cpt_final[0]['npi'], //NPI 1
+                    'bill_Box24J2' => $cpt_final[1]['npi'], //NPI 2
+                    'bill_Box24J3' => $cpt_final[2]['npi'], //NPI 3
+                    'bill_Box24J4' => $cpt_final[3]['npi'], //NPI 4
+                    'bill_Box24J5' => $cpt_final[4]['npi'], //NPI 5
+                    'bill_Box24J6' => $cpt_final[5]['npi'], //NPI 6
+                    'bill_Box25' => $bill_Box25, //Clinic Tax ID
+                    'bill_Box26' => $bill_Box26, //pid
+                    'bill_Box27' => $bill_Box27, //Accept Assignment
+                    'bill_Box27P' => $bill_Box27P, //Accept Assignment
+                    'bill_Box28' => $bill_Box28, //Total Charges
+                    'bill_Box29' => $bill_Box29,
+                    'bill_Box30' => $bill_Box30,
+                    'bill_Box31' => $bill_Box31,
+                    'bill_Box32A' => $bill_Box32A, //Clinic Name
+                    'bill_Box32B' => $bill_Box32B, //Clinic Address 1
+                    'bill_Box32C' => $bill_Box32C, //Clinic Address 2
+                    'bill_Box32D' => $bill_Box32D, //Clinic NPI use for 33E too
+                    'bill_Box33A' => $bill_Box33A, //Clinic Phone
+                    'bill_Box33B' => $bill_Box33B,
+                    'bill_Box33C' => $bill_Box33C, //Billing Address 1
+                    'bill_Box33D' => $bill_Box33D, //Billing Address 2
+                    'bill_Box33E' => $bill_Box32D
                 ];
                 DB::table('billing')->insert($data2);
                 $this->audit('Add');
@@ -2486,13 +2400,12 @@ class Controller extends BaseController
             }
         } else {
             return "No CPT charges filed. Billing not saved.";
-            exit (0);
+            exit(0);
         }
         return 'Billing saved and waiting to be submitted!';
     }
 
-    protected function birthday_reminder($practice_id)
-    {
+    protected function birthday_reminder($practice_id) {
         $practice = DB::table('practiceinfo')->where('practice_id', '=', $practice_id)->first();
         if ($practice->timezone != null) {
             date_default_timezone_set($practice->timezone);
@@ -2500,13 +2413,13 @@ class Controller extends BaseController
         $date = date('-m-d');
         $i = 0;
         $query = DB::table('demographics')
-            ->join('demographics_relate', 'demographics_relate.pid', '=', 'demographics.pid')
-            ->select('demographics.firstname', 'demographics.reminder_to', 'demographics.reminder_method')
-            ->where('demographics_relate.practice_id', '=', $practice_id)
-            ->where('demographics.active', '=', '1')
-            ->where('demographics.reminder_to', '!=', '')
-            ->where('DOB', 'LIKE', "%$date%")
-            ->get();
+                ->join('demographics_relate', 'demographics_relate.pid', '=', 'demographics.pid')
+                ->select('demographics.firstname', 'demographics.reminder_to', 'demographics.reminder_method')
+                ->where('demographics_relate.practice_id', '=', $practice_id)
+                ->where('demographics.active', '=', '1')
+                ->where('demographics.reminder_to', '!=', '')
+                ->where('DOB', 'LIKE', "%$date%")
+                ->get();
         if ($query) {
             foreach ($query as $row) {
                 $to = $row->reminder_to;
@@ -2531,8 +2444,7 @@ class Controller extends BaseController
         return $i;
     }
 
-    protected function bright_futures()
-    {
+    protected function bright_futures() {
         $url = 'https://brightfutures.aap.org/families/Pages/Resources-for-Families.aspx';
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url);
@@ -2548,7 +2460,7 @@ class Controller extends BaseController
                 $pdf_url = $pdf->href;
                 $pdf_label = $pdf->innertext;
                 $lang = 'English';
-                if (strpos($pdf_url,'spanish')) {
+                if (strpos($pdf_url, 'spanish')) {
                     $lang = 'Spanish';
                 }
                 $data1[$lang][$pdf_url] = $pdf_label;
@@ -2557,8 +2469,7 @@ class Controller extends BaseController
         return $data1;
     }
 
-    protected function check_extension($extension, $practice_id)
-    {
+    protected function check_extension($extension, $practice_id) {
         $result = DB::table('practiceinfo')->where('practice_id', '=', $practice_id)->first();
         if ($result->$extension == 'y') {
             return TRUE;
@@ -2567,8 +2478,7 @@ class Controller extends BaseController
         }
     }
 
-    protected function clean_practice()
-    {
+    protected function clean_practice() {
         $query = DB::table('practiceinfo')->where('practice_id', '=', '1')->where('patient_centric', '=', 'y')->first();
         $i = 0;
         if ($query) {
@@ -2589,8 +2499,7 @@ class Controller extends BaseController
         return $i;
     }
 
-    protected function clean_temp_dir()
-    {
+    protected function clean_temp_dir() {
         $dir = public_path() . '/temp';
         $files = scandir($dir);
         $count = count($files);
@@ -2609,8 +2518,7 @@ class Controller extends BaseController
         return $count;
     }
 
-    protected function claim_reason_code($code)
-    {
+    protected function claim_reason_code($code) {
         $url = 'http://www.wpc-edi.com/reference/codelists/healthcare/claim-adjustment-reason-codes/';
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url);
@@ -2618,12 +2526,12 @@ class Controller extends BaseController
         $data = curl_exec($ch);
         curl_close($ch);
         $html = new Htmldom($data);
-        $table = $html->find('table[id=codelist]',0);
+        $table = $html->find('table[id=codelist]', 0);
         $description = '';
         foreach ($table->find('tr[class=current]') as $row) {
-            $code_row = $row->find('td[class=code]',0);
-            $description_row = $row->find('td[class=description]',0);
-            $date_row = $row->find('span[class=dates]',0);
+            $code_row = $row->find('td[class=code]', 0);
+            $description_row = $row->find('td[class=description]', 0);
+            $date_row = $row->find('span[class=dates]', 0);
             if ($code == $code_row->innertext) {
                 $description = $description_row->plaintext;
                 $date = $date_row->plaintext;
@@ -2638,8 +2546,7 @@ class Controller extends BaseController
         }
     }
 
-    protected function clinithink($text, $type)
-    {
+    protected function clinithink($text, $type) {
         $url = 'https://cloud.noshchartingsystem.com/noshapi/clinithink';
         $query['type'] = $type;
         if ($type == 'text') {
@@ -2660,11 +2567,10 @@ class Controller extends BaseController
         return $data;
     }
 
-    protected function closest_match($input, $compare_arr)
-    {
+    protected function closest_match($input, $compare_arr) {
         $shortest = -1;
         foreach ($compare_arr as $compare_k => $compare_v) {
-            $compare_v = rtrim(preg_replace("/\([^)]+\)/","",$compare_v));
+            $compare_v = rtrim(preg_replace("/\([^)]+\)/", "", $compare_v));
             $lev = levenshtein($input, $compare_v);
             if ($lev == 0) {
                 $closest = $compare_k;
@@ -2680,8 +2586,7 @@ class Controller extends BaseController
         return $closest;
     }
 
-    protected function common_icd()
-    {
+    protected function common_icd() {
         $subtypes = [];
         $core_url = 'http://www.nuemd.com/icd-10/common-codes';
         $ch = curl_init();
@@ -2732,8 +2637,7 @@ class Controller extends BaseController
         return 'OK';
     }
 
-    protected function convert_cc()
-    {
+    protected function convert_cc() {
         error_reporting(E_ALL ^ E_DEPRECATED);
         $query = DB::table('demographics')->select('pid', 'creditcard_number', 'creditcard_expiration', 'creditcard_type', 'creditcard_key')->get();
         if ($query->count()) {
@@ -2749,8 +2653,7 @@ class Controller extends BaseController
         return true;
     }
 
-    protected function convert_form()
-    {
+    protected function convert_form() {
         $data = [];
         $pre_data = [];
         $search_arr = [' ', ':', '?', ',', ';'];
@@ -2758,7 +2661,7 @@ class Controller extends BaseController
         $query = DB::table('templates')->where('category', '=', 'forms')->get();
         foreach ($query as $row) {
             $pre_data[] = [
-                'data' => json_decode(unserialize($row->array),true),
+                'data' => json_decode(unserialize($row->array), true),
                 'scoring' => $row->scoring
             ];
         }
@@ -2818,8 +2721,7 @@ class Controller extends BaseController
         return $data;
     }
 
-    protected function convert_number($number)
-    {
+    protected function convert_number($number) {
         if (($number < 0) || ($number > 999999999)) {
             return $number;
         }
@@ -2865,9 +2767,8 @@ class Controller extends BaseController
         return $res;
     }
 
-    protected function convert_template()
-    {
-        ini_set('memory_limit','196M');
+    protected function convert_template() {
+        ini_set('memory_limit', '196M');
         $file = true;
         $arr = [];
         $arr_options = [];
@@ -2877,12 +2778,12 @@ class Controller extends BaseController
             $reader = Excel::load(resource_path() . '/Default.txt');
             $file_result = $reader->get()->toArray();
             $specific = array_where($file_result, function($value, $key) {
-                if (stripos($value['category'] , 'specific') !== false) {
+                if (stripos($value['category'], 'specific') !== false) {
                     return true;
                 }
             });
             $query = array_where($file_result, function($value, $key) {
-                if (stripos($value['category'] , 'text') !== false) {
+                if (stripos($value['category'], 'text') !== false) {
                     return true;
                 }
             });
@@ -2926,7 +2827,7 @@ class Controller extends BaseController
                 if (strpos($row['array'], '*~*')) {
                     $item['input'] = 'text';
                 }
-                foreach ($arr_options as $k=>$v) {
+                foreach ($arr_options as $k => $v) {
                     if (strpos($row['array'], $k)) {
                         $item['input'] = 'radio';
                         $item['options'] = implode(',', $v);
@@ -2956,7 +2857,7 @@ class Controller extends BaseController
                 }
                 if (strpos($row->template_name, 'pe_') === 0) {
                     $template_name = 'pe';
-                    $pe_arr = explode (' - ', $group_name_pe_arr[$row->template_name]);
+                    $pe_arr = explode(' - ', $group_name_pe_arr[$row->template_name]);
                     if (count($pe_arr) > 1) {
                         $group_name = $pe_arr[0] . ' - ' . $row->group;
                         $item['text'] = $pe_arr[1] . ' - ' . $item['text'];
@@ -2967,7 +2868,7 @@ class Controller extends BaseController
                 if (strpos($row->array, '*~*')) {
                     $item['input'] = 'text';
                 }
-                foreach ($arr_options as $k=>$v) {
+                foreach ($arr_options as $k => $v) {
                     if (strpos($row->array, $k)) {
                         $item['input'] = 'radio';
                         $item['options'] = implode(',', $v);
@@ -2997,8 +2898,7 @@ class Controller extends BaseController
         return $arr_options;
     }
 
-    protected function copy_form($id)
-    {
+    protected function copy_form($id) {
         $result = DB::table('forms')->where('forms_id', '=', $id)->first();
         $query = DB::table('hpi')->where('eid', '=', Session::get('eid'))->first();
         $data['forms'] = '';
@@ -3028,16 +2928,14 @@ class Controller extends BaseController
         return $message;
     }
 
-    protected function correctnull($val)
-    {
+    protected function correctnull($val) {
         if ($val == '') {
             $val = null;
         }
         return $val;
     }
 
-    protected function cpt_search($code)
-    {
+    protected function cpt_search($code) {
         Config::set('excel.csv.delimiter', "\t");
         $reader = Excel::load(resource_path() . '/CPT.txt');
         $arr = $reader->noHeading()->get()->toArray();
@@ -3051,8 +2949,7 @@ class Controller extends BaseController
         return $return;
     }
 
-    protected function cvx_search($code)
-    {
+    protected function cvx_search($code) {
         Config::set('excel.csv.delimiter', "|");
         $reader = Excel::load(resource_path() . '/cvx.txt');
         $arr = $reader->noHeading()->get()->toArray();
@@ -3063,39 +2960,37 @@ class Controller extends BaseController
                     $return = ucfirst($row[2]);
                     break;
                 }
-
             }
         }
         return $return;
     }
 
     /**
-    * Dropdown build
-    * @param array  $dropdown_array -
-    * $dropdown_array = [
-    *    'default_button_text' => 'split button with dropdown',
-    *    'default_button_text_url' => URL::to('button_action'), requires default_button_text
-    *    'default_button_id' => 'id of element',
-    *    'items_button_text' => 'dropdown button text',
-    *    'items_button_icon' => 'fa fa-icon',
-    *    'items' => [
-    *        [
-    *            'type' => 'item', or separator or header or item
-    *            'label' => 'Practice NPI', needed for item or header
-    *            'icon' => 'fa-stethoscope',
-    *            'url' => 'URL'
-    *        ],
-    *       [
-    *            'type' => 'separator',
-    *        ]
-    *    ],
-    *    'origin' => 'previous URL',
-    * ];
-    * @param int $id - Item key in database
-    * @return Response
-    */
-    protected function dropdown_build($dropdown_array)
-    {
+     * Dropdown build
+     * @param array  $dropdown_array -
+     * $dropdown_array = [
+     *    'default_button_text' => 'split button with dropdown',
+     *    'default_button_text_url' => URL::to('button_action'), requires default_button_text
+     *    'default_button_id' => 'id of element',
+     *    'items_button_text' => 'dropdown button text',
+     *    'items_button_icon' => 'fa fa-icon',
+     *    'items' => [
+     *        [
+     *            'type' => 'item', or separator or header or item
+     *            'label' => 'Practice NPI', needed for item or header
+     *            'icon' => 'fa-stethoscope',
+     *            'url' => 'URL'
+     *        ],
+     *       [
+     *            'type' => 'separator',
+     *        ]
+     *    ],
+     *    'origin' => 'previous URL',
+     * ];
+     * @param int $id - Item key in database
+     * @return Response
+     */
+    protected function dropdown_build($dropdown_array) {
         if (isset($dropdown_array['items'])) {
             $return = '<div class="btn-group">';
             if (count($dropdown_array['items']) == 1 && isset($dropdown_array['items_button_text']) == false) {
@@ -3138,8 +3033,7 @@ class Controller extends BaseController
         return $return;
     }
 
-    protected function encounters_view($eid, $pid, $practice_id, $modal=false, $addendum=false)
-    {
+    protected function encounters_view($eid, $pid, $practice_id, $modal = false, $addendum = false) {
         $encounterInfo = DB::table('encounters')->where('eid', '=', $eid)->first();
         $data['patientInfo'] = DB::table('demographics')->where('pid', '=', $pid)->first();
         $data['eid'] = $eid;
@@ -3275,8 +3169,8 @@ class Controller extends BaseController
                 $directory = $practiceInfo->documents_dir . $pid . "/";
                 $new_directory = public_path() . '/temp/';
                 $new_directory1 = '/temp/';
-                $file_path = str_replace($directory, $new_directory ,$imagesInfo_row->image_location);
-                $file_path1 = str_replace($directory, $new_directory1 ,$imagesInfo_row->image_location);
+                $file_path = str_replace($directory, $new_directory, $imagesInfo_row->image_location);
+                $file_path1 = str_replace($directory, $new_directory1, $imagesInfo_row->image_location);
                 copy($imagesInfo_row->image_location, $file_path);
                 if ($k != 0) {
                     $data['images'] .= '<br><br>';
@@ -3292,7 +3186,7 @@ class Controller extends BaseController
         if ($labsInfo) {
             $labs_arr = $this->array_labs();
             $data['labs'] = '<br><h4>Laboratory Testing:</h4><p class="view">';
-            if ($labsInfo->labs_ua_urobili != '' || $labsInfo->labs_ua_bilirubin != '' || $labsInfo->labs_ua_ketones != '' || $labsInfo->labs_ua_glucose != '' || $labsInfo->labs_ua_protein != '' || $labsInfo->labs_ua_nitrites != '' || $labsInfo->labs_ua_leukocytes != '' || $labsInfo->labs_ua_blood != '' || $labsInfo->labs_ua_ph != '' || $labsInfo->labs_ua_spgr != '' || $labsInfo->labs_ua_color != '' || $labsInfo->labs_ua_clarity != ''){
+            if ($labsInfo->labs_ua_urobili != '' || $labsInfo->labs_ua_bilirubin != '' || $labsInfo->labs_ua_ketones != '' || $labsInfo->labs_ua_glucose != '' || $labsInfo->labs_ua_protein != '' || $labsInfo->labs_ua_nitrites != '' || $labsInfo->labs_ua_leukocytes != '' || $labsInfo->labs_ua_blood != '' || $labsInfo->labs_ua_ph != '' || $labsInfo->labs_ua_spgr != '' || $labsInfo->labs_ua_color != '' || $labsInfo->labs_ua_clarity != '') {
                 $data['labs'] .= '<strong>Dipstick Urinalysis:</strong><br /><table>';
                 foreach ($labs_arr['ua'] as $labs_ua_k => $labs_ua_v) {
                     if ($labsInfo->{$labs_ua_k} !== '' && $labsInfo->{$labs_ua_k} !== null) {
@@ -3379,16 +3273,16 @@ class Controller extends BaseController
                     $orders_displayname = 'Unknown';
                 }
                 if ($ordersInfo->orders_labs != '') {
-                    $orders_lab_array[] = 'Orders sent to ' . $orders_displayname . ': '. nl2br($ordersInfo->orders_labs) . '<br />';
+                    $orders_lab_array[] = 'Orders sent to ' . $orders_displayname . ': ' . nl2br($ordersInfo->orders_labs) . '<br />';
                 }
                 if ($ordersInfo->orders_radiology != '') {
-                    $orders_radiology_array[] = 'Orders sent to ' . $orders_displayname . ': '. nl2br($ordersInfo->orders_radiology) . '<br />';
+                    $orders_radiology_array[] = 'Orders sent to ' . $orders_displayname . ': ' . nl2br($ordersInfo->orders_radiology) . '<br />';
                 }
                 if ($ordersInfo->orders_cp != '') {
-                    $orders_cp_array[] = 'Orders sent to ' . $orders_displayname . ': '. nl2br($ordersInfo->orders_cp) . '<br />';
+                    $orders_cp_array[] = 'Orders sent to ' . $orders_displayname . ': ' . nl2br($ordersInfo->orders_cp) . '<br />';
                 }
                 if ($ordersInfo->orders_referrals != '') {
-                    $orders_referrals_array[] = 'Referral sent to ' . $orders_displayname . ': '. nl2br($ordersInfo->orders_referrals) . '<br />';
+                    $orders_referrals_array[] = 'Referral sent to ' . $orders_displayname . ': ' . nl2br($ordersInfo->orders_referrals) . '<br />';
                 }
             }
             if (count($orders_lab_array) > 0) {
@@ -3470,7 +3364,7 @@ class Controller extends BaseController
             $data['billing'] .= '</p>';
         }
         if ($encounterInfo->encounter_signed == 'No') {
-            $data['status']    = 'Draft';
+            $data['status'] = 'Draft';
         } else {
             $data['status'] = 'Signed on ' . date('F jS, Y', $this->human_to_unix($encounterInfo->date_signed)) . '.';
         }
@@ -3486,8 +3380,7 @@ class Controller extends BaseController
         }
     }
 
-    protected function fax_document($pid, $type, $coverpage, $filename, $file_original, $faxnumber, $faxrecipient, $job_id, $sendnow)
-    {
+    protected function fax_document($pid, $type, $coverpage, $filename, $file_original, $faxnumber, $faxrecipient, $job_id, $sendnow) {
         $demo_row = DB::table('demographics')->where('pid', '=', $pid)->first();
         if ($job_id == '') {
             $fax_data = [
@@ -3524,17 +3417,16 @@ class Controller extends BaseController
         return $message;
     }
 
-    protected function fhir_metadata($url)
-    {
+    protected function fhir_metadata($url) {
         $url .= 'metadata';
         $ch = curl_init();
         $return = [];
-        curl_setopt($ch,CURLOPT_URL, $url);
-        curl_setopt($ch,CURLOPT_FAILONERROR,1);
-        curl_setopt($ch,CURLOPT_FOLLOWLOCATION,1);
-        curl_setopt($ch,CURLOPT_RETURNTRANSFER,1);
-        curl_setopt($ch,CURLOPT_TIMEOUT, 60);
-        curl_setopt($ch,CURLOPT_CONNECTTIMEOUT ,0);
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_FAILONERROR, 1);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 60);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 0);
         $content_type = 'application/json';
         curl_setopt($ch, CURLOPT_HTTPHEADER, [
             "Accept: {$content_type}"
@@ -3542,7 +3434,7 @@ class Controller extends BaseController
         $metadata_json = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
-        if($httpCode == 200) {
+        if ($httpCode == 200) {
             $metadata = json_decode($metadata_json, true);
             // Get security URLs
             foreach ($metadata['rest'][0]['security']['extension'][0]['extension'] as $security_row) {
@@ -3563,8 +3455,7 @@ class Controller extends BaseController
         return $return;
     }
 
-    protected function fhir_request($url, $response_header=false, $token='', $epic=false)
-    {
+    protected function fhir_request($url, $response_header = false, $token = '', $epic = false) {
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url);
         curl_setopt($ch, CURLOPT_HEADER, 0);
@@ -3590,20 +3481,20 @@ class Controller extends BaseController
         }
         $output = curl_exec($ch);
         // if ($response_header == true) {
-            //$info = curl_getinfo($ch);
-            $header_size = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
-            $header = substr($output, 0, $header_size);
-            $headers = $this->get_headers_from_curl_response($header);
-            if (empty($headers)) {
-                $result = json_decode($output, true);
-            } else {
-                $header_val_arr = explode(', ', $headers[0]['WWW-Authenticate']);
-                $header_val_arr1 = explode('=', $header_val_arr[1]);
-                $body = substr($output, $header_size);
-                $result = json_decode($body, true);
-                $result['as_uri'] = trim(str_replace('"', '', $header_val_arr1[1]));
-            }
-            //$result['error'] = $output;
+        //$info = curl_getinfo($ch);
+        $header_size = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
+        $header = substr($output, 0, $header_size);
+        $headers = $this->get_headers_from_curl_response($header);
+        if (empty($headers)) {
+            $result = json_decode($output, true);
+        } else {
+            $header_val_arr = explode(', ', $headers[0]['WWW-Authenticate']);
+            $header_val_arr1 = explode('=', $header_val_arr[1]);
+            $body = substr($output, $header_size);
+            $result = json_decode($body, true);
+            $result['as_uri'] = trim(str_replace('"', '', $header_val_arr1[1]));
+        }
+        //$result['error'] = $output;
         // } else {
         //    $result = json_decode($output, true);
         // }
@@ -3611,8 +3502,7 @@ class Controller extends BaseController
         return $result;
     }
 
-    protected function fhir_response($data)
-    {
+    protected function fhir_response($data) {
         $code_arr = [
             'structure' => 'Structural Issue',
             'required' => 'Required element missing',
@@ -3678,68 +3568,67 @@ class Controller extends BaseController
     }
 
     /**
-    * Form build
-    * @param array  $form_array -
-    * $form_array1 = [
-    *    'form_id' => 'practice_choose',
-    *    'action' => URL::to('practice_choose'),
-    *    'items' => [
-    *        [
-    *            'name' => 'practice_npi_select',
-    *            'label' => 'Practice NPI',
-    *            'type' => 'select',
-    *            'required' => true,
-    *            'typeahead' => true,
-    *            'value' => '',
-    *            'default_value' => '',
-    *            'select_items' => $form_select_array,
-    *            'phone' => true,
-    *            'class' => ''
-    *       ],
-    *       [
-    *            'name' => 'my_textarea',
-    *            'label' => 'Practice NPI',
-    *            'type' => 'textarea',
-    *            'textarea_short' => true,
-    *            'typeahead' => true,
-    *            'value' => '',
-    *            'default_value' => '',
-    *            'class' => ''
-    *       ],
-    *       [
-    *            'name' => 'practice_npi_select1',
-    *            'label' => 'Practice NPI1',
-    *            'type' => 'select',
-    *            'required' => true,
-    *            'typeahead' => true,
-    *            'value' => '',
-    *            'default_value' => '',
-    *            'multiple' => true,
-    *            'selectpicker' => true,
-    *            'tagsinput' => '',
-    *            'select_items' => $form_select_array
-    *        ]
-    *    ],
-    *    'origin' => 'previous URL',
-    *    'save_button_label' => 'Select Practice',
-    *    'intro' => 'html for intro',
-    *    'add_save_button' => [
-    *         'action' => 'Label of Action',
-    *         'action2' => 'Label2 of Action2'
-    *     ]
-    * ];
-    * @param int $id - Item key in database
-    * @return Response
-    */
-    protected function form_build($form_array, $edit=false, $type='')
-    {
+     * Form build
+     * @param array  $form_array -
+     * $form_array1 = [
+     *    'form_id' => 'practice_choose',
+     *    'action' => URL::to('practice_choose'),
+     *    'items' => [
+     *        [
+     *            'name' => 'practice_npi_select',
+     *            'label' => 'Practice NPI',
+     *            'type' => 'select',
+     *            'required' => true,
+     *            'typeahead' => true,
+     *            'value' => '',
+     *            'default_value' => '',
+     *            'select_items' => $form_select_array,
+     *            'phone' => true,
+     *            'class' => ''
+     *       ],
+     *       [
+     *            'name' => 'my_textarea',
+     *            'label' => 'Practice NPI',
+     *            'type' => 'textarea',
+     *            'textarea_short' => true,
+     *            'typeahead' => true,
+     *            'value' => '',
+     *            'default_value' => '',
+     *            'class' => ''
+     *       ],
+     *       [
+     *            'name' => 'practice_npi_select1',
+     *            'label' => 'Practice NPI1',
+     *            'type' => 'select',
+     *            'required' => true,
+     *            'typeahead' => true,
+     *            'value' => '',
+     *            'default_value' => '',
+     *            'multiple' => true,
+     *            'selectpicker' => true,
+     *            'tagsinput' => '',
+     *            'select_items' => $form_select_array
+     *        ]
+     *    ],
+     *    'origin' => 'previous URL',
+     *    'save_button_label' => 'Select Practice',
+     *    'intro' => 'html for intro',
+     *    'add_save_button' => [
+     *         'action' => 'Label of Action',
+     *         'action2' => 'Label2 of Action2'
+     *     ]
+     * ];
+     * @param int $id - Item key in database
+     * @return Response
+     */
+    protected function form_build($form_array, $edit = false, $type = '') {
         $return = '<form id="' . $form_array['form_id'] . '" class="form-horizontal nosh-form" role="form" method="POST" action="' . $form_array['action'] . '">';
         $return .= csrf_field();
         if (isset($form_array['intro'])) {
             $return .= $form_array['intro'];
         }
         $i = 0;
-        foreach($form_array['items'] as $item_k => $item) {
+        foreach ($form_array['items'] as $item_k => $item) {
             $item_attr = [];
             $item_attr['class'] = 'form-control';
             if (isset($item['required']) && $item['required'] == true) {
@@ -3787,7 +3676,7 @@ class Controller extends BaseController
             if ($item['type'] == 'hidden') {
                 $item_attr['id'] = $item['name'];
                 $return .= Form::{$item['type']}($item['name'], $default_value, $item_attr);
-            } elseif ($item['type'] == 'checkbox' || $item['type'] == 'radio'){
+            } elseif ($item['type'] == 'checkbox' || $item['type'] == 'radio') {
                 $return .= '<div class="form-group">';
                 if (isset($item['section_items'])) {
                     $return .= '<label class="col-md-3 control-label">' . $item['label'] . '</label>';
@@ -3803,7 +3692,7 @@ class Controller extends BaseController
                         } else {
                             $return .= Form::{$item['type']}($item['name'], $section_item_k);
                         }
-                        $return .= $section_item_v .'</label>';
+                        $return .= $section_item_v . '</label>';
                     }
                     $return .= '</div></div>';
                     if ($edit == true) {
@@ -3878,8 +3767,7 @@ class Controller extends BaseController
         return $return;
     }
 
-    protected function form_addressbook($result, $table, $id, $subtype)
-    {
+    protected function form_addressbook($result, $table, $id, $subtype) {
         $electronic_order_arr = [
             '' => 'Select Electronic Order Interface',
             'PeaceHealth' => 'PeaceHealth Labs'
@@ -4086,22 +3974,21 @@ class Controller extends BaseController
         return $items;
     }
 
-    protected function form_alerts($result, $table, $id, $subtype)
-    {
+    protected function form_alerts($result, $table, $id, $subtype) {
         $portal_active = false;
         $patient = DB::table('demographics_relate')
-            ->where('pid', '=', Session::get('pid'))
-            ->where('practice_id', '=', Session::get('practice_id'))
-            ->whereNotNull('id')
-            ->first();
+                ->where('pid', '=', Session::get('pid'))
+                ->where('practice_id', '=', Session::get('practice_id'))
+                ->whereNotNull('id')
+                ->first();
         if ($patient) {
             $portal_active = true;
         }
         $users_query = DB::table('users')
-            ->where('group_id', '!=', '100')
-            ->where('practice_id', '=', Session::get('practice_id'))
-            ->select('id', 'displayname')
-            ->get();
+                ->where('group_id', '!=', '100')
+                ->where('practice_id', '=', Session::get('practice_id'))
+                ->select('id', 'displayname')
+                ->get();
         if ($users_query->count()) {
             foreach ($users_query as $users_row) {
                 $users_arr[$users_row->id] = $users_row->displayname;
@@ -4194,8 +4081,7 @@ class Controller extends BaseController
         return $items;
     }
 
-    protected function form_allergies($result, $table, $id, $subtype)
-    {
+    protected function form_allergies($result, $table, $id, $subtype) {
         $severity_arr = [
             'mild' => 'Mild',
             'moderate' => 'Moderate',
@@ -4298,8 +4184,7 @@ class Controller extends BaseController
         return $items;
     }
 
-    protected function form_billing_core($result, $table, $id, $subtype)
-    {
+    protected function form_billing_core($result, $table, $id, $subtype) {
         if ($id == '0') {
             if (Session::has('eid')) {
                 $encounter = DB::table('encounters')->where('eid', '=', Session::get('eid'))->first();
@@ -4323,7 +4208,7 @@ class Controller extends BaseController
             ];
         } else {
             $icd_pointer = [];
-            if ($result->icd_pointer !== '' || $result->icd_pointer !== null)  {
+            if ($result->icd_pointer !== '' || $result->icd_pointer !== null) {
                 $icd_pointer = str_split($result->icd_pointer);
             }
             $cpt = [
@@ -4406,8 +4291,7 @@ class Controller extends BaseController
         return $items;
     }
 
-    protected function form_calendar($result, $table, $id, $subtype)
-    {
+    protected function form_calendar($result, $table, $id, $subtype) {
         $providers_arr['0'] = 'All Providers';
         $providers_arr = $providers_arr + $this->array_providers();
         if ($id == '0') {
@@ -4473,8 +4357,7 @@ class Controller extends BaseController
         return $items;
     }
 
-    protected function form_demographics($result, $table, $id, $subtype)
-    {
+    protected function form_demographics($result, $table, $id, $subtype) {
         if ($subtype == 'name') {
             $race_arr = [];
             foreach ($this->array_race() as $key1 => $value1) {
@@ -4890,7 +4773,7 @@ class Controller extends BaseController
                 'MasterCard' => 'MasterCard',
                 'Visa' => 'Visa',
                 'Discover' => 'Discover',
-                'Amex'=>'American Express'
+                'Amex' => 'American Express'
             ];
             if ($result->creditcard_number == '' || $result->creditcard_number == null) {
                 $cc_arr = [
@@ -4933,8 +4816,7 @@ class Controller extends BaseController
         return $items;
     }
 
-    protected function form_documents($result, $table, $id, $subtype)
-    {
+    protected function form_documents($result, $table, $id, $subtype) {
         $document_type_arr = [
             'Laboratory' => 'Laboratory',
             'Imaging' => 'Imaging',
@@ -5009,8 +4891,7 @@ class Controller extends BaseController
         return $items;
     }
 
-    protected function form_family_history($result, $arr, $id)
-    {
+    protected function form_family_history($result, $arr, $id) {
         $rel_arr = [
             '' => '',
             'Father' => 'Father',
@@ -5037,7 +4918,7 @@ class Controller extends BaseController
         $name_arr[''] = '';
         $name_arr['Patient'] = 'Patient';
         if (count($arr) > 0) {
-            foreach($arr as $person) {
+            foreach ($arr as $person) {
                 $name_arr[$person['Name']] = $person['Name'];
             }
         }
@@ -5118,8 +4999,7 @@ class Controller extends BaseController
         return $items;
     }
 
-    protected function form_hippa($result, $table, $id, $subtype)
-    {
+    protected function form_hippa($result, $table, $id, $subtype) {
         $practice = DB::table('practiceinfo')->where('practice_id', '=', Session::get('practice_id'))->first();
         $role_arr = [
             '' => '',
@@ -5226,8 +5106,7 @@ class Controller extends BaseController
         return $items;
     }
 
-    protected function form_hippa_request($result, $table, $id, $subtype)
-    {
+    protected function form_hippa_request($result, $table, $id, $subtype) {
         $practice = DB::table('practiceinfo')->where('practice_id', '=', Session::get('practice_id'))->first();
         $type_arr = [
             '' => 'Select Option',
@@ -5408,8 +5287,7 @@ class Controller extends BaseController
         return $items;
     }
 
-    protected function form_immunizations($result, $table, $id, $subtype)
-    {
+    protected function form_immunizations($result, $table, $id, $subtype) {
         $nosh_action_arr = [
             '' => 'Do Nothing',
             'inventory' => 'Pull from Vaccine Inventory'
@@ -5596,8 +5474,7 @@ class Controller extends BaseController
         return $items;
     }
 
-    protected function form_insurance($result, $table, $id, $subtype)
-    {
+    protected function form_insurance($result, $table, $id, $subtype) {
         $insurance_order_arr = [
             '' => '',
             'Primary' => 'Primary',
@@ -5786,8 +5663,7 @@ class Controller extends BaseController
         return $items;
     }
 
-    protected function form_issues($result, $table, $id, $subtype)
-    {
+    protected function form_issues($result, $table, $id, $subtype) {
         $issue_type_arr = [
             'pl' => 'Problem List',
             'mh' => 'Medical History',
@@ -5872,8 +5748,7 @@ class Controller extends BaseController
         return $items;
     }
 
-    protected function form_messaging($result, $table, $id, $subtype)
-    {
+    protected function form_messaging($result, $table, $id, $subtype) {
         if ($id == '0') {
             $messaging = [
                 'pid' => null,
@@ -5899,10 +5774,10 @@ class Controller extends BaseController
             $subject = $result->subject;
             $body = $result->body;
             $from = $result->message_from;
-            if ($result->message_to !== '' || $result->message_to !== null)  {
+            if ($result->message_to !== '' || $result->message_to !== null) {
                 $message_to = explode(";", $result->message_to);
             }
-            if ($result->cc !== '' || $result->cc !== null)  {
+            if ($result->cc !== '' || $result->cc !== null) {
                 $cc = explode(";", $result->cc);
             }
             if ($subtype == 'reply') {
@@ -5918,7 +5793,7 @@ class Controller extends BaseController
                 $old_message_to = $message_to;
                 $curr_user = Session::get('displayname') . ' (' . Session::get('user_id') . ')';
                 foreach ($old_message_to as $old_message_k => $old_message_v) {
-                    if ($old_message_v ==  $curr_user) {
+                    if ($old_message_v == $curr_user) {
                         unset($old_message_to[$old_message_k]);
                     }
                 }
@@ -6021,8 +5896,7 @@ class Controller extends BaseController
         return $items;
     }
 
-    protected function form_orders($result, $table, $id, $subtype)
-    {
+    protected function form_orders($result, $table, $id, $subtype) {
         $practice = DB::table('practiceinfo')->where('practice_id', '=', Session::get('practice_id'))->first();
         $type_arr = [
             'orders_labs' => ['Laboratory', 'Laboratory results pending.', 'orders_labs_icd', 'Lab Test(s)', 'Laboratory'],
@@ -6060,12 +5934,12 @@ class Controller extends BaseController
             }
         } else {
             $orders_insurance = [];
-            if ($result->orders_insurance !== '' && $result->orders_insurance !== null)  {
+            if ($result->orders_insurance !== '' && $result->orders_insurance !== null) {
                 $orders_insurance = explode("\n", $result->orders_insurance);
             }
             ${$subtype . '_icd'} = [];
             ${$subtype . '_icd1'} = [];
-            if ($result->{$subtype . '_icd'} !== '' && $result->{$subtype . '_icd'} !== null)  {
+            if ($result->{$subtype . '_icd'} !== '' && $result->{$subtype . '_icd'} !== null) {
                 ${$subtype . '_icd1'} = explode("\n", $result->{$subtype . '_icd'});
                 foreach (${$subtype . '_icd1'} as $icd) {
                     ${$subtype . '_icd'}[$icd] = $icd;
@@ -6189,8 +6063,7 @@ class Controller extends BaseController
         return $items;
     }
 
-    protected function form_other_history($result, $table, $id, $subtype)
-    {
+    protected function form_other_history($result, $table, $id, $subtype) {
         $patient = DB::table('demographics')->where('pid', '=', Session::get('pid'))->first();
         if ($subtype == 'lifestyle') {
             $lifestyle = [
@@ -6303,8 +6176,7 @@ class Controller extends BaseController
         return $items;
     }
 
-    protected function form_practiceinfo($result, $table, $id, $subtype)
-    {
+    protected function form_practiceinfo($result, $table, $id, $subtype) {
         if ($subtype == 'information') {
             $info_arr = [
                 'practice_name' => $result->practice_name,
@@ -6644,7 +6516,7 @@ class Controller extends BaseController
                 'name' => 'birthday_extension',
                 'label' => 'Birthday Message Enabled',
                 'type' => 'select',
-                'select_items' => ['n' => 'No','y' => 'Yes'],
+                'select_items' => ['n' => 'No', 'y' => 'Yes'],
                 'default_value' => $extensions_arr['birthday_extension']
             ];
             $items[] = [
@@ -6657,7 +6529,7 @@ class Controller extends BaseController
                 'name' => 'appointment_extension',
                 'label' => 'Appointment Reminder Enabled',
                 'type' => 'select',
-                'select_items' => ['n' => 'No','y' => 'Yes'],
+                'select_items' => ['n' => 'No', 'y' => 'Yes'],
                 'default_value' => $extensions_arr['appointment_extension']
             ];
             $items[] = [
@@ -6830,8 +6702,7 @@ class Controller extends BaseController
         return $items;
     }
 
-    protected function form_providers($result, $table, $id, $subtype)
-    {
+    protected function form_providers($result, $table, $id, $subtype) {
         $practice = DB::table('practiceinfo')->where('practice_id', '=', Session::get('practice_id'))->first();
         $provider = [
             'specialty' => $result->specialty,
@@ -6926,8 +6797,7 @@ class Controller extends BaseController
         return $items;
     }
 
-    protected function form_recipients($result, $table, $id, $subtype)
-    {
+    protected function form_recipients($result, $table, $id, $subtype) {
         if ($id == '0') {
             $messaging = [
                 'faxrecipient' => null,
@@ -6964,8 +6834,7 @@ class Controller extends BaseController
         return $items;
     }
 
-    protected function form_repeat_schedule($result, $table, $id, $subtype)
-    {
+    protected function form_repeat_schedule($result, $table, $id, $subtype) {
         $providers_arr['0'] = 'All Providers';
         $providers_arr = $providers_arr + $this->array_providers();
         $day_arr = [
@@ -7048,8 +6917,7 @@ class Controller extends BaseController
         return $items;
     }
 
-    protected function form_rx_list($result, $table, $id, $subtype)
-    {
+    protected function form_rx_list($result, $table, $id, $subtype) {
         $practice = DB::table('practiceinfo')->where('practice_id', '=', Session::get('practice_id'))->first();
         $nosh_action_arr = [
             'electronic_sign' => 'Electronically Sign',
@@ -7186,7 +7054,7 @@ class Controller extends BaseController
                 if ($result->rxl_daw !== '' && $result->rxl_daw !== null) {
                     $rx['daw'] = 'Yes';
                 }
-                if ($result->rxl_dea !== ''&& $result->rxl_dea !== null) {
+                if ($result->rxl_dea !== '' && $result->rxl_dea !== null) {
                     $rx['dea'] = 'Yes';
                 }
                 $rx['address_id'] = $result->address_id;
@@ -7364,8 +7232,7 @@ class Controller extends BaseController
         return $items;
     }
 
-    protected function form_sup_list($result, $table, $id, $subtype)
-    {
+    protected function form_sup_list($result, $table, $id, $subtype) {
         $nosh_action_arr = [
             '' => 'Do Nothing',
             'inventory' => 'Pull from Supplements Inventory'
@@ -7508,8 +7375,7 @@ class Controller extends BaseController
         return $items;
     }
 
-    protected function form_supplement_inventory($result, $table, $id, $subtype)
-    {
+    protected function form_supplement_inventory($result, $table, $id, $subtype) {
         if ($id == '0') {
             $data = [
                 'sup_description' => null,
@@ -7518,7 +7384,7 @@ class Controller extends BaseController
                 'quantity1' => null,
                 'charge' => null,
                 'sup_expiration' => null,
-                'date_purchase'=> date("Y-m-d"),
+                'date_purchase' => date("Y-m-d"),
                 'sup_lot' => null,
                 'cpt' => null,
                 'practice_id' => Session::get('practice_id')
@@ -7531,7 +7397,7 @@ class Controller extends BaseController
                 'quantity1' => $result->quantity1,
                 'charge' => $result->charge,
                 'sup_expiration' => date("Y-m-d", $this->human_to_unix($result->sup_expiration)),
-                'date_purchase'=> date("Y-m-d", $this->human_to_unix($result->date_purchase)),
+                'date_purchase' => date("Y-m-d", $this->human_to_unix($result->date_purchase)),
                 'sup_lot' => $result->sup_lot,
                 'cpt' => $result->cpt,
                 'practice_id' => $result->practice_id
@@ -7606,8 +7472,7 @@ class Controller extends BaseController
         return $items;
     }
 
-    protected function form_tests($result, $table, $id, $subtype)
-    {
+    protected function form_tests($result, $table, $id, $subtype) {
         $test_type_arr = [
             '' => 'Select Type',
             'Laboratory' => 'Laboratory',
@@ -7715,8 +7580,7 @@ class Controller extends BaseController
         return $items;
     }
 
-    protected function form_t_messages($result, $table, $id, $subtype)
-    {
+    protected function form_t_messages($result, $table, $id, $subtype) {
         if ($id == '0') {
             $message = [
                 't_messages_subject' => null,
@@ -7801,8 +7665,7 @@ class Controller extends BaseController
         return $items;
     }
 
-    protected function form_users($result, $table, $id, $subtype)
-    {
+    protected function form_users($result, $table, $id, $subtype) {
         $users_arr = $this->array_groups();
         $practice = DB::table('practiceinfo')->where('practice_id', '=', Session::get('practice_id'))->first();
         if ($id == '0') {
@@ -8013,8 +7876,7 @@ class Controller extends BaseController
         return $items;
     }
 
-    protected function form_vaccine_inventory($result, $table, $id, $subtype)
-    {
+    protected function form_vaccine_inventory($result, $table, $id, $subtype) {
         if ($id == '0') {
             $data = [
                 'imm_immunization' => null,
@@ -8025,7 +7887,7 @@ class Controller extends BaseController
                 'quantity' => null,
                 'cpt' => null,
                 'imm_expiration' => null,
-                'date_purchase'=> date("Y-m-d"),
+                'date_purchase' => date("Y-m-d"),
                 'practice_id' => Session::get('practice_id')
             ];
         } else {
@@ -8038,7 +7900,7 @@ class Controller extends BaseController
                 'quantity' => $result->quantity,
                 'cpt' => $result->cpt,
                 'imm_expiration' => date('Y-m-d', $this->human_to_unix($result->imm_expiration)),
-                'date_purchase'=> date('Y-m-d', $this->human_to_unix($result->date_purchase)),
+                'date_purchase' => date('Y-m-d', $this->human_to_unix($result->date_purchase)),
                 'practice_id' => $result->practice_id
             ];
         }
@@ -8120,8 +7982,7 @@ class Controller extends BaseController
         return $items;
     }
 
-    protected function form_vaccine_temp($result, $table, $id, $subtype)
-    {
+    protected function form_vaccine_temp($result, $table, $id, $subtype) {
         if ($id == '0') {
             $data = [
                 'temp' => null,
@@ -8167,8 +8028,7 @@ class Controller extends BaseController
         return $items;
     }
 
-    protected function form_vitals($result, $table, $id, $subtype)
-    {
+    protected function form_vitals($result, $table, $id, $subtype) {
         $vitals_arr = $this->array_vitals();
         $temp_method_arr = [
             '' => 'Pick method',
@@ -8304,13 +8164,11 @@ class Controller extends BaseController
         return $items;
     }
 
-    protected function form_($result, $table, $id, $subtype)
-    {
+    protected function form_($result, $table, $id, $subtype) {
         return $items;
     }
 
-    protected function gc_bmi_age($sex, $pid)
-    {
+    protected function gc_bmi_age($sex, $pid) {
         $type = 'bmi-age';
         $data['patient'] = $this->gc_bmi_chart($pid);
         $data['graph_y_title'] = 'kg/m2';
@@ -8362,14 +8220,13 @@ class Controller extends BaseController
         return $data;
     }
 
-    protected function gc_bmi_chart($pid)
-    {
+    protected function gc_bmi_chart($pid) {
         $query = DB::table('vitals')
-            ->select('BMI', 'pedsage')
-            ->where('pid', '=', $pid)
-            ->where('BMI', '!=', '')
-            ->orderBy('pedsage', 'asc')
-            ->get();
+                ->select('BMI', 'pedsage')
+                ->where('pid', '=', $pid)
+                ->where('BMI', '!=', '')
+                ->orderBy('pedsage', 'asc')
+                ->get();
         if ($query) {
             $vals = [];
             $i = 0;
@@ -8387,30 +8244,27 @@ class Controller extends BaseController
         }
     }
 
-    protected function gc_cdf($n)
-    {
-        if($n < 0) {
-            return (1 - $this->gc_erf($n / sqrt(2)))/2;
+    protected function gc_cdf($n) {
+        if ($n < 0) {
+            return (1 - $this->gc_erf($n / sqrt(2))) / 2;
         } else {
-            return (1 + $this->gc_erf($n / sqrt(2)))/2;
+            return (1 + $this->gc_erf($n / sqrt(2))) / 2;
         }
     }
 
-    protected function gc_erf($x)
-    {
+    protected function gc_erf($x) {
         $pi = 3.1415927;
-        $a = (8*($pi - 3))/(3*$pi*(4 - $pi));
+        $a = (8 * ($pi - 3)) / (3 * $pi * (4 - $pi));
         $x2 = $x * $x;
         $ax2 = $a * $x2;
-        $num = (4/$pi) + $ax2;
+        $num = (4 / $pi) + $ax2;
         $denom = 1 + $ax2;
-        $inner = (-$x2)*$num/$denom;
+        $inner = (-$x2) * $num / $denom;
         $erf2 = 1 - exp($inner);
         return sqrt($erf2);
     }
 
-    protected function gc_head_age($sex, $pid)
-    {
+    protected function gc_head_age($sex, $pid) {
         $type = 'head-age';
         $data['patient'] = $this->gc_hc_chart($pid);
         $data['graph_y_title'] = 'cm';
@@ -8462,14 +8316,13 @@ class Controller extends BaseController
         return $data;
     }
 
-    protected function gc_hc_chart($pid)
-    {
+    protected function gc_hc_chart($pid) {
         $query = DB::table('vitals')
-            ->select('headcircumference', 'pedsage')
-            ->where('pid', '=', $pid)
-            ->where('headcircumference', '!=', '')
-            ->orderBy('pedsage', 'asc')
-            ->get();
+                ->select('headcircumference', 'pedsage')
+                ->where('pid', '=', $pid)
+                ->where('headcircumference', '!=', '')
+                ->orderBy('pedsage', 'asc')
+                ->get();
         if ($query) {
             $vals = [];
             $i = 0;
@@ -8493,8 +8346,7 @@ class Controller extends BaseController
         }
     }
 
-    protected function gc_height_age($sex, $pid)
-    {
+    protected function gc_height_age($sex, $pid) {
         $type = 'height-age';
         $data['patient'] = $this->gc_height_chart($pid);
         $data['graph_y_title'] = 'cm';
@@ -8546,14 +8398,13 @@ class Controller extends BaseController
         return $data;
     }
 
-    protected function gc_height_chart($pid)
-    {
+    protected function gc_height_chart($pid) {
         $query = DB::table('vitals')
-            ->select('height', 'pedsage')
-            ->where('pid', '=', $pid)
-            ->where('height', '!=', '')
-            ->orderBy('pedsage', 'asc')
-            ->get();
+                ->select('height', 'pedsage')
+                ->where('pid', '=', $pid)
+                ->where('height', '!=', '')
+                ->orderBy('pedsage', 'asc')
+                ->get();
         if ($query) {
             $vals = [];
             $i = 0;
@@ -8577,8 +8428,7 @@ class Controller extends BaseController
         }
     }
 
-    protected function gc_lms($style, $sex, $age)
-    {
+    protected function gc_lms($style, $sex, $age) {
         $gc = $this->array_gc();
         Config::set('excel.csv.delimiter', "\t");
         $reader = Excel::load(resource_path() . '/' . $gc[$style][$sex]);
@@ -8598,8 +8448,7 @@ class Controller extends BaseController
         return $result;
     }
 
-    protected function gc_lms1($style, $sex, $length)
-    {
+    protected function gc_lms1($style, $sex, $length) {
         $gc = $this->array_gc();
         Config::set('excel.csv.delimiter', "\t");
         $reader = Excel::load(resource_path() . '/' . $gc[$style][$sex]);
@@ -8613,8 +8462,7 @@ class Controller extends BaseController
         return $result;
     }
 
-    protected function gc_lms2($style, $sex, $height)
-    {
+    protected function gc_lms2($style, $sex, $height) {
         $gc = $this->array_gc();
         Config::set('excel.csv.delimiter', "\t");
         $reader = Excel::load(resource_path() . '/' . $gc[$style][$sex]);
@@ -8628,8 +8476,7 @@ class Controller extends BaseController
         return $result;
     }
 
-    protected function gc_spline($style, $sex)
-    {
+    protected function gc_spline($style, $sex) {
         $gc = $this->array_gc();
         Config::set('excel.csv.delimiter', "\t");
         $reader = Excel::load(resource_path() . '/' . $gc[$style][$sex]);
@@ -8637,8 +8484,7 @@ class Controller extends BaseController
         return $result;
     }
 
-    protected function gc_weight_age($sex, $pid)
-    {
+    protected function gc_weight_age($sex, $pid) {
         $type = 'weight-age';
         $data['patient'] = $this->gc_weight_chart($pid);
         $data['graph_y_title'] = 'kg';
@@ -8691,14 +8537,13 @@ class Controller extends BaseController
         return $data;
     }
 
-    protected function gc_weight_chart($pid)
-    {
+    protected function gc_weight_chart($pid) {
         $query = DB::table('vitals')
-            ->select('weight', 'pedsage')
-            ->where('pid', '=', $pid)
-            ->where('weight', '!=', '')
-            ->orderBy('pedsage', 'asc')
-            ->get();
+                ->select('weight', 'pedsage')
+                ->where('pid', '=', $pid)
+                ->where('weight', '!=', '')
+                ->orderBy('pedsage', 'asc')
+                ->get();
         if ($query) {
             $vals = [];
             $i = 0;
@@ -8722,18 +8567,17 @@ class Controller extends BaseController
         }
     }
 
-    protected function gc_weight_height($sex, $pid)
-    {
+    protected function gc_weight_height($sex, $pid) {
         $data['patient'] = $this->gc_weight_height_chart($pid);
         $data['graph_y_title'] = 'kg';
         $data['graph_x_title'] = 'cm';
         $query = DB::table('vitals')
-            ->select('weight', 'height', 'pedsage')
-            ->where('pid', '=', $pid)
-            ->where('weight', '!=', '')
-            ->where('height', '!=', '')
-            ->orderBy('pedsage', 'desc')
-            ->first();
+                ->select('weight', 'height', 'pedsage')
+                ->where('pid', '=', $pid)
+                ->where('weight', '!=', '')
+                ->where('height', '!=', '')
+                ->orderBy('pedsage', 'desc')
+                ->first();
         $pedsage = $query->pedsage * 2629743 / 86400;
         if ($pedsage <= 730) {
             $type = 'weight-length';
@@ -8832,15 +8676,14 @@ class Controller extends BaseController
         return $data;
     }
 
-    protected function gc_weight_height_chart($pid)
-    {
+    protected function gc_weight_height_chart($pid) {
         $query = DB::table('vitals')
-            ->select('weight', 'height', 'pedsage')
-            ->where('pid', '=', $pid)
-            ->where('weight', '!=', '')
-            ->where('height', '!=', '')
-            ->orderBy('pedsage', 'asc')
-            ->get();
+                ->select('weight', 'height', 'pedsage')
+                ->where('pid', '=', $pid)
+                ->where('weight', '!=', '')
+                ->where('height', '!=', '')
+                ->orderBy('pedsage', 'asc')
+                ->get();
         if ($query) {
             $vals = [];
             $i = 0;
@@ -8877,8 +8720,7 @@ class Controller extends BaseController
         }
     }
 
-    protected function gen_secret()
-    {
+    protected function gen_secret() {
         $length = 512;
         $val = '';
         for ($i = 0; $i < $length; $i++) {
@@ -8893,19 +8735,12 @@ class Controller extends BaseController
         return $result;
     }
 
-    protected function gen_uuid()
-    {
-        return sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
-            mt_rand(0, 0xffff), mt_rand(0, 0xffff),
-            mt_rand(0, 0xffff),
-            mt_rand(0, 0x0fff) | 0x4000,
-            mt_rand(0, 0x3fff) | 0x8000,
-            mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff)
+    protected function gen_uuid() {
+        return sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x', mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0x0fff) | 0x4000, mt_rand(0, 0x3fff) | 0x8000, mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff)
         );
     }
 
-    protected function generate_ccda($hippa_id='',$pid='')
-    {
+    protected function generate_ccda($hippa_id = '', $pid = '') {
         $gender_arr = $this->array_gender();
         $route_arr = $this->array_route1();
         $marital_arr = $this->array_marital1();
@@ -8989,12 +8824,12 @@ class Controller extends BaseController
         }
         $ccda = str_replace('?encounter_role_code?', $hippa_role_code, $ccda);
         $recent_encounter_query = DB::table('encounters')->where('pid', '=', $pid)
-            ->where('addendum', '=', 'n')
-            ->where('practice_id', '=', Session::get('practice_id'))
-            ->where('encounter_signed', '=', 'Yes')
-            ->orderBy('encounter_DOS', 'desc')
-            ->take(1)
-            ->first();
+                ->where('addendum', '=', 'n')
+                ->where('practice_id', '=', Session::get('practice_id'))
+                ->where('encounter_signed', '=', 'Yes')
+                ->orderBy('encounter_DOS', 'desc')
+                ->take(1)
+                ->first();
         if ($recent_encounter_query) {
             $ccda = str_replace('?eid?', $recent_encounter_query->eid, $ccda);
             $encounter_info = DB::table('encounters')->where('eid', '=', $recent_encounter_query->eid)->first();
@@ -9076,16 +8911,16 @@ class Controller extends BaseController
         $ccda = str_replace('?allergies_table?', $allergies_table, $ccda);
         $ccda = str_replace('?allergies_file?', $allergies_file_final, $ccda);
         $encounters_query = DB::table('encounters')->where('pid', '=', $pid)
-            ->where('addendum', '=', 'n')
-            ->where('practice_id', '=', Session::get('practice_id'))
-            ->where('encounter_signed', '=', 'Yes')
-            ->orderBy('encounter_DOS', 'desc')
-            ->get();
+                ->where('addendum', '=', 'n')
+                ->where('practice_id', '=', Session::get('practice_id'))
+                ->where('encounter_signed', '=', 'Yes')
+                ->orderBy('encounter_DOS', 'desc')
+                ->get();
         $e = 1;
         $encounters_table = "";
         $encounters_file_final = "";
         if ($encounters_query->count()) {
-            foreach($encounters_query as $encounters_row) {
+            foreach ($encounters_query as $encounters_row) {
                 $encounters_table .= "<tr>";
                 $encounters_table .= "<td><content ID='Encounter" . $e . "'>" . $encounters_row->encounter_cc . "</content></td>";
                 $encounters_table .= "<td>" . $encounters_row->encounter_provider . "</td>";
@@ -9095,12 +8930,12 @@ class Controller extends BaseController
                 $encounters_file = File::get(resource_path() . '/encounters.xml');
                 $encounters_number = "#Encounter" . $e;
                 $billing = DB::table('billing_core')
-                    ->where('eid', '=', $encounters_row->eid)
-                    ->where('billing_group', '=', '1')
-                    ->where('cpt', 'NOT LIKE', "sp%")
-                    ->orderBy('cpt_charge', 'desc')
-                    ->take(1)
-                    ->first();
+                        ->where('eid', '=', $encounters_row->eid)
+                        ->where('billing_group', '=', '1')
+                        ->where('cpt', 'NOT LIKE', "sp%")
+                        ->orderBy('cpt_charge', 'desc')
+                        ->take(1)
+                        ->first();
                 $encounter_code = '';
                 $cpt_description = '';
                 if ($billing) {
@@ -9145,7 +8980,7 @@ class Controller extends BaseController
                 $assessment_info1 = DB::table('assessment')->where('eid', '=', $encounters_row->eid)->first();
                 $encounter_diagnosis = '';
                 if ($assessment_info1) {
-                    for ($i=1; $i<=12; $i++) {
+                    for ($i = 1; $i <= 12; $i++) {
                         $col = 'assessment_' . $i;
                         if ($assessment_info1->{$col} !== '') {
                             $dx_array[] = $assessment_info1->{$col};
@@ -9290,22 +9125,22 @@ class Controller extends BaseController
                 $med_file = str_replace('?med_dosage_unit?', $med_dosage_unit, $med_file);
                 $url = 'https://rxnav.nlm.nih.gov/REST/rxcui.json?idtype=NDC&id=' . $med_row->rxl_ndcid;
                 $ch = curl_init();
-                curl_setopt($ch,CURLOPT_URL, $url);
-                curl_setopt($ch,CURLOPT_FAILONERROR,1);
-                curl_setopt($ch,CURLOPT_FOLLOWLOCATION,1);
-                curl_setopt($ch,CURLOPT_RETURNTRANSFER,1);
-                curl_setopt($ch,CURLOPT_TIMEOUT, 15);
+                curl_setopt($ch, CURLOPT_URL, $url);
+                curl_setopt($ch, CURLOPT_FAILONERROR, 1);
+                curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
+                curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+                curl_setopt($ch, CURLOPT_TIMEOUT, 15);
                 $json = curl_exec($ch);
                 curl_close($ch);
                 $rxnorm = json_decode($json, true);
                 if (isset($rxnorm['idGroup']['rxnormId'][0])) {
                     $url1 = 'https://rxnav.nlm.nih.gov/REST/rxcui/' . $rxnorm['idGroup']['rxnormId'][0] . '/properties.json';
                     $ch1 = curl_init();
-                    curl_setopt($ch1,CURLOPT_URL, $url1);
-                    curl_setopt($ch1,CURLOPT_FAILONERROR,1);
-                    curl_setopt($ch1,CURLOPT_FOLLOWLOCATION,1);
-                    curl_setopt($ch1,CURLOPT_RETURNTRANSFER,1);
-                    curl_setopt($ch1,CURLOPT_TIMEOUT, 15);
+                    curl_setopt($ch1, CURLOPT_URL, $url1);
+                    curl_setopt($ch1, CURLOPT_FAILONERROR, 1);
+                    curl_setopt($ch1, CURLOPT_FOLLOWLOCATION, 1);
+                    curl_setopt($ch1, CURLOPT_RETURNTRANSFER, 1);
+                    curl_setopt($ch1, CURLOPT_TIMEOUT, 15);
                     $json1 = curl_exec($ch1);
                     curl_close($ch1);
                     $rxnorm1 = json_decode($json1, true);
@@ -9313,7 +9148,7 @@ class Controller extends BaseController
                     $med_name = $rxnorm1['properties']['name'];
                 } else {
                     $med_rxnorm_code = '';
-                    $med_name = $med_row->rxl_medication . ' ' . $med_row->rxl_dosage . ' ' . $med_row->rxl_dosage_unit ;
+                    $med_name = $med_row->rxl_medication . ' ' . $med_row->rxl_dosage . ' ' . $med_row->rxl_dosage_unit;
                 }
                 $med_file = str_replace('?med_rxnorm_code?', $med_rxnorm_code, $med_file);
                 $med_file = str_replace('?med_name?', $med_name, $med_file);
@@ -9397,7 +9232,7 @@ class Controller extends BaseController
                 $med_file = str_replace('?med_dosage?', $med_dosage, $med_file);
                 $med_file = str_replace('?med_dosage_unit?', $med_dosage_unit, $med_file);
                 $med_rxnorm_code = '';
-                $med_name = $sup_row->sup_supplement . ' ' . $sup_row->sup_dosage . ' ' . $sup_row->sup_dosage_unit ;
+                $med_name = $sup_row->sup_supplement . ' ' . $sup_row->sup_dosage . ' ' . $sup_row->sup_dosage_unit;
                 $med_file = str_replace('?med_rxnorm_code?', $med_rxnorm_code, $med_file);
                 $med_file = str_replace('?med_name?', $med_name, $med_file);
                 $med_file_final .= $med_file;
@@ -9413,7 +9248,7 @@ class Controller extends BaseController
             if ($orders_query->count()) {
                 foreach ($orders_query as $orders_row) {
                     if ($orders_row->orders_labs != '') {
-                        $orders_labs_array = explode("\n",$orders_row->orders_labs);
+                        $orders_labs_array = explode("\n", $orders_row->orders_labs);
                         $n1 = 1;
                         foreach ($orders_labs_array as $orders_labs_row) {
                             $orders_table .= "<tr>";
@@ -9425,7 +9260,7 @@ class Controller extends BaseController
                         }
                     }
                     if ($orders_row->orders_radiology != '') {
-                        $orders_rad_array = explode("\n",$orders_row->orders_radiology);
+                        $orders_rad_array = explode("\n", $orders_row->orders_radiology);
                         $n2 = 1;
                         foreach ($orders_rad_array as $orders_rad_row) {
                             $orders_table .= "<tr>";
@@ -9437,7 +9272,7 @@ class Controller extends BaseController
                         }
                     }
                     if ($orders_row->orders_cp != '') {
-                        $orders_cp_array = explode("\n",$orders_row->orders_cp);
+                        $orders_cp_array = explode("\n", $orders_row->orders_cp);
                         $n3 = 1;
                         foreach ($orders_cp_array as $orders_cp_row) {
                             $orders_table .= "<tr>";
@@ -9449,9 +9284,9 @@ class Controller extends BaseController
                         }
                     }
                     if ($orders_row->orders_referrals != '') {
-                        $referral_orders = explode("\nRequested action:\n",$orders_row->orders_referrals);
+                        $referral_orders = explode("\nRequested action:\n", $orders_row->orders_referrals);
                         if (count($referral_orders) > 1) {
-                            $orders_ref_array = explode("\n",$referral_orders[0]);
+                            $orders_ref_array = explode("\n", $referral_orders[0]);
                             $n4 = 1;
                             foreach ($orders_ref_array as $orders_ref_row) {
                                 $orders_table .= "<tr>";
@@ -9523,7 +9358,7 @@ class Controller extends BaseController
                     $proc_file = File::get(resource_path() . '/proc.xml');
                     $proc_file = str_replace('?proc_date?', date('Ymd', $this->human_to_unix($pre_proc_item['date'])), $proc_file);
                     $proc_file = str_replace('?proc_type?', $pre_proc_item['type'], $proc_file);
-                    $proc_file = str_replace('?proc_cpt?', $pre_proc_item['code'] , $proc_file);
+                    $proc_file = str_replace('?proc_cpt?', $pre_proc_item['code'], $proc_file);
                     $proc_file = str_replace('?practiceinfo_street_address?', $practice_info->street_address1, $proc_file);
                     $proc_file = str_replace('?practiceinfo_city?', $practice_info->city, $proc_file);
                     $proc_file = str_replace('?practiceinfo_state?', $practice_info->state, $proc_file);
@@ -9633,8 +9468,7 @@ class Controller extends BaseController
         return $ccda;
     }
 
-    protected function generate_pdf($html, $filepath, $footer='footerpdf', $header='', $type='1', $headerparam='', $watermark='')
-    {
+    protected function generate_pdf($html, $filepath, $footer = 'footerpdf', $header = '', $type = '1', $headerparam = '', $watermark = '') {
         // if ($header != '') {
         //     if ($headerparam == '') {
         //         $pdf_options['header-center'] = $header;
@@ -9681,25 +9515,24 @@ class Controller extends BaseController
                 $footer_html = '<div style="border-top: 1px solid #000000; text-align: center; padding-top: 3mm; font-size: 8px;">Page ' . $pdf->getAliasNumPage();
                 $footer_html .= ' of ' . $pdf->getAliasNbPages() . '</div><p style="text-align:center; font-size: 8px;">';
                 $footer_html .= "CONFIDENTIALITY NOTICE: The information contained in this document or facsimile transmission is intended for the recipient named above. If you are not the intended recipient or the intended recipient's agent, you are hereby notified that dissemination, copying, or distribution of the information contained in the transmission is prohibited. If you are not the intended recipient, please notify us immediately by telephone and return the documents to us by mail. Thank you.</p>";
-                $footer_html .= '<p style="text-align:center; font-size: 8px;">This document was generated by NOSH ChartingSystem</p>';
+                $footer_html .= '<p style="text-align:center; font-size: 8px;">This document was generated by DrJio Care System</p>';
             }
             if ($footer == 'mtmfooterpdf') {
                 $footer_html = '<div style="border-top: 1px solid #000000; font-family: Arial, Helvetica, sans-serif; font-size: 7;">';
                 $footer_html .= '<table><tr><td>Form CMS-10396 (01/12)</td><td style="text-align:right;">Form Approved OMB No. 0938-1154</td></tr></table>';
-                $footer_html .- '<div style="text-align:center; font-family: ' . "'Times New Roman'" . ', Times, serif; font-size: 12;">" Page ' . $pdf->getAliasNumPage() . ' of ' . $pdf->getAliasNbPages() . '</div>';
+                $footer_html . - '<div style="text-align:center; font-family: ' . "'Times New Roman'" . ', Times, serif; font-size: 12;">" Page ' . $pdf->getAliasNumPage() . ' of ' . $pdf->getAliasNbPages() . '</div>';
             }
             // Page number
             $pdf->writeHTML($footer_html, true, false, false, false, '');
             // $pdf->Cell(0, 10, 'Page '.$pdf->getAliasNumPage().'/'.$pdf->getAliasNbPages(), 1, false, 'C', 0, '', 0, false, 'T', 'M');
-
         });
-        PDF::SetAuthor('NOSH ChartingSystem');
+        PDF::SetAuthor('DrJio Care System');
         PDF::SetTitle('NOSH PDF Document');
         if ($type == '1') {
-            PDF::SetMargins('26', '26' ,'26', true);
+            PDF::SetMargins('26', '26', '26', true);
         }
         if ($type == '2') {
-            PDF::SetMargins('16', '26' ,'16', true);
+            PDF::SetMargins('16', '26', '16', true);
         }
         PDF::SetFooterMargin('40');
         PDF::AddPage();
@@ -9710,20 +9543,19 @@ class Controller extends BaseController
                 $watermark_file = 'voidstamp.png';
             }
             PDF::SetAlpha(0.5);
-            PDF::Image(resource_path() . '/' . $watermark_file, '0', '0', '', '', 'PNG', false, 'C', false, 300, 'C', false, false, 0 ,false, false, false);
+            PDF::Image(resource_path() . '/' . $watermark_file, '0', '0', '', '', 'PNG', false, 'C', false, 300, 'C', false, false, 0, false, false, false);
         }
         PDF::Output($filepath, 'F');
         PDF::reset();
         return true;
     }
 
-    protected function get_headers_from_curl_response($headerContent)
-    {
+    protected function get_headers_from_curl_response($headerContent) {
         $headers = [];
         // Split the string on every "double" new line.
         $arrRequests = explode("\r\n\r\n", $headerContent);
         // Loop of response headers. The "count() -1" is to avoid an empty row for the extra line break before the body of the response.
-        for ($index = 0; $index < count($arrRequests) -1; $index++) {
+        for ($index = 0; $index < count($arrRequests) - 1; $index++) {
             foreach (explode("\r\n", $arrRequests[$index]) as $i => $line) {
                 if ($i === 0) {
                     $headers[$index]['http_code'] = $line;
@@ -9736,28 +9568,25 @@ class Controller extends BaseController
         return $headers;
     }
 
-    protected function get_id($text)
-    {
+    protected function get_id($text) {
         preg_match('#\((.*?)\)#', $text, $match);
         return $match[1];
     }
 
-    protected function getDimensions($width, $height, $frameWidth, $frameHeight)
-    {
-        if($width > $height) {
+    protected function getDimensions($width, $height, $frameWidth, $frameHeight) {
+        if ($width > $height) {
             $newWidth = $frameWidth;
-            $newHeight = $frameWidth/$width*$height;
+            $newHeight = $frameWidth / $width * $height;
         } else {
             $newHeight = $frameHeight;
-            $newWidth = $frameHeight/$height*$width;
+            $newWidth = $frameHeight / $height * $width;
         }
-        return ['scaledWidth' => $newWidth , 'scaledHeight' => $newHeight];
+        return ['scaledWidth' => $newWidth, 'scaledHeight' => $newHeight];
     }
 
-    protected function getImageFile($file)
-    {
-        $type =  exif_imagetype($file);
-        switch($type){
+    protected function getImageFile($file) {
+        $type = exif_imagetype($file);
+        switch ($type) {
             case 2:
                 $img = imagecreatefromjpeg($file);
                 break;
@@ -9774,19 +9603,17 @@ class Controller extends BaseController
         return $img;
     }
 
-    protected function getNumberAppts($id)
-    {
+    protected function getNumberAppts($id) {
         $start_time = strtotime("today 00:00:00");
         $end_time = $start_time + 86400;
         return DB::table('schedule')->where('provider_id', '=', $id)->whereBetween('start', array($start_time, $end_time))->count();
     }
 
-    protected function get_results()
-    {
+    protected function get_results() {
         $dir = '/srv/ftp/shared/import/';
         $files = scandir($dir);
         $count = count($files);
-        $full_count=0;
+        $full_count = 0;
         for ($i = 2; $i < $count; $i++) {
             $line = $files[$i];
             $file = $dir . $line;
@@ -9835,7 +9662,7 @@ class Controller extends BaseController
                     $day1 = substr($line_section[14], 6, 2);
                     $hour1 = substr($line_section[14], 8, 2);
                     $minute1 = substr($line_section[14], 10, 2);
-                    $results[$j]['test_datetime'] = $year1 . "-" . $month1 . "-" . $day1 . " " . $hour1 . ":" . $minute1 .":00";
+                    $results[$j]['test_datetime'] = $year1 . "-" . $month1 . "-" . $day1 . " " . $hour1 . ":" . $minute1 . ":00";
                     $j++;
                 }
                 if ($line_section[0] == "NTE") {
@@ -9869,12 +9696,12 @@ class Controller extends BaseController
             }
             if ($practice_id != '') {
                 $practice_row = DB::table('practiceinfo')->where('practice_id', '=', $practice_id)->first();
-                Config::set('app.timezone' , $practice_row->timezone);
+                Config::set('app.timezone', $practice_row->timezone);
                 $provider_row = DB::table('users')
-                    ->join('providers', 'providers.id', '=', 'users.id')
-                    ->select('users.lastname', 'users.firstname', 'users.title', 'users.id')
-                    ->where('providers.peacehealth_id', '=', $provider_id)
-                    ->first();
+                        ->join('providers', 'providers.id', '=', 'users.id')
+                        ->select('users.lastname', 'users.firstname', 'users.title', 'users.id')
+                        ->where('providers.peacehealth_id', '=', $provider_id)
+                        ->first();
                 if ($provider_row) {
                     $provider_id = $provider_row->id;
                 } else {
@@ -9884,7 +9711,7 @@ class Controller extends BaseController
                 if ($patient_row) {
                     $pid = $patient_row->pid;
                     $dob_message = date("m/d/Y", strtotime($patient_row->DOB));
-                    $patient_name =  $patient_row->lastname . ', ' . $patient_row->firstname . ' (DOB: ' . $dob_message . ') (ID: ' . $pid . ')';
+                    $patient_name = $patient_row->lastname . ', ' . $patient_row->firstname . ' (DOB: ' . $dob_message . ') (ID: ' . $pid . ')';
                     $tests = 'y';
                     $test_desc = "";
                     $k = 0;
@@ -9957,7 +9784,7 @@ class Controller extends BaseController
                     $body .= $results_row1['test_name'] . ": " . $results_row1['test_result'] . ", Units: " . $results_row1['test_units'] . ", Normal reference range: " . $results_row1['test_reference'] . ", Date: " . $results_row1['test_datetime'] . "\n";
                 }
                 $body .= "\n" . $from;
-                if ($tests="unk") {
+                if ($tests = "unk") {
                     $body .= "\n" . "Patient is unknown to the system.  Please reconcile this test result in your dashboard.";
                 }
                 if ($provider_id != '') {
@@ -9988,17 +9815,16 @@ class Controller extends BaseController
         return $full_count;
     }
 
-    protected function get_scans($practice_id)
-    {
+    protected function get_scans($practice_id) {
         $result = DB::table('practiceinfo')->where('practice_id', '=', $practice_id)->first();
-        Config::set('app.timezone' , $result->timezone);
+        Config::set('app.timezone', $result->timezone);
         $dir = $result->documents_dir . 'scans/' . $practice_id;
         if (!file_exists($dir)) {
             mkdir($dir, 0777);
         }
         $files = scandir($dir);
         $count = count($files);
-        $j=0;
+        $j = 0;
         for ($i = 2; $i < $count; $i++) {
             $line = $files[$i];
             $filePath = $dir . "/" . $line;
@@ -10023,8 +9849,7 @@ class Controller extends BaseController
         return $j;
     }
 
-    protected function get_snomed_code($item, $date, $id)
-    {
+    protected function get_snomed_code($item, $date, $id) {
         $pos = strpos($item, ", SNOMED : ");
         $pos1 = strpos($item, ", CPT: ");
         if ($pos !== false) {
@@ -10056,50 +9881,46 @@ class Controller extends BaseController
         return $orders_file;
     }
 
-    protected function github_all()
-    {
+    protected function github_all() {
         $client = new \Github\Client(
-            new \Github\HttpClient\CachedHttpClient(array('cache_dir' => '/tmp/github-api-cache'))
+                new \Github\HttpClient\CachedHttpClient(array('cache_dir' => '/tmp/github-api-cache'))
         );
         $client = new \Github\HttpClient\CachedHttpClient();
         $client->setCache(
-            new \Github\HttpClient\Cache\FilesystemCache('/tmp/github-api-cache')
+                new \Github\HttpClient\Cache\FilesystemCache('/tmp/github-api-cache')
         );
         $client = new \Github\Client($client);
         $result = $client->api('repo')->commits()->all('shihjay2', 'nosh2', ['sha' => 'master']);
         return $result;
     }
 
-    protected function github_release()
-    {
+    protected function github_release() {
         $client = new \Github\Client(
-            new \Github\HttpClient\CachedHttpClient(array('cache_dir' => '/tmp/github-api-cache'))
+                new \Github\HttpClient\CachedHttpClient(array('cache_dir' => '/tmp/github-api-cache'))
         );
         $client = new \Github\HttpClient\CachedHttpClient();
         $client->setCache(
-            new \Github\HttpClient\Cache\FilesystemCache('/tmp/github-api-cache')
+                new \Github\HttpClient\Cache\FilesystemCache('/tmp/github-api-cache')
         );
         $client = new \Github\Client($client);
         $result = $client->api('repo')->releases()->latest('shihjay2', 'nosh2');
         return $result;
     }
 
-    protected function github_single($sha)
-    {
+    protected function github_single($sha) {
         $client = new \Github\Client(
-            new \Github\HttpClient\CachedHttpClient(array('cache_dir' => '/tmp/github-api-cache'))
+                new \Github\HttpClient\CachedHttpClient(array('cache_dir' => '/tmp/github-api-cache'))
         );
         $client = new \Github\HttpClient\CachedHttpClient();
         $client->setCache(
-            new \Github\HttpClient\Cache\FilesystemCache('/tmp/github-api-cache')
+                new \Github\HttpClient\Cache\FilesystemCache('/tmp/github-api-cache')
         );
         $client = new \Github\Client($client);
         $result = $client->api('repo')->commits()->show('shihjay2', 'nosh2', $sha);
         return $result;
     }
 
-    protected function goodrx($rx, $command, $api_key='46e983ffba', $secret_key='3QmFl8W7Y2Mb655bn++NNA==')
-    {
+    protected function goodrx($rx, $command, $api_key = '46e983ffba', $secret_key = '3QmFl8W7Y2Mb655bn++NNA==') {
         $url = 'https://api.goodrx.com/' . $command;
         $query_string = 'name=' . $rx . '&api_key=' . $api_key;
         if ($command == 'drug-search') {
@@ -10107,24 +9928,23 @@ class Controller extends BaseController
         }
         $hash = hash_hmac('sha256', $query_string, $secret_key, true);
         $encoded = base64_encode($hash);
-        $search = array('+','/');
+        $search = array('+', '/');
         $sig = str_replace($search, '_', $encoded);
         $url .= '?' . $query_string . '&sig=' . $sig;
         $ch = curl_init();
-        curl_setopt($ch,CURLOPT_URL, $url);
-        curl_setopt($ch,CURLOPT_FAILONERROR,1);
-        curl_setopt($ch,CURLOPT_FOLLOWLOCATION,1);
-        curl_setopt($ch,CURLOPT_RETURNTRANSFER,1);
-        curl_setopt($ch,CURLOPT_TIMEOUT, 60);
-        curl_setopt($ch,CURLOPT_CONNECTTIMEOUT ,0);
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_FAILONERROR, 1);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 60);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 0);
         $result = curl_exec($ch);
         $result_array = json_decode($result, true);
         curl_close($ch);
         return $result_array;
     }
 
-    protected function goodrx_drug_search($rx)
-    {
+    protected function goodrx_drug_search($rx) {
         $rx = rtrim($rx, ',');
         $result = $this->goodrx($rx, 'drug-search');
         $drug = $rx;
@@ -10134,8 +9954,7 @@ class Controller extends BaseController
         return $drug;
     }
 
-    protected function goodrx_information($rx, $dose)
-    {
+    protected function goodrx_information($rx, $dose) {
         $rx1 = explode(',', $rx);
         $rx_array = explode(' ', $rx1[0]);
         $dose_array = explode('/', $dose);
@@ -10164,8 +9983,7 @@ class Controller extends BaseController
         return $link;
     }
 
-    protected function goodrx_notification($rx, $dose)
-    {
+    protected function goodrx_notification($rx, $dose) {
         $row = DB::table('demographics')->where('pid', '=', Session::get('pid'))->first();
         $row2 = DB::table('practiceinfo')->where('practice_id', '=', Session::get('practice_id'))->first();
         $to = $row->reminder_to;
@@ -10192,8 +10010,7 @@ class Controller extends BaseController
         }
     }
 
-    protected function hcfa($eid, $flatten)
-    {
+    protected function hcfa($eid, $flatten) {
         $query = DB::table('billing')->where('eid', '=', $eid)->get();
         $input1 = '';
         if ($query->count()) {
@@ -10215,16 +10032,16 @@ class Controller extends BaseController
                         $val_array1 = array($val_array[0], ' ', $val_array[1], ' ', $val_array[2], $val_array[3]);
                         $val = implode($val_array1);
                     }
-                    if ($field == 'bill_Box3A' || $field == 'bill_Box9B1' || $field == 'bill_Box11A1'){
+                    if ($field == 'bill_Box3A' || $field == 'bill_Box9B1' || $field == 'bill_Box11A1') {
                         $val_array2 = str_split($val, 3);
                         $val_array3 = array($val_array2[0], $val_array2[1], '', $val_array2[2], $val_array2[3]);
                         $val = implode($val_array3);
                     }
-                    if ($field == 'bill_Box24F1' ||$field == 'bill_Box24F2' || $field == 'bill_Box24F3' || $field == 'bill_Box24F4' || $field == 'bill_Box24F5' || $field == 'bill_Box24F6' || $field == 'bill_Box28' || $field == 'bill_Box29' || $field == 'bill_Box30') {
+                    if ($field == 'bill_Box24F1' || $field == 'bill_Box24F2' || $field == 'bill_Box24F3' || $field == 'bill_Box24F4' || $field == 'bill_Box24F5' || $field == 'bill_Box24F6' || $field == 'bill_Box28' || $field == 'bill_Box29' || $field == 'bill_Box30') {
                         $val = rtrim($val);
                     }
                     if (is_array($val)) {
-                        foreach($val as $opt)
+                        foreach ($val as $opt)
                             $data .= '<value>' . $opt . '</value>' . "\n";
                     } else {
                         $data .= '<value>' . $val . '</value>' . "\n";
@@ -10233,8 +10050,8 @@ class Controller extends BaseController
                 }
                 $data .= '<field name="Date">' . "\n<value>" . date('m/d/Y') . "</value>\n</field>\n";
                 $data .= '<field name="Date2">' . "\n<value>" . date('m/d/y') . "</value>\n</field>\n";
-                $data .= '</fields>' . "\n". '<ids original="' . md5($input) . '" modified="' . time() . '" />' . "\n" . '<f href="'.$input.'" />'."\n" . '</xfdf>'."\n";
-                $xfdf_fn = public_path() . '/temp/'. time() . '_' . Session::get('user_id') . '_temp.xfdf';
+                $data .= '</fields>' . "\n" . '<ids original="' . md5($input) . '" modified="' . time() . '" />' . "\n" . '<f href="' . $input . '" />' . "\n" . '</xfdf>' . "\n";
+                $xfdf_fn = public_path() . '/temp/' . time() . '_' . Session::get('user_id') . '_temp.xfdf';
                 File::put($xfdf_fn, $data);
                 $commandpdf = "pdftk " . $input . " fill_form " . $xfdf_fn . " output " . $output;
                 if ($flatten == 'y') {
@@ -10265,8 +10082,7 @@ class Controller extends BaseController
         }
     }
 
-    protected function header_build($arr, $type='')
-    {
+    protected function header_build($arr, $type = '') {
         $return = '<div class="panel panel-success"><div class="panel-heading"><div class="container-fluid panel-container"><div class="col-xs-8 text-left"><h5 class="panel-title" style="height:30px;display:table-cell !important;vertical-align:middle;">';
         if (is_array($arr)) {
             $return .= $type . '</h5></div><div class="col-xs-4 text-right"><a href="' . $arr[$type] . '" class="btn btn-default btn-sm">Edit</a></div></div></div><div class="panel-body"><div class="row">';
@@ -10276,8 +10092,7 @@ class Controller extends BaseController
         return $return;
     }
 
-    protected function hedis_aab($aab_result)
-    {
+    protected function hedis_aab($aab_result) {
         $data = [];
         $data['count'] = count($aab_result);
         $data['abx'] = 0;
@@ -10287,7 +10102,7 @@ class Controller extends BaseController
             if ($query1) {
                 if ($query1->rx_rx != '') {
                     $abx_count = 0;
-                    $search = ['cillin','amox','zith','cef','kef','mycin','eryth','pen','bac','sulf','cycl','lox'];
+                    $search = ['cillin', 'amox', 'zith', 'cef', 'kef', 'mycin', 'eryth', 'pen', 'bac', 'sulf', 'cycl', 'lox'];
                     foreach ($search as $needle) {
                         $pos = stripos($query1->rx_rx, $needle);
                         if ($pos !== false) {
@@ -10295,17 +10110,16 @@ class Controller extends BaseController
                         }
                     }
                     if ($abx_count > 0) {
-                        $data['abx']++;
+                        $data['abx'] ++;
                     }
                 }
             }
         }
-        $data['percent_abx'] = round($data['abx']/$data['count']*100);
+        $data['percent_abx'] = round($data['abx'] / $data['count'] * 100);
         return $data;
     }
 
-    protected function hedis_aba($pid)
-    {
+    protected function hedis_aba($pid) {
         $data = [];
         $data['html'] = '<i class="fa fa-lg fa-times"></i> Adult BMI Assessment not performed';
         $data['goal'] = 'n';
@@ -10316,21 +10130,21 @@ class Controller extends BaseController
             $score++;
         } else {
             $query1 = DB::table('assessment')
-                ->where('pid', '=', $pid)
-                ->where(function($query_array1) {
-                    $assessment_item_array = ['V85.0','V85.1','V85.21','V85.22','V85.23','V85.24','V85.25','V85.30','V85.31','V85.32','V85.33','V85.34','V85.35','V85.36','V85.37','V85.38','V85.39','V85.41','V85.42','V85.43','V85.44','V85.45','V85.51','V85.52','V85.53','V85.54','Z68.1','Z68.20','Z68.21','Z68.22','Z68.23','Z68.24','Z68.25','Z68.26','Z68.27','Z68.28','Z68.29','Z68.30','Z68.31','Z68.32','Z68.33','Z68.34','Z68.35','Z68.36','Z68.37','Z68.38','Z68.39','Z68.41','Z68.42','Z68.43','Z68.44','Z68.45'];
-                    $i = 0;
-                    foreach ($assessment_item_array as $assessment_item) {
-                        if ($i == 0) {
-                            $query_array1->where('assessment_icd1', '=', $assessment_item)->orWhere('assessment_icd2', '=', $assessment_item)->orWhere('assessment_icd3', '=', $assessment_item)->orWhere('assessment_icd4', '=', $assessment_item)->orWhere('assessment_icd5', '=', $assessment_item)->orWhere('assessment_icd6', '=', $assessment_item)->orWhere('assessment_icd7', '=', $assessment_item)->orWhere('assessment_icd8', '=', $assessment_item)->orWhere('assessment_icd9', '=', $assessment_item)->orWhere('assessment_icd10', '=', $assessment_item)->orWhere('assessment_icd11', '=', $assessment_item)->orWhere('assessment_icd12', '=', $assessment_item);
-                        } else {
-                            $query_array1->orWhere('assessment_icd1', '=', $assessment_item)->orWhere('assessment_icd2', '=', $assessment_item)->orWhere('assessment_icd3', '=', $assessment_item)->orWhere('assessment_icd4', '=', $assessment_item)->orWhere('assessment_icd5', '=', $assessment_item)->orWhere('assessment_icd6', '=', $assessment_item)->orWhere('assessment_icd7', '=', $assessment_item)->orWhere('assessment_icd8', '=', $assessment_item)->orWhere('assessment_icd9', '=', $assessment_item)->orWhere('assessment_icd10', '=', $assessment_item)->orWhere('assessment_icd11', '=', $assessment_item)->orWhere('assessment_icd12', '=', $assessment_item);
+                    ->where('pid', '=', $pid)
+                    ->where(function($query_array1) {
+                        $assessment_item_array = ['V85.0', 'V85.1', 'V85.21', 'V85.22', 'V85.23', 'V85.24', 'V85.25', 'V85.30', 'V85.31', 'V85.32', 'V85.33', 'V85.34', 'V85.35', 'V85.36', 'V85.37', 'V85.38', 'V85.39', 'V85.41', 'V85.42', 'V85.43', 'V85.44', 'V85.45', 'V85.51', 'V85.52', 'V85.53', 'V85.54', 'Z68.1', 'Z68.20', 'Z68.21', 'Z68.22', 'Z68.23', 'Z68.24', 'Z68.25', 'Z68.26', 'Z68.27', 'Z68.28', 'Z68.29', 'Z68.30', 'Z68.31', 'Z68.32', 'Z68.33', 'Z68.34', 'Z68.35', 'Z68.36', 'Z68.37', 'Z68.38', 'Z68.39', 'Z68.41', 'Z68.42', 'Z68.43', 'Z68.44', 'Z68.45'];
+                        $i = 0;
+                        foreach ($assessment_item_array as $assessment_item) {
+                            if ($i == 0) {
+                                $query_array1->where('assessment_icd1', '=', $assessment_item)->orWhere('assessment_icd2', '=', $assessment_item)->orWhere('assessment_icd3', '=', $assessment_item)->orWhere('assessment_icd4', '=', $assessment_item)->orWhere('assessment_icd5', '=', $assessment_item)->orWhere('assessment_icd6', '=', $assessment_item)->orWhere('assessment_icd7', '=', $assessment_item)->orWhere('assessment_icd8', '=', $assessment_item)->orWhere('assessment_icd9', '=', $assessment_item)->orWhere('assessment_icd10', '=', $assessment_item)->orWhere('assessment_icd11', '=', $assessment_item)->orWhere('assessment_icd12', '=', $assessment_item);
+                            } else {
+                                $query_array1->orWhere('assessment_icd1', '=', $assessment_item)->orWhere('assessment_icd2', '=', $assessment_item)->orWhere('assessment_icd3', '=', $assessment_item)->orWhere('assessment_icd4', '=', $assessment_item)->orWhere('assessment_icd5', '=', $assessment_item)->orWhere('assessment_icd6', '=', $assessment_item)->orWhere('assessment_icd7', '=', $assessment_item)->orWhere('assessment_icd8', '=', $assessment_item)->orWhere('assessment_icd9', '=', $assessment_item)->orWhere('assessment_icd10', '=', $assessment_item)->orWhere('assessment_icd11', '=', $assessment_item)->orWhere('assessment_icd12', '=', $assessment_item);
+                            }
+                            $i++;
                         }
-                        $i++;
-                    }
-                })
-                ->orderBy('eid', 'desc')
-                ->first();
+                    })
+                    ->orderBy('eid', 'desc')
+                    ->first();
             if ($query1) {
                 $score++;
             } else {
@@ -10344,37 +10158,36 @@ class Controller extends BaseController
         return $data;
     }
 
-    protected function hedis_add($pid, $date)
-    {
+    protected function hedis_add($pid, $date) {
         $data = [];
         $data['html'] = '<i class="fa fa-lg fa-times"></i> Follow-Up Care for Children Prescribed ADHD Medication not performed';
         $data['goal'] = 'n';
         $data['fix'] = [];
         $score = 0;
         $query = DB::table('encounters')
-            ->where('pid', '=', $pid)
-            ->where('addendum', '=', 'n')
-            ->where('practice_id', '=', Session::get('practice_id'))
-            ->where('encounter_signed', '=', 'Yes')
-            ->where('encounter_DOS', '>=', $date)
-            ->get();
+                ->where('pid', '=', $pid)
+                ->where('addendum', '=', 'n')
+                ->where('practice_id', '=', Session::get('practice_id'))
+                ->where('encounter_signed', '=', 'Yes')
+                ->where('encounter_DOS', '>=', $date)
+                ->get();
         if ($query) {
             foreach ($query as $row) {
                 $query1 = DB::table('billing_core')
-                    ->where('eid', '=', $row->eid)
-                    ->where(function($query_array1) {
-                        $add_item_array = ['90791','90792','90804','90805','90806','90807','90808','90809','90810','90811','90812','90813','90814','90815','90832','90833','90834','90836','90837','90838','90839','90840','96150','96151','96152','96153','96154','98960','98961','98962','98966','98967','98968','99078','99201','99202','99203','99204','99205','99211','99212','99213','99214','99215','99217','99218','99219','99220','99241','99242','99243','99244','99245','99341','99342','99343','99344','99345','99347','99348','99349','99350','99383','99384','99393','99394','99401','99402','99403','99404','99411','99412','99441','99442','99443','99510'];
-                        $i = 0;
-                        foreach ($add_item_array as $add_item) {
-                            if ($i == 0) {
-                                $query_array1->where('cpt', '=', $add_item);
-                            } else {
-                                $query_array1->orWhere('cpt', '=', $add_item);
+                        ->where('eid', '=', $row->eid)
+                        ->where(function($query_array1) {
+                            $add_item_array = ['90791', '90792', '90804', '90805', '90806', '90807', '90808', '90809', '90810', '90811', '90812', '90813', '90814', '90815', '90832', '90833', '90834', '90836', '90837', '90838', '90839', '90840', '96150', '96151', '96152', '96153', '96154', '98960', '98961', '98962', '98966', '98967', '98968', '99078', '99201', '99202', '99203', '99204', '99205', '99211', '99212', '99213', '99214', '99215', '99217', '99218', '99219', '99220', '99241', '99242', '99243', '99244', '99245', '99341', '99342', '99343', '99344', '99345', '99347', '99348', '99349', '99350', '99383', '99384', '99393', '99394', '99401', '99402', '99403', '99404', '99411', '99412', '99441', '99442', '99443', '99510'];
+                            $i = 0;
+                            foreach ($add_item_array as $add_item) {
+                                if ($i == 0) {
+                                    $query_array1->where('cpt', '=', $add_item);
+                                } else {
+                                    $query_array1->orWhere('cpt', '=', $add_item);
+                                }
+                                $i++;
                             }
-                            $i++;
-                        }
-                    })
-                    ->first();
+                        })
+                        ->first();
                 if ($query1) {
                     $score++;
                 }
@@ -10389,8 +10202,7 @@ class Controller extends BaseController
         return $data;
     }
 
-    protected function hedis_amm($pid)
-    {
+    protected function hedis_amm($pid) {
         $data = [];
         $data['html'] = '<i class="fa fa-lg fa-times"></i> Antidepressant Medication Management not performed';
         $data['goal'] = 'n';
@@ -10398,7 +10210,7 @@ class Controller extends BaseController
         $score = 0;
         $query1 = DB::table('rx_list')->where('pid', '=', $pid)->where('rxl_date_inactive', '=', '0000-00-00 00:00:00')->where('rxl_date_old', '=', '0000-00-00 00:00:00')->first();
         if ($query1) {
-            $search = ['celexa','opram','prozac','fluoxetine','lexapro','luvox','paroxetine','paxil','pexeva','sarafem','sertraline','symbyax','viibryd','zoloft','cymbalta','effexor','pristiq','venlafaxine','khedezla','ptyline','amoxapine','anafranil','pramine','doxepin','elavil','limbitrol','norpramin','pamelor','surmontil','tofranil','vivactil','emsam','marplan','nardil','parnate','tranylcypromine','bupropion','aplenzin','budeprion','maprotiline','mirtazapine','nefazodone','oleptro','remeron','serzone','trazodone','wellbutrin','forfivo'];
+            $search = ['celexa', 'opram', 'prozac', 'fluoxetine', 'lexapro', 'luvox', 'paroxetine', 'paxil', 'pexeva', 'sarafem', 'sertraline', 'symbyax', 'viibryd', 'zoloft', 'cymbalta', 'effexor', 'pristiq', 'venlafaxine', 'khedezla', 'ptyline', 'amoxapine', 'anafranil', 'pramine', 'doxepin', 'elavil', 'limbitrol', 'norpramin', 'pamelor', 'surmontil', 'tofranil', 'vivactil', 'emsam', 'marplan', 'nardil', 'parnate', 'tranylcypromine', 'bupropion', 'aplenzin', 'budeprion', 'maprotiline', 'mirtazapine', 'nefazodone', 'oleptro', 'remeron', 'serzone', 'trazodone', 'wellbutrin', 'forfivo'];
             foreach ($search as $needle) {
                 $pos = stripos($query1->rxl_medication, $needle);
                 if ($pos !== false) {
@@ -10415,8 +10227,7 @@ class Controller extends BaseController
         return $data;
     }
 
-    protected function hedis_amr($pid)
-    {
+    protected function hedis_amr($pid) {
         $data = [];
         $data['html'] = '<i class="fa fa-lg fa-times"></i> Medication Management for People with Asthma not performed';
         $data['goal'] = 'n';
@@ -10426,14 +10237,14 @@ class Controller extends BaseController
         if ($query1) {
             $controller_count = 0;
             $rescue_count = 0;
-            $search = ['budesonide','flovent','pulmicort','qvar','advair','aerobid','alvesco','asmanex','dulera','pulmicort','symbicort','breo','fluticasone','beclomethasone','flunisolide','ciclesonide','mometasone','cromolyn','phylline','lukast','singulair','accolate','theo'];
+            $search = ['budesonide', 'flovent', 'pulmicort', 'qvar', 'advair', 'aerobid', 'alvesco', 'asmanex', 'dulera', 'pulmicort', 'symbicort', 'breo', 'fluticasone', 'beclomethasone', 'flunisolide', 'ciclesonide', 'mometasone', 'cromolyn', 'phylline', 'lukast', 'singulair', 'accolate', 'theo'];
             foreach ($search as $needle) {
                 $pos = stripos($query1->rxl_medication, $needle);
                 if ($pos !== false) {
                     $controller_count++;
                 }
             }
-            $search1 = ['albuterol','ventolin','alupent','metproterenol'];
+            $search1 = ['albuterol', 'ventolin', 'alupent', 'metproterenol'];
             foreach ($search1 as $needle1) {
                 $pos1 = stripos($query1->rxl_medication, $needle1);
                 if ($pos1 !== false) {
@@ -10441,7 +10252,7 @@ class Controller extends BaseController
                 }
             }
             $total = $controller_count + $rescue_count;
-            $ratio = round($controller_count/$total*100);
+            $ratio = round($controller_count / $total * 100);
             if ($ratio > 50) {
                 $score++;
             } else {
@@ -10455,8 +10266,7 @@ class Controller extends BaseController
         return $data;
     }
 
-    protected function hedis_art($pid)
-    {
+    protected function hedis_art($pid) {
         $data = [];
         $data['html'] = '<i class="fa fa-lg fa-times"></i> Disease Modifying Anti-Rheumatic Drug Therapy for Rheumatoid Arthritis not performed';
         $data['goal'] = 'n';
@@ -10464,7 +10274,7 @@ class Controller extends BaseController
         $score = 0;
         $query1 = DB::table('rx_list')->where('pid', '=', $pid)->where('rxl_date_inactive', '=', '0000-00-00 00:00:00')->where('rxl_date_old', '=', '0000-00-00 00:00:00')->first();
         if ($query1) {
-            $search = ['methotrexate','azathioprine','cyclophosphamide','cyclosporine','azasan','cytoxan','gengraf','imuran','neoral','rheumatrex','trexall','embrel','remicade','cimzia','humira','simponi','cuprimine','hydroxychloroquine','sulfasalazine','actemra','arava','azulfidine','kineret','leflunomide','myochrysine','orencia','plaquenil','ridaura'];
+            $search = ['methotrexate', 'azathioprine', 'cyclophosphamide', 'cyclosporine', 'azasan', 'cytoxan', 'gengraf', 'imuran', 'neoral', 'rheumatrex', 'trexall', 'embrel', 'remicade', 'cimzia', 'humira', 'simponi', 'cuprimine', 'hydroxychloroquine', 'sulfasalazine', 'actemra', 'arava', 'azulfidine', 'kineret', 'leflunomide', 'myochrysine', 'orencia', 'plaquenil', 'ridaura'];
             foreach ($search as $needle) {
                 $pos = stripos($query1->rxl_medication, $needle);
                 if ($pos !== false) {
@@ -10481,8 +10291,7 @@ class Controller extends BaseController
         return $data;
     }
 
-    protected function hedis_asm($pid)
-    {
+    protected function hedis_asm($pid) {
         $data = [];
         $data['html'] = '<i class="fa fa-lg fa-times"></i> Use of Appropriate Medications for People with Asthma not performed';
         $data['goal'] = 'n';
@@ -10491,7 +10300,7 @@ class Controller extends BaseController
         $query1 = DB::table('rx_list')->where('pid', '=', $pid)->where('rxl_date_inactive', '=', '0000-00-00 00:00:00')->where('rxl_date_old', '=', '0000-00-00 00:00:00')->first();
         if ($query1) {
             $med_count = 0;
-            $search = ['budesonide','flovent','pulmicort','qvar','advair','aerobid','alvesco','asmanex','dulera','pulmicort','symbicort','breo','fluticasone','beclomethasone','flunisolide','ciclesonide','mometasone','cromolyn','phylline','lukast','singulair','accolate','theo'];
+            $search = ['budesonide', 'flovent', 'pulmicort', 'qvar', 'advair', 'aerobid', 'alvesco', 'asmanex', 'dulera', 'pulmicort', 'symbicort', 'breo', 'fluticasone', 'beclomethasone', 'flunisolide', 'ciclesonide', 'mometasone', 'cromolyn', 'phylline', 'lukast', 'singulair', 'accolate', 'theo'];
             foreach ($search as $needle) {
                 $pos = stripos($query1->rxl_medication, $needle);
                 if ($pos !== false) {
@@ -10511,13 +10320,12 @@ class Controller extends BaseController
         return $data;
     }
 
-    protected function hedis_assessment_query($pid, $type, $assessment_item_array)
-    {
+    protected function hedis_assessment_query($pid, $type, $assessment_item_array) {
         $query = DB::table('assessment')
-            ->join('encounters', 'encounters.eid', '=', 'assessment.eid')
-            ->where('encounters.addendum', '=', 'n')
-            ->where('encounters.pid', '=', $pid)
-            ->where('encounters.encounter_signed', '=', 'Yes');
+                ->join('encounters', 'encounters.eid', '=', 'assessment.eid')
+                ->where('encounters.addendum', '=', 'n')
+                ->where('encounters.pid', '=', $pid)
+                ->where('encounters.encounter_signed', '=', 'Yes');
         if ($type != 'all') {
             if ($type == 'year') {
                 $date_param = date('Y-m-d H:i:s', time() - 31556926);
@@ -10528,157 +10336,156 @@ class Controller extends BaseController
             }
         }
         $query->where(function($query_array) use ($assessment_item_array) {
-                $count = 0;
-                foreach ($assessment_item_array as $assessment_item) {
-                    if ($count == 0) {
-                        $query_array->where('assessment.assessment_icd1', '=', $assessment_item)->orWhere('assessment.assessment_icd2', '=', $assessment_item)->orWhere('assessment.assessment_icd3', '=', $assessment_item)->orWhere('assessment.assessment_icd4', '=', $assessment_item)->orWhere('assessment.assessment_icd5', '=', $assessment_item)->orWhere('assessment.assessment_icd6', '=', $assessment_item)->orWhere('assessment.assessment_icd7', '=', $assessment_item)->orWhere('assessment.assessment_icd8', '=', $assessment_item)->orWhere('assessment.assessment_icd9', '=', $assessment_item)->orWhere('assessment.assessment_icd10', '=', $assessment_item)->orWhere('assessment.assessment_icd11', '=', $assessment_item)->orWhere('assessment.assessment_icd12', '=', $assessment_item);
-                    } else {
-                        $query_array->orWhere('assessment.assessment_icd1', '=', $assessment_item)->orWhere('assessment.assessment_icd2', '=', $assessment_item)->orWhere('assessment.assessment_icd3', '=', $assessment_item)->orWhere('assessment.assessment_icd4', '=', $assessment_item)->orWhere('assessment.assessment_icd5', '=', $assessment_item)->orWhere('assessment.assessment_icd6', '=', $assessment_item)->orWhere('assessment.assessment_icd7', '=', $assessment_item)->orWhere('assessment.assessment_icd8', '=', $assessment_item)->orWhere('assessment.assessment_icd9', '=', $assessment_item)->orWhere('assessment.assessment_icd10', '=', $assessment_item)->orWhere('assessment.assessment_icd11', '=', $assessment_item)->orWhere('assessment.assessment_icd12', '=', $assessment_item);
+                    $count = 0;
+                    foreach ($assessment_item_array as $assessment_item) {
+                        if ($count == 0) {
+                            $query_array->where('assessment.assessment_icd1', '=', $assessment_item)->orWhere('assessment.assessment_icd2', '=', $assessment_item)->orWhere('assessment.assessment_icd3', '=', $assessment_item)->orWhere('assessment.assessment_icd4', '=', $assessment_item)->orWhere('assessment.assessment_icd5', '=', $assessment_item)->orWhere('assessment.assessment_icd6', '=', $assessment_item)->orWhere('assessment.assessment_icd7', '=', $assessment_item)->orWhere('assessment.assessment_icd8', '=', $assessment_item)->orWhere('assessment.assessment_icd9', '=', $assessment_item)->orWhere('assessment.assessment_icd10', '=', $assessment_item)->orWhere('assessment.assessment_icd11', '=', $assessment_item)->orWhere('assessment.assessment_icd12', '=', $assessment_item);
+                        } else {
+                            $query_array->orWhere('assessment.assessment_icd1', '=', $assessment_item)->orWhere('assessment.assessment_icd2', '=', $assessment_item)->orWhere('assessment.assessment_icd3', '=', $assessment_item)->orWhere('assessment.assessment_icd4', '=', $assessment_item)->orWhere('assessment.assessment_icd5', '=', $assessment_item)->orWhere('assessment.assessment_icd6', '=', $assessment_item)->orWhere('assessment.assessment_icd7', '=', $assessment_item)->orWhere('assessment.assessment_icd8', '=', $assessment_item)->orWhere('assessment.assessment_icd9', '=', $assessment_item)->orWhere('assessment.assessment_icd10', '=', $assessment_item)->orWhere('assessment.assessment_icd11', '=', $assessment_item)->orWhere('assessment.assessment_icd12', '=', $assessment_item);
+                        }
+                        $count++;
                     }
-                    $count++;
-                }
-            })
-            ->select('encounters.eid','encounters.pid');
+                })
+                ->select('encounters.eid', 'encounters.pid');
         $result = $query->get();
         return $result;
     }
 
-    protected function hedis_audit($type, $function, $pid)
-    {
+    protected function hedis_audit($type, $function, $pid) {
         $html = '';
         $return = [];
         $demographics = DB::table('demographics')->where('pid', '=', $pid)->first();
         $dob = $this->human_to_unix($demographics->DOB);
         // ABA
-        if ($dob <= $this->age_calc(18,'year') && $dob >= $this->age_calc(74,'year')) {
+        if ($dob <= $this->age_calc(18, 'year') && $dob >= $this->age_calc(74, 'year')) {
             $return['aba'] = $this->hedis_aba($pid);
         }
         // WCC
-        if ($dob <= $this->age_calc(3,'year') && $dob >= $this->age_calc(18,'year')) {
+        if ($dob <= $this->age_calc(3, 'year') && $dob >= $this->age_calc(18, 'year')) {
             $return['wcc'] = $this->hedis_wcc($pid);
         }
         // CIS
-        if ($dob >= $this->age_calc(3,'year')) {
+        if ($dob >= $this->age_calc(3, 'year')) {
             $return['cis'] = $this->hedis_cis($pid);
         }
         // IMA
-        if ($dob <= $this->age_calc(13,'year') && $dob >= $this->age_calc(18,'year')) {
+        if ($dob <= $this->age_calc(13, 'year') && $dob >= $this->age_calc(18, 'year')) {
             $return['ima'] = $this->hedis_ima($pid);
         }
         // HPV
-        if ($dob <= $this->age_calc(9,'year') && $dob >= $this->age_calc(13,'year') && $demographics->sex == 'f') {
+        if ($dob <= $this->age_calc(9, 'year') && $dob >= $this->age_calc(13, 'year') && $demographics->sex == 'f') {
             $return['hpv'] = $this->hedis_hpv($pid);
         }
         // LSC
-        if ($dob >= $this->age_calc(2,'year')) {
+        if ($dob >= $this->age_calc(2, 'year')) {
             $return['lsc'] = $this->hedis_lsc($pid);
         }
         // BCS
-        if ($dob <= $this->age_calc(40,'year') && $dob >= $this->age_calc(69,'year') && $demographics->sex == 'f') {
+        if ($dob <= $this->age_calc(40, 'year') && $dob >= $this->age_calc(69, 'year') && $demographics->sex == 'f') {
             $return['bcs'] = $this->hedis_bcs($pid);
         }
         // CCS
-        if ($dob <= $this->age_calc(21,'year') && $dob >= $this->age_calc(64,'year') && $demographics->sex == 'f') {
+        if ($dob <= $this->age_calc(21, 'year') && $dob >= $this->age_calc(64, 'year') && $demographics->sex == 'f') {
             $return['ccs'] = $this->hedis_ccs($pid);
         }
         // COL
-        if ($dob <= $this->age_calc(50,'year') && $dob >= $this->age_calc(75,'year')) {
+        if ($dob <= $this->age_calc(50, 'year') && $dob >= $this->age_calc(75, 'year')) {
             $return['col'] = $this->hedis_col($pid);
         }
         // CHL
-        if ($dob <= $this->age_calc(16,'year') && $dob >= $this->age_calc(24,'year') && $demographics->sex == 'f') {
+        if ($dob <= $this->age_calc(16, 'year') && $dob >= $this->age_calc(24, 'year') && $demographics->sex == 'f') {
             $return['chl'] = $this->hedis_chl($pid);
         }
         // GSO
-        if ($dob <= $this->age_calc(65,'year')) {
+        if ($dob <= $this->age_calc(65, 'year')) {
             $return['gso'] = $this->hedis_gso($pid);
         }
         // CWP
-        $cwp_assessment_item_array = ['462','J02.9','034.0','J02.0','J03.00','074.0','B08.5','474.00','J35.01','099.51','A56.4','032.0','A36.0','472.1','J31.2','098.6','A54.5'];
+        $cwp_assessment_item_array = ['462', 'J02.9', '034.0', 'J02.0', 'J03.00', '074.0', 'B08.5', '474.00', 'J35.01', '099.51', 'A56.4', '032.0', 'A36.0', '472.1', 'J31.2', '098.6', 'A54.5'];
         $cwp_result = $this->hedis_assessment_query($pid, $type, $cwp_assessment_item_array);
-        if ($cwp_result && $dob <= $this->age_calc(2,'year') && $dob >= $this->age_calc(18,'year')) {
+        if ($cwp_result && $dob <= $this->age_calc(2, 'year') && $dob >= $this->age_calc(18, 'year')) {
             $return['cwp'] = $this->hedis_cwp($cwp_result);
         }
         // URI
-        $uri_assessment_item_array = ['465.9','J06.9','487.1','J10.1','J11.1'];
+        $uri_assessment_item_array = ['465.9', 'J06.9', '487.1', 'J10.1', 'J11.1'];
         $uri_result = $this->hedis_assessment_query($pid, $type, $uri_assessment_item_array);
-        if ($uri_result && $dob <= $this->age_calc(3,'month') && $dob >= $this->age_calc(18,'year')) {
+        if ($uri_result && $dob <= $this->age_calc(3, 'month') && $dob >= $this->age_calc(18, 'year')) {
             $return['uri'] = $this->hedis_uri($uri_result);
         }
         // AAB
-        $aab_assessment_item_array = ['466.0','J20.9'];
+        $aab_assessment_item_array = ['466.0', 'J20.9'];
         $aab_result = $this->hedis_assessment_query($pid, $type, $aab_assessment_item_array);
-        if ($aab_result && $dob <= $this->age_calc(3,'month') && $dob >= $this->age_calc(18,'year')) {
+        if ($aab_result && $dob <= $this->age_calc(3, 'month') && $dob >= $this->age_calc(18, 'year')) {
             $return['aab'] = $this->hedis_uri($aab_result);
         }
         // SPR
-        $spr_issues_item_array = ['496','J44.9'];
+        $spr_issues_item_array = ['496', 'J44.9'];
         $spr_query = $this->hedis_issue_query($pid, $spr_issues_item_array);
-        if ($spr_query && $dob <= $this->age_calc(40,'year')) {
+        if ($spr_query && $dob <= $this->age_calc(40, 'year')) {
             $return['spr'] = $this->hedis_spr($pid);
         }
         // PCE
-        $pce_assessment_item_array = ['491.21','J44.1'];
+        $pce_assessment_item_array = ['491.21', 'J44.1'];
         $pce_result = $this->hedis_assessment_query($pid, $type, $pce_assessment_item_array);
-        if ($pce_result && $dob <= $this->age_calc(40,'year')) {
+        if ($pce_result && $dob <= $this->age_calc(40, 'year')) {
             $return['pce'] = $this->hedis_pce($pce_result);
         }
         // ASM and AMR
-        $asm_issues_item_array = ['493.90','J45.909','J45.998','493.00','J45.20','493.01','J45.22','493.02','J45.21','493.10','493.11','493.12','493.20','J44.9','493.21','J44.0','493.22','J44.1','493.81','J45.990','493.82','J45.991','493.91','J45.902','493.92','J45.901'];
+        $asm_issues_item_array = ['493.90', 'J45.909', 'J45.998', '493.00', 'J45.20', '493.01', 'J45.22', '493.02', 'J45.21', '493.10', '493.11', '493.12', '493.20', 'J44.9', '493.21', 'J44.0', '493.22', 'J44.1', '493.81', 'J45.990', '493.82', 'J45.991', '493.91', 'J45.902', '493.92', 'J45.901'];
         $asm_query = $this->hedis_issue_query($pid, $asm_issues_item_array);
-        if ($asm_query && $dob <= $this->age_calc(5,'year') && $dob >= $this->age_calc(56,'year')) {
+        if ($asm_query && $dob <= $this->age_calc(5, 'year') && $dob >= $this->age_calc(56, 'year')) {
             $return['asm'] = $this->hedis_asm($pid);
             $return['amr'] = $this->hedis_amr($pid);
         }
         // CMC and PBH
-        $cmc_issues_item_array = ['410','I20','I21','I22','I23','I24','I25','414.8'];
+        $cmc_issues_item_array = ['410', 'I20', 'I21', 'I22', 'I23', 'I24', 'I25', '414.8'];
         $cmc_query = $this->hedis_issue_query($pid, $cmc_issues_item_array);
-        if ($cmc_query && $dob <= $this->age_calc(18,'year') && $dob >= $this->age_calc(75,'year')) {
+        if ($cmc_query && $dob <= $this->age_calc(18, 'year') && $dob >= $this->age_calc(75, 'year')) {
             $return['cmc'] = $this->hedis_cmc($pid);
         }
-        if ($cmc_query && $dob <= $this->age_calc(18,'year')) {
+        if ($cmc_query && $dob <= $this->age_calc(18, 'year')) {
             $return['pbh'] = $this->hedis_pbh($pid);
         }
         // CBP
-        $cbp_issues_item_array = ['401','402','403','404','405','I10','I11','I12','I13','I15'];
+        $cbp_issues_item_array = ['401', '402', '403', '404', '405', 'I10', 'I11', 'I12', 'I13', 'I15'];
         $cbp_query = $this->hedis_issue_query($pid, $cbp_issues_item_array);
-        if ($cbp_query && $dob <= $this->age_calc(18,'year') && $dob >= $this->age_calc(85,'year')) {
+        if ($cbp_query && $dob <= $this->age_calc(18, 'year') && $dob >= $this->age_calc(85, 'year')) {
             $return['cbp'] = $this->hedis_cbp($pid);
         }
         // CDC
-        $cdc_issues_item_array = ['250','E08','E09','E10','E11','E13'];
+        $cdc_issues_item_array = ['250', 'E08', 'E09', 'E10', 'E11', 'E13'];
         $cdc_query = $this->hedis_issue_query($pid, $cdc_issues_item_array);
-        if ($cdc_query && $dob <= $this->age_calc(18,'year') && $dob >= $this->age_calc(75,'year')) {
+        if ($cdc_query && $dob <= $this->age_calc(18, 'year') && $dob >= $this->age_calc(75, 'year')) {
             $return['cdc'] = $this->hedis_cdc($pid);
         }
         // ART
-        $art_issues_item_array = ['714.0','M05','M06'];
+        $art_issues_item_array = ['714.0', 'M05', 'M06'];
         $art_query = $this->hedis_issue_query($pid, $art_issues_item_array);
         if ($art_query) {
             $return['art'] = $this->hedis_art($pid);
         }
         // OMW
-        $omw_assessment_item_array = ['800','801','802','803','804','805','806','807','808','809','810','811','812','813','814','815','816','817','818','819','820','821','822','823','824','825','826','827','828','829','S02','S12','S22','S32','S42','S52','S62','S72','S82','S92'];
+        $omw_assessment_item_array = ['800', '801', '802', '803', '804', '805', '806', '807', '808', '809', '810', '811', '812', '813', '814', '815', '816', '817', '818', '819', '820', '821', '822', '823', '824', '825', '826', '827', '828', '829', 'S02', 'S12', 'S22', 'S32', 'S42', 'S52', 'S62', 'S72', 'S82', 'S92'];
         $omw_result = $this->hedis_assessment_query($pid, $type, $omw_assessment_item_array);
-        if ($omw_result && $dob <= $this->age_calc(67,'year') && $demographics->sex == 'f') {
+        if ($omw_result && $dob <= $this->age_calc(67, 'year') && $demographics->sex == 'f') {
             $return['omw'] = $this->hedis_omw($pid);
         }
         // LBP
-        $lbp_assessment_item_array = ['724.2','M54.5'];
+        $lbp_assessment_item_array = ['724.2', 'M54.5'];
         $lbp_result = $this->hedis_assessment_query($pid, $type, $lbp_assessment_item_array);
         if ($lbp_result) {
             $return['lbp'] = $this->hedis_lbp($lbp_result);
         }
         // AMM
-        $amm_issues_item_array = ['311','296.2','296.3','F32','F33'];
+        $amm_issues_item_array = ['311', '296.2', '296.3', 'F32', 'F33'];
         $amm_query = $this->hedis_issue_query($pid, $amm_issues_item_array);
-        if ($amm_query && $dob <= $this->age_calc(18,'year')) {
+        if ($amm_query && $dob <= $this->age_calc(18, 'year')) {
             $return['amm'] = $this->hedis_amm($pid);
         }
         // ADD
-        $add_issues_item_array = ['314.0','F90'];
+        $add_issues_item_array = ['314.0', 'F90'];
         $add_query = $this->hedis_issue_query($pid, $add_issues_item_array);
-        if ($add_query && $dob <= $this->age_calc(6,'year') && $dob >= $this->age_calc(12,'year')) {
+        if ($add_query && $dob <= $this->age_calc(6, 'year') && $dob >= $this->age_calc(12, 'year')) {
             $return['add'] = $this->hedis_add($pid, $add_query->issue_date_active);
         }
         if (!empty($return)) {
@@ -10726,8 +10533,7 @@ class Controller extends BaseController
         }
     }
 
-    protected function hedis_bcs($pid)
-    {
+    protected function hedis_bcs($pid) {
         $data = [];
         $data['html'] = '<i class="fa fa-lg fa-times"></i> Breast Cancer Screening not performed';
         $data['goal'] = 'n';
@@ -10738,18 +10544,18 @@ class Controller extends BaseController
             $score++;
         } else {
             $query1 = DB::table('documents')
-                ->where('pid', '=', $pid)
-                ->where('documents_desc', 'LIKE', "%mammogram%")
-                ->where('documents_type', '=', 'Imaging')
-                ->first();
+                    ->where('pid', '=', $pid)
+                    ->where('documents_desc', 'LIKE', "%mammogram%")
+                    ->where('documents_type', '=', 'Imaging')
+                    ->first();
             if ($query1) {
                 $score++;
             } else {
                 $query2 = DB::table('tags_relate')
-                    ->join('tags', 'tags.tags_id', '=', 'tags_relate.tags_id')
-                    ->where('tags_relate.pid', '=', $pid)
-                    ->where('tags.tag', 'LIKE', "%mammogram%")
-                    ->first();
+                        ->join('tags', 'tags.tags_id', '=', 'tags_relate.tags_id')
+                        ->where('tags_relate.pid', '=', $pid)
+                        ->where('tags.tag', 'LIKE', "%mammogram%")
+                        ->first();
                 if ($query2) {
                     $score++;
                 } else {
@@ -10764,8 +10570,7 @@ class Controller extends BaseController
         return $data;
     }
 
-    protected function hedis_cbp($pid)
-    {
+    protected function hedis_cbp($pid) {
         $data = [];
         $data['html'] = '<i class="fa fa-lg fa-times"></i> Controlling High Blood Pressure not performed';
         $data['goal'] = 'n';
@@ -10794,8 +10599,7 @@ class Controller extends BaseController
         return $data;
     }
 
-    protected function hedis_ccs($pid)
-    {
+    protected function hedis_ccs($pid) {
         $data = [];
         $data['html'] = '<i class="fa fa-lg fa-times"></i> Cervical Cancer Screening not performed';
         $data['goal'] = 'n';
@@ -10806,18 +10610,18 @@ class Controller extends BaseController
             $score++;
         } else {
             $query1 = DB::table('documents')
-                ->where('pid', '=', $pid)
-                ->where('documents_desc', 'LIKE', "%pap%")
-                ->where('documents_type', '=', 'Laboratory')
-                ->first();
+                    ->where('pid', '=', $pid)
+                    ->where('documents_desc', 'LIKE', "%pap%")
+                    ->where('documents_type', '=', 'Laboratory')
+                    ->first();
             if ($query1) {
                 $score++;
             } else {
                 $query2 = DB::table('tags_relate')
-                    ->join('tags', 'tags.tags_id', '=', 'tags_relate.tags_id')
-                    ->where('tags_relate.pid', '=', $pid)
-                    ->where('tags.tag', 'LIKE', "%pap%")
-                    ->first();
+                        ->join('tags', 'tags.tags_id', '=', 'tags_relate.tags_id')
+                        ->where('tags_relate.pid', '=', $pid)
+                        ->where('tags.tag', 'LIKE', "%pap%")
+                        ->first();
                 if ($query2) {
                     $score++;
                 } else {
@@ -10832,8 +10636,7 @@ class Controller extends BaseController
         return $data;
     }
 
-    protected function hedis_cdc($pid)
-    {
+    protected function hedis_cdc($pid) {
         $data = [];
         $data['html'] = '<i class="fa fa-lg fa-times"></i> Comprehensive Diabetes Care not performed';
         $data['goal'] = 'n';
@@ -10841,34 +10644,34 @@ class Controller extends BaseController
         $score = 0;
         // HgbA1c
         $query = DB::table('tests')->where('pid', '=', $pid)
-            ->where(function($query_array) {
+                ->where(function($query_array) {
                     $query_array->where('test_name', 'LIKE', "%hgba1c%")
-                        ->orWhere('test_name', 'LIKE', "%a1c%");
+                    ->orWhere('test_name', 'LIKE', "%a1c%");
                 })
-            ->orderBy('test_datetime', 'desc')
-            ->first();
+                ->orderBy('test_datetime', 'desc')
+                ->first();
         if ($query) {
             $score++;
         } else {
             $query1 = DB::table('documents')
-                ->where('pid', '=', $pid)
-                ->where(function($query_array1) {
-                    $query_array1->where('documents_desc', 'LIKE', "%hgba1c%")
+                    ->where('pid', '=', $pid)
+                    ->where(function($query_array1) {
+                        $query_array1->where('documents_desc', 'LIKE', "%hgba1c%")
                         ->orWhere('documents_desc', 'LIKE', "%a1c%");
-                })
-                ->where('documents_type', '=', 'Laboratory')
-                ->first();
+                    })
+                    ->where('documents_type', '=', 'Laboratory')
+                    ->first();
             if ($query1) {
                 $score++;
             } else {
                 $query2 = DB::table('tags_relate')
-                    ->join('tags', 'tags.tags_id', '=', 'tags_relate.tags_id')
-                    ->where('tags_relate.pid', '=', $pid)
-                    ->where(function($query_array2) {
-                        $query_array2->where('tags.tag', 'LIKE', "%hgba1c%")
+                        ->join('tags', 'tags.tags_id', '=', 'tags_relate.tags_id')
+                        ->where('tags_relate.pid', '=', $pid)
+                        ->where(function($query_array2) {
+                            $query_array2->where('tags.tag', 'LIKE', "%hgba1c%")
                             ->orWhere('tags.tag', 'LIKE', "%a1c%");
-                    })
-                    ->first();
+                        })
+                        ->first();
                 if ($query2) {
                     $score++;
                 } else {
@@ -10878,37 +10681,37 @@ class Controller extends BaseController
         }
         // LDL
         $query3 = DB::table('tests')->where('pid', '=', $pid)
-            ->where(function($query_array3) {
+                ->where(function($query_array3) {
                     $query_array3->where('test_name', 'LIKE', "%ldl%")
-                        ->orWhere('test_name', 'LIKE', "%cholesterol%")
-                        ->orWhere('test_name', 'LIKE', "%lipid%");
+                    ->orWhere('test_name', 'LIKE', "%cholesterol%")
+                    ->orWhere('test_name', 'LIKE', "%lipid%");
                 })
-            ->orderBy('test_datetime', 'desc')
-            ->first();
+                ->orderBy('test_datetime', 'desc')
+                ->first();
         if ($query3) {
             $score++;
         } else {
             $query4 = DB::table('documents')
-                ->where('pid', '=', $pid)
-                ->where(function($query_array4) {
-                    $query_array4->where('documents_desc', 'LIKE', "%ldl%")
+                    ->where('pid', '=', $pid)
+                    ->where(function($query_array4) {
+                        $query_array4->where('documents_desc', 'LIKE', "%ldl%")
                         ->orWhere('documents_desc', 'LIKE', "%cholesterol%")
                         ->orWhere('documents_desc', 'LIKE', "%lipid%");
-                })
-                ->where('documents_type', '=', 'Laboratory')
-                ->first();
+                    })
+                    ->where('documents_type', '=', 'Laboratory')
+                    ->first();
             if ($query4) {
                 $score++;
             } else {
                 $query5 = DB::table('tags_relate')
-                    ->join('tags', 'tags.tags_id', '=', 'tags_relate.tags_id')
-                    ->where('tags_relate.pid', '=', $pid)
-                    ->where(function($query_array5) {
-                        $query_array5->where('tags.tag', 'LIKE', "%ldl%")
+                        ->join('tags', 'tags.tags_id', '=', 'tags_relate.tags_id')
+                        ->where('tags_relate.pid', '=', $pid)
+                        ->where(function($query_array5) {
+                            $query_array5->where('tags.tag', 'LIKE', "%ldl%")
                             ->orWhere('tags.tag', 'LIKE', "%cholesterol%")
                             ->orWhere('tags.tag', 'LIKE', "%lipid%");
-                    })
-                    ->first();
+                        })
+                        ->first();
                 if ($query5) {
                     $score++;
                 } else {
@@ -10918,25 +10721,25 @@ class Controller extends BaseController
         }
         // Nephropathy screening
         $query6 = DB::table('tests')->where('pid', '=', $pid)
-            ->where('test_name', 'LIKE', "%microalbumin%")
-            ->orderBy('test_datetime', 'desc')
-            ->first();
+                ->where('test_name', 'LIKE', "%microalbumin%")
+                ->orderBy('test_datetime', 'desc')
+                ->first();
         if ($query6) {
             $score++;
         } else {
             $query7 = DB::table('documents')
-                ->where('pid', '=', $pid)
-                ->where('documents_desc', 'LIKE', "%microalbumin%")
-                ->where('documents_type', '=', 'Laboratory')
-                ->first();
+                    ->where('pid', '=', $pid)
+                    ->where('documents_desc', 'LIKE', "%microalbumin%")
+                    ->where('documents_type', '=', 'Laboratory')
+                    ->first();
             if ($query7) {
                 $score++;
             } else {
                 $query8 = DB::table('tags_relate')
-                    ->join('tags', 'tags.tags_id', '=', 'tags_relate.tags_id')
-                    ->where('tags_relate.pid', '=', $pid)
-                    ->where('tags.tag', 'LIKE', "%microalbumin%")
-                    ->first();
+                        ->join('tags', 'tags.tags_id', '=', 'tags_relate.tags_id')
+                        ->where('tags_relate.pid', '=', $pid)
+                        ->where('tags.tag', 'LIKE', "%microalbumin%")
+                        ->first();
                 if ($query8) {
                     $score++;
                 } else {
@@ -10946,26 +10749,26 @@ class Controller extends BaseController
         }
         // Eye exam
         $query9 = DB::table('documents')
-            ->where('pid', '=', $pid)
-            ->where(function($query_array9) {
-                $query_array9->where('documents_desc', 'LIKE', "%ophthal%")
+                ->where('pid', '=', $pid)
+                ->where(function($query_array9) {
+                    $query_array9->where('documents_desc', 'LIKE', "%ophthal%")
                     ->orWhere('documents_desc', 'LIKE', "%dilated eye%")
                     ->orWhere('documents_desc', 'LIKE', "%diabetic eye%");
-            })
-            ->where('documents_type', '=', 'Referrals')
-            ->first();
+                })
+                ->where('documents_type', '=', 'Referrals')
+                ->first();
         if ($query9) {
             $score++;
         } else {
             $query10 = DB::table('tags_relate')
-                ->join('tags', 'tags.tags_id', '=', 'tags_relate.tags_id')
-                ->where('tags_relate.pid', '=', $pid)
-                ->where(function($query_array10) {
-                    $query_array10->where('tags.tag', 'LIKE', "%ophthal%")
+                    ->join('tags', 'tags.tags_id', '=', 'tags_relate.tags_id')
+                    ->where('tags_relate.pid', '=', $pid)
+                    ->where(function($query_array10) {
+                        $query_array10->where('tags.tag', 'LIKE', "%ophthal%")
                         ->orWhere('tags.tag', 'LIKE', "%dilated eye%")
                         ->orWhere('tags.tag', 'LIKE', "%diabetic eye%");
-                })
-                ->first();
+                    })
+                    ->first();
             if ($query10) {
                 $score++;
             } else {
@@ -10999,8 +10802,7 @@ class Controller extends BaseController
         return $data;
     }
 
-    protected function hedis_chl($pid)
-    {
+    protected function hedis_chl($pid) {
         $data = [];
         $data['html'] = '<i class="fa fa-lg fa-times"></i> Chlamydia Screening not performed';
         $data['goal'] = 'n';
@@ -11011,18 +10813,18 @@ class Controller extends BaseController
             $score++;
         } else {
             $query1 = DB::table('documents')
-                ->where('pid', '=', $pid)
-                ->where('documents_desc', 'LIKE', "%chlamydia%")
-                ->where('documents_type', '=', 'Laboratory')
-                ->first();
+                    ->where('pid', '=', $pid)
+                    ->where('documents_desc', 'LIKE', "%chlamydia%")
+                    ->where('documents_type', '=', 'Laboratory')
+                    ->first();
             if ($query1) {
                 $score++;
             } else {
                 $query2 = DB::table('tags_relate')
-                    ->join('tags', 'tags.tags_id', '=', 'tags_relate.tags_id')
-                    ->where('tags_relate.pid', '=', $pid)
-                    ->where('tags.tag', 'LIKE', "%chlamydia%")
-                    ->first();
+                        ->join('tags', 'tags.tags_id', '=', 'tags_relate.tags_id')
+                        ->where('tags_relate.pid', '=', $pid)
+                        ->where('tags.tag', 'LIKE', "%chlamydia%")
+                        ->first();
                 if ($query2) {
                     $score++;
                 } else {
@@ -11037,8 +10839,7 @@ class Controller extends BaseController
         return $data;
     }
 
-    protected function hedis_cis($pid)
-    {
+    protected function hedis_cis($pid) {
         $data = [];
         $data['html'] = '<i class="fa fa-lg fa-times"></i> Childhood Immunization Status not performed';
         $data['goal'] = 'n';
@@ -11050,21 +10851,21 @@ class Controller extends BaseController
         }
         // DTaP
         $query_1 = DB::table('immunizations')
-            ->where('pid', '=', $pid)
-            ->where(function($query_array_1) {
-                $imm_array_1 = array('20', '106', '107', '146', '110', '50', '120', '130', '132', '1', '22', '102');
-                $count_1 = 0;
-                foreach ($imm_array_1 as $imm_1) {
-                    if ($count_1 == 0) {
-                        $query_array_1->where('imm_cvxcode', '=', $imm_1);
-                    } else {
-                        $query_array_1->orWhere('imm_cvxcode', '=', $imm_1);
+                ->where('pid', '=', $pid)
+                ->where(function($query_array_1) {
+                    $imm_array_1 = array('20', '106', '107', '146', '110', '50', '120', '130', '132', '1', '22', '102');
+                    $count_1 = 0;
+                    foreach ($imm_array_1 as $imm_1) {
+                        if ($count_1 == 0) {
+                            $query_array_1->where('imm_cvxcode', '=', $imm_1);
+                        } else {
+                            $query_array_1->orWhere('imm_cvxcode', '=', $imm_1);
+                        }
+                        $count_1++;
                     }
-                    $count_1++;
-                }
-            })
-            ->orderBy('eid', 'desc')
-            ->first();
+                })
+                ->orderBy('eid', 'desc')
+                ->first();
         if ($query_1) {
             $score++;
         } else {
@@ -11072,21 +10873,21 @@ class Controller extends BaseController
         }
         // IPV
         $query_2 = DB::table('immunizations')
-            ->where('pid', '=', $pid)
-            ->where(function($query_array_2) {
-                $imm_array_2 = array('146', '110', '120', '130', '132', '10');
-                $count_2 = 0;
-                foreach ($imm_array_2 as $imm_2) {
-                    if ($count_2 == 0) {
-                        $query_array_2->where('imm_cvxcode', '=', $imm_2);
-                    } else {
-                        $query_array_2->orWhere('imm_cvxcode', '=', $imm_2);
+                ->where('pid', '=', $pid)
+                ->where(function($query_array_2) {
+                    $imm_array_2 = array('146', '110', '120', '130', '132', '10');
+                    $count_2 = 0;
+                    foreach ($imm_array_2 as $imm_2) {
+                        if ($count_2 == 0) {
+                            $query_array_2->where('imm_cvxcode', '=', $imm_2);
+                        } else {
+                            $query_array_2->orWhere('imm_cvxcode', '=', $imm_2);
+                        }
+                        $count_2++;
                     }
-                    $count_2++;
-                }
-            })
-            ->orderBy('eid', 'desc')
-            ->first();
+                })
+                ->orderBy('eid', 'desc')
+                ->first();
         if ($query_2) {
             $score++;
         } else {
@@ -11094,21 +10895,21 @@ class Controller extends BaseController
         }
         // MMR
         $query_3 = DB::table('immunizations')
-            ->where('pid', '=', $pid)
-            ->where(function($query_array_3) {
-                $imm_array_3 = array('3', '94', '5', '6', '7', '38');
-                $count_3 = 0;
-                foreach ($imm_array_3 as $imm_3) {
-                    if ($count_3 == 0) {
-                        $query_array_3->where('imm_cvxcode', '=', $imm_3);
-                    } else {
-                        $query_array_3->orWhere('imm_cvxcode', '=', $imm_3);
+                ->where('pid', '=', $pid)
+                ->where(function($query_array_3) {
+                    $imm_array_3 = array('3', '94', '5', '6', '7', '38');
+                    $count_3 = 0;
+                    foreach ($imm_array_3 as $imm_3) {
+                        if ($count_3 == 0) {
+                            $query_array_3->where('imm_cvxcode', '=', $imm_3);
+                        } else {
+                            $query_array_3->orWhere('imm_cvxcode', '=', $imm_3);
+                        }
+                        $count_3++;
                     }
-                    $count_3++;
-                }
-            })
-            ->orderBy('eid', 'desc')
-            ->first();
+                })
+                ->orderBy('eid', 'desc')
+                ->first();
         if ($query_3) {
             $score++;
         } else {
@@ -11116,21 +10917,21 @@ class Controller extends BaseController
         }
         // Hib
         $query_4 = DB::table('immunizations')
-            ->where('pid', '=', $pid)
-            ->where(function($query_array_4) {
-                $imm_array_4 = array('146','50','120','132', '22', '102', '46', '47', '48', '49', '17', '51', '148');
-                $count_4 = 0;
-                foreach ($imm_array_4 as $imm_4) {
-                    if ($count_4 == 0) {
-                        $query_array_4->where('imm_cvxcode', '=', $imm_4);
-                    } else {
-                        $query_array_4->orWhere('imm_cvxcode', '=', $imm_4);
+                ->where('pid', '=', $pid)
+                ->where(function($query_array_4) {
+                    $imm_array_4 = array('146', '50', '120', '132', '22', '102', '46', '47', '48', '49', '17', '51', '148');
+                    $count_4 = 0;
+                    foreach ($imm_array_4 as $imm_4) {
+                        if ($count_4 == 0) {
+                            $query_array_4->where('imm_cvxcode', '=', $imm_4);
+                        } else {
+                            $query_array_4->orWhere('imm_cvxcode', '=', $imm_4);
+                        }
+                        $count_4++;
                     }
-                    $count_4++;
-                }
-            })
-            ->orderBy('eid', 'desc')
-            ->first();
+                })
+                ->orderBy('eid', 'desc')
+                ->first();
         if ($query_4) {
             $score++;
         } else {
@@ -11138,21 +10939,21 @@ class Controller extends BaseController
         }
         // HepB
         $query_5 = DB::table('immunizations')
-            ->where('pid', '=', $pid)
-            ->where(function($query_array_5) {
-                $imm_array_5 = array('146','110','132','102','104','8','42','43','44','45','51');
-                $count_5 = 0;
-                foreach ($imm_array_5 as $imm_5) {
-                    if ($count_5 == 0) {
-                        $query_array_5->where('imm_cvxcode', '=', $imm_5);
-                    } else {
-                        $query_array_5->orWhere('imm_cvxcode', '=', $imm_5);
+                ->where('pid', '=', $pid)
+                ->where(function($query_array_5) {
+                    $imm_array_5 = array('146', '110', '132', '102', '104', '8', '42', '43', '44', '45', '51');
+                    $count_5 = 0;
+                    foreach ($imm_array_5 as $imm_5) {
+                        if ($count_5 == 0) {
+                            $query_array_5->where('imm_cvxcode', '=', $imm_5);
+                        } else {
+                            $query_array_5->orWhere('imm_cvxcode', '=', $imm_5);
+                        }
+                        $count_5++;
                     }
-                    $count_5++;
-                }
-            })
-            ->orderBy('eid', 'desc')
-            ->first();
+                })
+                ->orderBy('eid', 'desc')
+                ->first();
         if ($query_5) {
             $score++;
         } else {
@@ -11160,21 +10961,21 @@ class Controller extends BaseController
         }
         // Varicella
         $query_6 = DB::table('immunizations')
-            ->where('pid', '=', $pid)
-            ->where(function($query_array_6) {
-                $imm_array_6 = array('21');
-                $count_6 = 0;
-                foreach ($imm_array_6 as $imm_6) {
-                    if ($count_6 == 0) {
-                        $query_array_6->where('imm_cvxcode', '=', $imm_6);
-                    } else {
-                        $query_array_6->orWhere('imm_cvxcode', '=', $imm_6);
+                ->where('pid', '=', $pid)
+                ->where(function($query_array_6) {
+                    $imm_array_6 = array('21');
+                    $count_6 = 0;
+                    foreach ($imm_array_6 as $imm_6) {
+                        if ($count_6 == 0) {
+                            $query_array_6->where('imm_cvxcode', '=', $imm_6);
+                        } else {
+                            $query_array_6->orWhere('imm_cvxcode', '=', $imm_6);
+                        }
+                        $count_6++;
                     }
-                    $count_6++;
-                }
-            })
-            ->orderBy('eid', 'desc')
-            ->first();
+                })
+                ->orderBy('eid', 'desc')
+                ->first();
         if ($query_6) {
             $score++;
         } else {
@@ -11182,21 +10983,21 @@ class Controller extends BaseController
         }
         // Pneumococcal
         $query_7 = DB::table('immunizations')
-            ->where('pid', '=', $pid)
-            ->where(function($query_array_7) {
-                $imm_array_7 = array('133','100','109');
-                $count_7 = 0;
-                foreach ($imm_array_7 as $imm_7) {
-                    if ($count_7 == 0) {
-                        $query_array_7->where('imm_cvxcode', '=', $imm_7);
-                    } else {
-                        $query_array_7->orWhere('imm_cvxcode', '=', $imm_7);
+                ->where('pid', '=', $pid)
+                ->where(function($query_array_7) {
+                    $imm_array_7 = array('133', '100', '109');
+                    $count_7 = 0;
+                    foreach ($imm_array_7 as $imm_7) {
+                        if ($count_7 == 0) {
+                            $query_array_7->where('imm_cvxcode', '=', $imm_7);
+                        } else {
+                            $query_array_7->orWhere('imm_cvxcode', '=', $imm_7);
+                        }
+                        $count_7++;
                     }
-                    $count_7++;
-                }
-            })
-            ->orderBy('eid', 'desc')
-            ->first();
+                })
+                ->orderBy('eid', 'desc')
+                ->first();
         if ($query_7) {
             $score++;
         } else {
@@ -11204,21 +11005,21 @@ class Controller extends BaseController
         }
         // HepA
         $query_8 = DB::table('immunizations')
-            ->where('pid', '=', $pid)
-            ->where(function($query_array_8) {
-                $imm_array_8 = array('52','83','84','31','85','104');
-                $count_8 = 0;
-                foreach ($imm_array_8 as $imm_8) {
-                    if ($count_8 == 0) {
-                        $query_array_8->where('imm_cvxcode', '=', $imm_8);
-                    } else {
-                        $query_array_8->orWhere('imm_cvxcode', '=', $imm_8);
+                ->where('pid', '=', $pid)
+                ->where(function($query_array_8) {
+                    $imm_array_8 = array('52', '83', '84', '31', '85', '104');
+                    $count_8 = 0;
+                    foreach ($imm_array_8 as $imm_8) {
+                        if ($count_8 == 0) {
+                            $query_array_8->where('imm_cvxcode', '=', $imm_8);
+                        } else {
+                            $query_array_8->orWhere('imm_cvxcode', '=', $imm_8);
+                        }
+                        $count_8++;
                     }
-                    $count_8++;
-                }
-            })
-            ->orderBy('eid', 'desc')
-            ->first();
+                })
+                ->orderBy('eid', 'desc')
+                ->first();
         if ($query_8) {
             $score++;
         } else {
@@ -11226,21 +11027,21 @@ class Controller extends BaseController
         }
         // Rotavirus
         $query_9 = DB::table('immunizations')
-            ->where('pid', '=', $pid)
-            ->where(function($query_array_9) {
-                $imm_array_9 = array('119','116','74','122');
-                $count_9 = 0;
-                foreach ($imm_array_9 as $imm_9) {
-                    if ($count_9 == 0) {
-                        $query_array_9->where('imm_cvxcode', '=', $imm_9);
-                    } else {
-                        $query_array_9->orWhere('imm_cvxcode', '=', $imm_9);
+                ->where('pid', '=', $pid)
+                ->where(function($query_array_9) {
+                    $imm_array_9 = array('119', '116', '74', '122');
+                    $count_9 = 0;
+                    foreach ($imm_array_9 as $imm_9) {
+                        if ($count_9 == 0) {
+                            $query_array_9->where('imm_cvxcode', '=', $imm_9);
+                        } else {
+                            $query_array_9->orWhere('imm_cvxcode', '=', $imm_9);
+                        }
+                        $count_9++;
                     }
-                    $count_9++;
-                }
-            })
-            ->orderBy('eid', 'desc')
-            ->first();
+                })
+                ->orderBy('eid', 'desc')
+                ->first();
         if ($query_9) {
             $score++;
         } else {
@@ -11248,21 +11049,21 @@ class Controller extends BaseController
         }
         // Influenza
         $query_10 = DB::table('immunizations')
-            ->where('pid', '=', $pid)
-            ->where(function($query_array_10) {
-                $imm_array_10 = array('123','135','111','149','141','140','144','15','88','16','127','128','125','126');
-                $count_10 = 0;
-                foreach ($imm_array_10 as $imm_10) {
-                    if ($count_10 == 0) {
-                        $query_array_10->where('imm_cvxcode', '=', $imm_10);
-                    } else {
-                        $query_array_10->orWhere('imm_cvxcode', '=', $imm_10);
+                ->where('pid', '=', $pid)
+                ->where(function($query_array_10) {
+                    $imm_array_10 = array('123', '135', '111', '149', '141', '140', '144', '15', '88', '16', '127', '128', '125', '126');
+                    $count_10 = 0;
+                    foreach ($imm_array_10 as $imm_10) {
+                        if ($count_10 == 0) {
+                            $query_array_10->where('imm_cvxcode', '=', $imm_10);
+                        } else {
+                            $query_array_10->orWhere('imm_cvxcode', '=', $imm_10);
+                        }
+                        $count_10++;
                     }
-                    $count_10++;
-                }
-            })
-            ->orderBy('eid', 'desc')
-            ->first();
+                })
+                ->orderBy('eid', 'desc')
+                ->first();
         if ($query_10) {
             $score++;
         } else {
@@ -11275,45 +11076,44 @@ class Controller extends BaseController
         return $data;
     }
 
-    protected function hedis_cmc($pid)
-    {
+    protected function hedis_cmc($pid) {
         $data = [];
         $data['html'] = '<i class="fa fa-lg fa-times"></i> Cholesterol Management for Patients With Cardiovascular Conditions not performed';
         $data['goal'] = 'n';
         $data['fix'] = [];
         $score = 0;
         $query = DB::table('tests')->where('pid', '=', $pid)
-            ->where(function($query_array) {
+                ->where(function($query_array) {
                     $query_array->where('test_name', 'LIKE', "%ldl%")
-                        ->orWhere('test_name', 'LIKE', "%cholesterol%")
-                        ->orWhere('test_name', 'LIKE', "%lipid%");
+                    ->orWhere('test_name', 'LIKE', "%cholesterol%")
+                    ->orWhere('test_name', 'LIKE', "%lipid%");
                 })
-            ->orderBy('test_datetime', 'desc')
-            ->first();
+                ->orderBy('test_datetime', 'desc')
+                ->first();
         if ($query) {
             $score++;
         } else {
             $query1 = DB::table('documents')
-                ->where('pid', '=', $pid)
-                ->where(function($query_array1) {
-                    $query_array1->where('documents_desc', 'LIKE', "%ldl%")
+                    ->where('pid', '=', $pid)
+                    ->where(function($query_array1) {
+                        $query_array1->where('documents_desc', 'LIKE', "%ldl%")
                         ->orWhere('documents_desc', 'LIKE', "%cholesterol%")
                         ->orWhere('documents_desc', 'LIKE', "%lipid%");
-                })
-                ->where('documents_type', '=', 'Laboratory')
-                ->first();
+                    })
+                    ->where('documents_type', '=', 'Laboratory')
+                    ->first();
             if ($query1) {
                 $score++;
             } else {
                 $query2 = DB::table('tags_relate')
-                    ->join('tags', 'tags.tags_id', '=', 'tags_relate.tags_id')
-                    ->where('tags_relate.pid', '=', $pid)
-                    ->where(function($query_array2) {
-                        $query_array2->where('tags.tag', 'LIKE', "%ldl%")
+                        ->join('tags', 'tags.tags_id', '=', 'tags_relate.tags_id')
+                        ->where('tags_relate.pid', '=', $pid)
+                        ->where(function($query_array2) {
+                            $query_array2->where('tags.tag', 'LIKE', "%ldl%")
                             ->orWhere('tags.tag', 'LIKE', "%cholesterol%")
                             ->orWhere('tags.tag', 'LIKE', "%lipid%");
-                    })
-                    ->first();
+                        })
+                        ->first();
                 if ($query2) {
                     $score++;
                 } else {
@@ -11328,72 +11128,71 @@ class Controller extends BaseController
         return $data;
     }
 
-    protected function hedis_col($pid)
-    {
+    protected function hedis_col($pid) {
         $data = [];
         $data['html'] = '<i class="fa fa-lg fa-times"></i> Colorectal Cancer Screening not performed';
         $data['goal'] = 'n';
         $data['fix'] = [];
         $score = 0;
         $query = DB::table('tests')->where('pid', '=', $pid)
-            ->where(function($query_array) {
-                $query_array->where('test_name', 'LIKE', "%colonoscopy%")
+                ->where(function($query_array) {
+                    $query_array->where('test_name', 'LIKE', "%colonoscopy%")
                     ->orWhere('test_name', 'LIKE', "%sigmoidoscopy%");
-            })
-            ->orderBy('test_datetime', 'desc')
-            ->first();
+                })
+                ->orderBy('test_datetime', 'desc')
+                ->first();
         if ($query) {
             $score++;
         } else {
             $query1 = DB::table('documents')
-                ->where('pid', '=', $pid)
-                ->where(function($query_array1) {
-                    $query_array1->where('documents_desc', 'LIKE', "%colonoscopy%")
+                    ->where('pid', '=', $pid)
+                    ->where(function($query_array1) {
+                        $query_array1->where('documents_desc', 'LIKE', "%colonoscopy%")
                         ->orWhere('documents_desc', 'LIKE', "%sigmoidoscopy%");
-                })
-                ->where('documents_type', '=', 'Endoscopy')
-                ->first();
+                    })
+                    ->where('documents_type', '=', 'Endoscopy')
+                    ->first();
             if ($query1) {
                 $score++;
             } else {
                 $query2 = DB::table('tags_relate')
-                    ->join('tags', 'tags.tags_id', '=', 'tags_relate.tags_id')
-                    ->where('tags_relate.pid', '=', $pid)
-                    ->where(function($query_array2) {
-                        $query_array2->where('tags.tag', 'LIKE', "%colonoscopy%")
+                        ->join('tags', 'tags.tags_id', '=', 'tags_relate.tags_id')
+                        ->where('tags_relate.pid', '=', $pid)
+                        ->where(function($query_array2) {
+                            $query_array2->where('tags.tag', 'LIKE', "%colonoscopy%")
                             ->orWhere('tags.tag', 'LIKE', "%sigmoidoscopy%");
-                    })
-                    ->first();
+                        })
+                        ->first();
                 if ($query2) {
                     $score++;
                 } else {
                     $query3 = DB::table('documents')
-                        ->where('pid', '=', $pid)
-                        ->where(function($query_array3) {
-                            $query_array3->where('documents_desc', 'LIKE', "%guaiac%")
+                            ->where('pid', '=', $pid)
+                            ->where(function($query_array3) {
+                                $query_array3->where('documents_desc', 'LIKE', "%guaiac%")
                                 ->orWhere('documents_desc', 'LIKE', "%fobt%");
-                        })
-                        ->where('documents_type', '=', 'Laboratory')
-                        ->first();
+                            })
+                            ->where('documents_type', '=', 'Laboratory')
+                            ->first();
                     if ($query3) {
                         $score++;
                     } else {
                         $query4 = DB::table('billing_core')
-                            ->where('pid', '=', $pid)
-                            ->where(function($query_array4) {
-                                $fobt_item_array = array('82270','82274');
-                                $fobt_count = 0;
-                                foreach ($fobt_item_array as $fobt_item) {
-                                    if ($fobt_count == 0) {
-                                        $query_array4->where('cpt', '=', $fobt_item);
-                                    } else {
-                                        $query_array4->orWhere('cpt', '=', $fobt_item);
+                                ->where('pid', '=', $pid)
+                                ->where(function($query_array4) {
+                                    $fobt_item_array = array('82270', '82274');
+                                    $fobt_count = 0;
+                                    foreach ($fobt_item_array as $fobt_item) {
+                                        if ($fobt_count == 0) {
+                                            $query_array4->where('cpt', '=', $fobt_item);
+                                        } else {
+                                            $query_array4->orWhere('cpt', '=', $fobt_item);
+                                        }
+                                        $fobt_count++;
                                     }
-                                    $fobt_count++;
-                                }
-                            })
-                            ->orderBy('eid', 'desc')
-                            ->first();
+                                })
+                                ->orderBy('eid', 'desc')
+                                ->first();
                         if ($query4) {
                             $score++;
                         } else {
@@ -11410,8 +11209,7 @@ class Controller extends BaseController
         return $data;
     }
 
-    protected function hedis_cwp($cwp_result)
-    {
+    protected function hedis_cwp($cwp_result) {
         $data = [];
         $data['count'] = count($cwp_result);
         $data['test'] = 0;
@@ -11423,29 +11221,29 @@ class Controller extends BaseController
         foreach ($cwp_result as $row) {
             $test = 0;
             $query1 = DB::table('billing_core')
-                ->where('eid', '=', $row->eid)
-                ->where(function($query_array2) {
-                    $item2_array = ['87880','87070','87071','87081','87430','87650','87651','87652'];
-                    $j = 0;
-                    foreach ($item2_array as $item2) {
-                        if ($j == 0) {
-                            $query_array2->where('cpt', '=', $item2);
-                        } else {
-                            $query_array2->orWhere('cpt', '=', $item2);
+                    ->where('eid', '=', $row->eid)
+                    ->where(function($query_array2) {
+                        $item2_array = ['87880', '87070', '87071', '87081', '87430', '87650', '87651', '87652'];
+                        $j = 0;
+                        foreach ($item2_array as $item2) {
+                            if ($j == 0) {
+                                $query_array2->where('cpt', '=', $item2);
+                            } else {
+                                $query_array2->orWhere('cpt', '=', $item2);
+                            }
+                            $j++;
                         }
-                        $j++;
-                    }
-                })
-                ->first();
+                    })
+                    ->first();
             if ($query1) {
-                $data['test']++;
+                $data['test'] ++;
                 $test++;
             }
             $query2 = DB::table('rx')->where('eid', '=', $row->eid)->first();
             if ($query2) {
                 if ($query2->rx_rx != '') {
                     $abx_count = 0;
-                    $search = ['cillin','amox','zith','cef','kef','mycin','eryth','pen','bac','sulf'];
+                    $search = ['cillin', 'amox', 'zith', 'cef', 'kef', 'mycin', 'eryth', 'pen', 'bac', 'sulf'];
                     foreach ($search as $needle) {
                         $pos = stripos($query2->rx_rx, $needle);
                         if ($pos !== false) {
@@ -11453,24 +11251,23 @@ class Controller extends BaseController
                         }
                     }
                     if ($abx_count > 0) {
-                        $data['abx']++;
+                        $data['abx'] ++;
                         if ($test == 0) {
-                            $data['abx_no_test']++;
+                            $data['abx_no_test'] ++;
                         }
                     }
                 }
             }
         }
         if ($data['count'] !== 0) {
-            $data['percent_test'] = round($data['test']/$data['count']*100);
-            $data['percent_abx'] = round($data['abx']/$data['count']*100);
-            $data['percent_abx_no_test'] = round($data['abx_no_test']/$data['count']*100);
+            $data['percent_test'] = round($data['test'] / $data['count'] * 100);
+            $data['percent_abx'] = round($data['abx'] / $data['count'] * 100);
+            $data['percent_abx_no_test'] = round($data['abx_no_test'] / $data['count'] * 100);
         }
         return $data;
     }
 
-    protected function hedis_gso($pid)
-    {
+    protected function hedis_gso($pid) {
         $data = [];
         $data['html'] = '<i class="fa fa-lg fa-times"></i> Glaucoma Screening Older Adults not performed';
         $data['goal'] = 'n';
@@ -11481,18 +11278,18 @@ class Controller extends BaseController
             $score++;
         } else {
             $query1 = DB::table('documents')
-                ->where('pid', '=', $pid)
-                ->where('documents_desc', 'LIKE', "%glaucoma%")
-                ->where('documents_type', '=', 'Referrals')
-                ->first();
+                    ->where('pid', '=', $pid)
+                    ->where('documents_desc', 'LIKE', "%glaucoma%")
+                    ->where('documents_type', '=', 'Referrals')
+                    ->first();
             if ($query1) {
                 $score++;
             } else {
                 $query2 = DB::table('tags_relate')
-                    ->join('tags', 'tags.tags_id', '=', 'tags_relate.tags_id')
-                    ->where('tags_relate.pid', '=', $pid)
-                    ->where('tags.tag', 'LIKE', "%glaucoma%")
-                    ->first();
+                        ->join('tags', 'tags.tags_id', '=', 'tags_relate.tags_id')
+                        ->where('tags_relate.pid', '=', $pid)
+                        ->where('tags.tag', 'LIKE', "%glaucoma%")
+                        ->first();
                 if ($query2) {
                     $score++;
                 } else {
@@ -11507,8 +11304,7 @@ class Controller extends BaseController
         return $data;
     }
 
-    protected function hedis_ima($pid)
-    {
+    protected function hedis_ima($pid) {
         $data = [];
         $data['html'] = '<i class="fa fa-lg fa-times"></i> Immunizations for Adolescents not performed';
         $data['goal'] = 'n';
@@ -11520,21 +11316,21 @@ class Controller extends BaseController
         }
         // Meningococcal
         $query_1 = DB::table('immunizations')
-            ->where('pid', '=', $pid)
-            ->where(function($query_array_1) {
-                $imm_array_1 = array('103', '148', '147', '136', '114', '32', '108');
-                $count_1 = 0;
-                foreach ($imm_array_1 as $imm_1) {
-                    if ($count_1 == 0) {
-                        $query_array_1->where('imm_cvxcode', '=', $imm_1);
-                    } else {
-                        $query_array_1->orWhere('imm_cvxcode', '=', $imm_1);
+                ->where('pid', '=', $pid)
+                ->where(function($query_array_1) {
+                    $imm_array_1 = array('103', '148', '147', '136', '114', '32', '108');
+                    $count_1 = 0;
+                    foreach ($imm_array_1 as $imm_1) {
+                        if ($count_1 == 0) {
+                            $query_array_1->where('imm_cvxcode', '=', $imm_1);
+                        } else {
+                            $query_array_1->orWhere('imm_cvxcode', '=', $imm_1);
+                        }
+                        $count_1++;
                     }
-                    $count_1++;
-                }
-            })
-            ->orderBy('eid', 'desc')
-            ->first();
+                })
+                ->orderBy('eid', 'desc')
+                ->first();
         if ($query_1) {
             $score++;
         } else {
@@ -11542,21 +11338,21 @@ class Controller extends BaseController
         }
         // Tdap
         $query_2 = DB::table('immunizations')
-            ->where('pid', '=', $pid)
-            ->where(function($query_array_2) {
-                $imm_array_2 = array('138', '113', '9', '139', '115');
-                $count_2 = 0;
-                foreach ($imm_array_2 as $imm_2) {
-                    if ($count_2 == 0) {
-                        $query_array_2->where('imm_cvxcode', '=', $imm_2);
-                    } else {
-                        $query_array_2->orWhere('imm_cvxcode', '=', $imm_2);
+                ->where('pid', '=', $pid)
+                ->where(function($query_array_2) {
+                    $imm_array_2 = array('138', '113', '9', '139', '115');
+                    $count_2 = 0;
+                    foreach ($imm_array_2 as $imm_2) {
+                        if ($count_2 == 0) {
+                            $query_array_2->where('imm_cvxcode', '=', $imm_2);
+                        } else {
+                            $query_array_2->orWhere('imm_cvxcode', '=', $imm_2);
+                        }
+                        $count_2++;
                     }
-                    $count_2++;
-                }
-            })
-            ->orderBy('eid', 'desc')
-            ->first();
+                })
+                ->orderBy('eid', 'desc')
+                ->first();
         if ($query_2) {
             $score++;
         } else {
@@ -11569,28 +11365,26 @@ class Controller extends BaseController
         return $data;
     }
 
-    protected function hedis_issue_query($pid, $issues_item_array)
-    {
+    protected function hedis_issue_query($pid, $issues_item_array) {
         $query = DB::table('issues')
-            ->where('pid','=', $pid)
-            ->where('issue_date_inactive', '=', '0000-00-00 00:00:00')
-            ->where(function($query_array) use ($issues_item_array) {
-                $count = 0;
-                foreach ($issues_item_array as $issues_item) {
-                    if ($count == 0) {
-                        $query_array->where('issue', 'LIKE', "%$issues_item%");
-                    } else {
-                        $query_array->orWhere('issue', 'LIKE', "%$issues_item%");
+                ->where('pid', '=', $pid)
+                ->where('issue_date_inactive', '=', '0000-00-00 00:00:00')
+                ->where(function($query_array) use ($issues_item_array) {
+                    $count = 0;
+                    foreach ($issues_item_array as $issues_item) {
+                        if ($count == 0) {
+                            $query_array->where('issue', 'LIKE', "%$issues_item%");
+                        } else {
+                            $query_array->orWhere('issue', 'LIKE', "%$issues_item%");
+                        }
+                        $count++;
                     }
-                    $count++;
-                }
-            })
-            ->first();
+                })
+                ->first();
         return $query;
     }
 
-    protected function hedis_hpv($pid)
-    {
+    protected function hedis_hpv($pid) {
         $data = [];
         $data['html'] = '<i class="fa fa-lg fa-times"></i> Human Papillomavirus Vaccine for Female Adolescents not performed';
         $data['goal'] = 'n';
@@ -11602,21 +11396,21 @@ class Controller extends BaseController
         }
         // HPV
         $query_1 = DB::table('immunizations')
-            ->where('pid', '=', $pid)
-            ->where(function($query_array_1) {
-                $imm_array_1 = array('118', '62', '137');
-                $count_1 = 0;
-                foreach ($imm_array_1 as $imm_1) {
-                    if ($count_1 == 0) {
-                        $query_array_1->where('imm_cvxcode', '=', $imm_1);
-                    } else {
-                        $query_array_1->orWhere('imm_cvxcode', '=', $imm_1);
+                ->where('pid', '=', $pid)
+                ->where(function($query_array_1) {
+                    $imm_array_1 = array('118', '62', '137');
+                    $count_1 = 0;
+                    foreach ($imm_array_1 as $imm_1) {
+                        if ($count_1 == 0) {
+                            $query_array_1->where('imm_cvxcode', '=', $imm_1);
+                        } else {
+                            $query_array_1->orWhere('imm_cvxcode', '=', $imm_1);
+                        }
+                        $count_1++;
                     }
-                    $count_1++;
-                }
-            })
-            ->orderBy('eid', 'desc')
-            ->get();
+                })
+                ->orderBy('eid', 'desc')
+                ->get();
         if ($query_1) {
             $count = count($query1);
             if ($dob >= $e) {
@@ -11639,8 +11433,7 @@ class Controller extends BaseController
         return $data;
     }
 
-    protected function hedis_lbp($lbp_result)
-    {
+    protected function hedis_lbp($lbp_result) {
         $data = [];
         $data['count'] = count($lbp_result);
         $data['no_rad'] = 0;
@@ -11654,28 +11447,28 @@ class Controller extends BaseController
             $date_d = date('Y-m-d H:i:s', $this->human_to_unix($encounter->encounter_DOS) + 2419200);
             $pid = $encounter->pid;
             $query2 = DB::table('documents')
-                ->where('pid', '=', $pid)
-                ->where('documents_desc', 'LIKE', "%ray%")
-                ->where('documents_date', '>=', $date_a)
-                ->where('documents_date', '<=', $date_b)
-                ->where(function($query_array2) {
-                    $query_array2->where('documents_desc', 'LIKE', "%lumbar%")
+                    ->where('pid', '=', $pid)
+                    ->where('documents_desc', 'LIKE', "%ray%")
+                    ->where('documents_date', '>=', $date_a)
+                    ->where('documents_date', '<=', $date_b)
+                    ->where(function($query_array2) {
+                        $query_array2->where('documents_desc', 'LIKE', "%lumbar%")
                         ->orWhere('documents_desc', 'LIKE', "%low back%");
-                })
-                ->where('documents_type', '=', 'Imaging')
-                ->first();
+                    })
+                    ->where('documents_type', '=', 'Imaging')
+                    ->first();
             if ($query2) {
                 $rad++;
             } else {
                 $query3 = DB::table('tests')->where('pid', '=', $pid)
-                    ->where('test_name', 'LIKE', "%ray%")
-                    ->where('test_datetime', '>=', $date_c)
-                    ->where('test_datetime', '<=', $date_d)
-                    ->where(function($query_array) {
+                        ->where('test_name', 'LIKE', "%ray%")
+                        ->where('test_datetime', '>=', $date_c)
+                        ->where('test_datetime', '<=', $date_d)
+                        ->where(function($query_array) {
                             $query_array->where('test_name', 'LIKE', "%lumbar%")
-                                ->orWhere('test_name', 'LIKE', "%low back%");
+                            ->orWhere('test_name', 'LIKE', "%low back%");
                         })
-                    ->first();
+                        ->first();
                 if ($query3) {
                     $rad++;
                 }
@@ -11683,13 +11476,12 @@ class Controller extends BaseController
         }
         if ($data['count'] !== 0) {
             $data['no_rad'] = $data['count'] - $rad;
-            $data['percent_no_rad'] = round($data['no_rad']/$data['count']*100);
+            $data['percent_no_rad'] = round($data['no_rad'] / $data['count'] * 100);
         }
         return $data;
     }
 
-    protected function hedis_lsc($pid)
-    {
+    protected function hedis_lsc($pid) {
         $data = [];
         $data['html'] = '<i class="fa fa-lg fa-times"></i> Lead Screening in Children not performed';
         $data['goal'] = 'n';
@@ -11700,18 +11492,18 @@ class Controller extends BaseController
             $score++;
         } else {
             $query1 = DB::table('documents')
-                ->where('pid', '=', $pid)
-                ->where('documents_desc', 'LIKE', "%lead%")
-                ->where('documents_type', '=', 'Laboratory')
-                ->first();
+                    ->where('pid', '=', $pid)
+                    ->where('documents_desc', 'LIKE', "%lead%")
+                    ->where('documents_type', '=', 'Laboratory')
+                    ->first();
             if ($query1) {
                 $score++;
             } else {
                 $query2 = DB::table('tags_relate')
-                    ->join('tags', 'tags.tags_id', '=', 'tags_relate.tags_id')
-                    ->where('tags_relate.pid', '=', $pid)
-                    ->where('tags.tag', 'LIKE', "%lead%")
-                    ->first();
+                        ->join('tags', 'tags.tags_id', '=', 'tags_relate.tags_id')
+                        ->where('tags_relate.pid', '=', $pid)
+                        ->where('tags.tag', 'LIKE', "%lead%")
+                        ->first();
                 if ($query2) {
                     $score++;
                 } else {
@@ -11726,8 +11518,7 @@ class Controller extends BaseController
         return $data;
     }
 
-    protected function hedis_omw($pid)
-    {
+    protected function hedis_omw($pid) {
         $data = [];
         $data['html'] = '<i class="fa fa-lg fa-times"></i> Disease Modifying Anti-Rheumatic Drug Therapy for Rheumatoid Arthritis not performed';
         $data['goal'] = 'n';
@@ -11735,7 +11526,7 @@ class Controller extends BaseController
         $score = 0;
         $query1 = DB::table('rx_list')->where('pid', '=', $pid)->where('rxl_date_inactive', '=', '0000-00-00 00:00:00')->where('rxl_date_old', '=', '0000-00-00 00:00:00')->first();
         if ($query1) {
-            $search = array('actonel','dronate','atelvia','boniva','fosamax','reclast','binosto','zoledronic','estraderm','estradiol','estropipate','femhrt','jinteli','menest','premarin','premphase','vivelle','activella','alora','cenestin','climara','estrace','gynodiol','menostar','mimvey','ogen','prefest','minivelle','evista','forteo','prolia');
+            $search = array('actonel', 'dronate', 'atelvia', 'boniva', 'fosamax', 'reclast', 'binosto', 'zoledronic', 'estraderm', 'estradiol', 'estropipate', 'femhrt', 'jinteli', 'menest', 'premarin', 'premphase', 'vivelle', 'activella', 'alora', 'cenestin', 'climara', 'estrace', 'gynodiol', 'menostar', 'mimvey', 'ogen', 'prefest', 'minivelle', 'evista', 'forteo', 'prolia');
             foreach ($search as $needle) {
                 $pos = stripos($query1->rxl_medication, $needle);
                 if ($pos !== false) {
@@ -11744,36 +11535,36 @@ class Controller extends BaseController
             }
         }
         $query2 = DB::table('documents')
-            ->where('pid', '=', $pid)
-            ->where(function($query_array2) {
-                $query_array2->where('documents_desc', 'LIKE', "%dexa%")
+                ->where('pid', '=', $pid)
+                ->where(function($query_array2) {
+                    $query_array2->where('documents_desc', 'LIKE', "%dexa%")
                     ->orWhere('documents_desc', 'LIKE', "%osteoporosis%")
                     ->orWhere('documents_desc', 'LIKE', "%bone density%");
-            })
-            ->where('documents_type', '=', 'Imaging')
-            ->first();
+                })
+                ->where('documents_type', '=', 'Imaging')
+                ->first();
         if ($query2) {
             $score++;
         } else {
             $query3 = DB::table('tags_relate')
-                ->join('tags', 'tags.tags_id', '=', 'tags_relate.tags_id')
-                ->where('tags_relate.pid', '=', $pid)
-                ->where(function($query_array3) {
-                    $query_array3->where('tags.tag', 'LIKE', "%dexa%")
+                    ->join('tags', 'tags.tags_id', '=', 'tags_relate.tags_id')
+                    ->where('tags_relate.pid', '=', $pid)
+                    ->where(function($query_array3) {
+                        $query_array3->where('tags.tag', 'LIKE', "%dexa%")
                         ->orWhere('tags.tag', 'LIKE', "%osteoporosis%")
                         ->orWhere('tags.tag', 'LIKE', "%bone density%");
-                })
-                ->first();
+                    })
+                    ->first();
             if ($query3) {
                 $score++;
             } else {
                 $query4 = DB::table('tests')->where('pid', '=', $pid)
-                    ->where(function($query_array4) {
+                        ->where(function($query_array4) {
                             $query_array4->where('test_name', 'LIKE', "%dexa%")
-                                ->orWhere('test_name', 'LIKE', "%osteoporosis%")
-                                ->orWhere('test_name', 'LIKE', "%bone density%");
+                            ->orWhere('test_name', 'LIKE', "%osteoporosis%")
+                            ->orWhere('test_name', 'LIKE', "%bone density%");
                         })
-                    ->first();
+                        ->first();
                 if ($query4) {
                     $score++;
                 }
@@ -11788,8 +11579,7 @@ class Controller extends BaseController
         return $data;
     }
 
-    protected function hedis_pbh($pid)
-    {
+    protected function hedis_pbh($pid) {
         $data = [];
         $data['html'] = '<i class="fa fa-lg fa-times"></i> Persistence of Beta-Blocker Treatment After a Heart Attack not performed';
         $data['goal'] = 'n';
@@ -11797,7 +11587,7 @@ class Controller extends BaseController
         $score = 0;
         $query1 = DB::table('rx_list')->where('pid', '=', $pid)->where('rxl_date_inactive', '=', '0000-00-00 00:00:00')->where('rxl_date_old', '=', '0000-00-00 00:00:00')->first();
         if ($query1) {
-            $search = array('olol','ilol','alol','betapace','brevibloc','bystolic','coreg','corgard','inderal','innopran','kerlone','levatol','lopressor','sectral','tenormin','oprol','trandate','zebeta','sorine','corzide','tenoretic','ziac');
+            $search = array('olol', 'ilol', 'alol', 'betapace', 'brevibloc', 'bystolic', 'coreg', 'corgard', 'inderal', 'innopran', 'kerlone', 'levatol', 'lopressor', 'sectral', 'tenormin', 'oprol', 'trandate', 'zebeta', 'sorine', 'corzide', 'tenoretic', 'ziac');
             foreach ($search as $needle) {
                 $pos = stripos($query1->rxl_medication, $needle);
                 if ($pos !== false) {
@@ -11814,8 +11604,7 @@ class Controller extends BaseController
         return $data;
     }
 
-    protected function hedis_pce($pce_result)
-    {
+    protected function hedis_pce($pce_result) {
         $data = [];
         $data['count'] = count($pce_result);
         $data['tx'] = 0;
@@ -11826,14 +11615,14 @@ class Controller extends BaseController
                 if ($query1->rx_rx != '') {
                     $steroid_count = 0;
                     $inhaler_count = 0;
-                    $search = array('sone','medrol','pred','celestone','cortef','decadron','rayos');
+                    $search = array('sone', 'medrol', 'pred', 'celestone', 'cortef', 'decadron', 'rayos');
                     foreach ($search as $needle) {
                         $pos = stripos($query1->rx_rx, $needle);
                         if ($pos !== false) {
                             $steroid_count++;
                         }
                     }
-                    $search1 = array('terol','hfa','xopenex','maxair','combivent','ipratro','duoneb');
+                    $search1 = array('terol', 'hfa', 'xopenex', 'maxair', 'combivent', 'ipratro', 'duoneb');
                     foreach ($search1 as $needle1) {
                         $pos1 = stripos($query1->rx_rx, $needle1);
                         if ($pos1 !== false) {
@@ -11841,19 +11630,18 @@ class Controller extends BaseController
                         }
                     }
                     if ($steroid_count > 0 && $inhaler_count > 0) {
-                        $data['tx']++;
+                        $data['tx'] ++;
                     }
                 }
             }
         }
         if ($data['count'] !== 0) {
-            $data['percent_tx'] = round($data['tx']/$data['count']*100);
+            $data['percent_tx'] = round($data['tx'] / $data['count'] * 100);
         }
         return $data;
     }
 
-    protected function hedis_spr($pid)
-    {
+    protected function hedis_spr($pid) {
         $data = [];
         $data['html'] = '<i class="fa fa-lg fa-times"></i> Use of Spirometry Testing in the Assessment and Diagnosis of COPD not performed';
         $data['goal'] = 'n';
@@ -11864,18 +11652,18 @@ class Controller extends BaseController
             $score++;
         } else {
             $query1 = DB::table('documents')
-                ->where('pid', '=', $pid)
-                ->where('documents_desc', 'LIKE', "%spirometry%")
-                ->where('documents_type', '=', 'Cardiopulmonary')
-                ->first();
+                    ->where('pid', '=', $pid)
+                    ->where('documents_desc', 'LIKE', "%spirometry%")
+                    ->where('documents_type', '=', 'Cardiopulmonary')
+                    ->first();
             if ($query1) {
                 $score++;
             } else {
                 $query2 = DB::table('tags_relate')
-                    ->join('tags', 'tags.tags_id', '=', 'tags_relate.tags_id')
-                    ->where('tags_relate.pid', '=', $pid)
-                    ->where('tags.tag', 'LIKE', "%spirometry%")
-                    ->first();
+                        ->join('tags', 'tags.tags_id', '=', 'tags_relate.tags_id')
+                        ->where('tags_relate.pid', '=', $pid)
+                        ->where('tags.tag', 'LIKE', "%spirometry%")
+                        ->first();
                 if ($query2) {
                     $score++;
                 } else {
@@ -11890,8 +11678,7 @@ class Controller extends BaseController
         return $data;
     }
 
-    protected function hedis_uri($uri_result)
-    {
+    protected function hedis_uri($uri_result) {
         $data = [];
         $data['count'] = count($uri_result);
         $data['abx'] = 0;
@@ -11901,7 +11688,7 @@ class Controller extends BaseController
             if ($query1) {
                 if ($query1->rx_rx != '') {
                     $abx_count = 0;
-                    $search = array('cillin','amox','zith','cef','kef','mycin','eryth','pen','bac','sulf');
+                    $search = array('cillin', 'amox', 'zith', 'cef', 'kef', 'mycin', 'eryth', 'pen', 'bac', 'sulf');
                     foreach ($search as $needle) {
                         $pos = stripos($query2->rx_rx, $needle);
                         if ($pos !== false) {
@@ -11909,19 +11696,18 @@ class Controller extends BaseController
                         }
                     }
                     if ($abx_count > 0) {
-                        $data['abx']++;
+                        $data['abx'] ++;
                     }
                 }
             }
         }
         if ($data['count'] !== 0) {
-            $data['percent_abx'] = round($data['abx']/$data['count']*100);
+            $data['percent_abx'] = round($data['abx'] / $data['count'] * 100);
         }
         return $data;
     }
 
-    protected function hedis_wcc($pid)
-    {
+    protected function hedis_wcc($pid) {
         $data = [];
         $data['html'] = '<i class="fa fa-lg fa-times"></i> Weight Assessment and Counseling for Nutrition and Physical Activity for Children and Adolescents not performed';
         $data['goal'] = 'n';
@@ -11934,84 +11720,84 @@ class Controller extends BaseController
             $data['fix'][] = 'BMI, height, and weight needs to be measured';
         }
         $query1 = DB::table('billing_core')
-            ->where('pid', '=', $pid)
-            ->where(function($query_array1) {
-                $wcc_item_array = array('97802','97803','97804');
-                $i = 0;
-                foreach ($wcc_item_array as $wcc_item) {
-                    if ($i == 0) {
-                        $query_array1->where('cpt', '=', $wcc_item);
-                    } else {
-                        $query_array1->orWhere('cpt', '=', $wcc_item);
+                ->where('pid', '=', $pid)
+                ->where(function($query_array1) {
+                    $wcc_item_array = array('97802', '97803', '97804');
+                    $i = 0;
+                    foreach ($wcc_item_array as $wcc_item) {
+                        if ($i == 0) {
+                            $query_array1->where('cpt', '=', $wcc_item);
+                        } else {
+                            $query_array1->orWhere('cpt', '=', $wcc_item);
+                        }
+                        $i++;
                     }
-                    $i++;
-                }
-            })
-            ->orderBy('eid', 'desc')
-            ->first();
+                })
+                ->orderBy('eid', 'desc')
+                ->first();
         if ($query1) {
             $score++;
         } else {
             $data['fix'][] = 'Nutritional counseling needs to be performed';
         }
         $query2 = DB::table('assessment')
-            ->where('pid', '=', $pid)
-            ->where(function($query_array2) {
-                $assessment_item_array2 = array('V85.51','V85.52','V85.53','V85.54','Z68.51','Z68.52','Z68.53','Z68.54');
-                $count2 = 0;
-                foreach ($assessment_item_array2 as $assessment_item2) {
-                    if ($count2 == 0) {
-                        $query_array2->where('assessment_icd1', '=', $assessment_item2)->orWhere('assessment_icd2', '=', $assessment_item2)->orWhere('assessment_icd3', '=', $assessment_item2)->orWhere('assessment_icd4', '=', $assessment_item2)->orWhere('assessment_icd5', '=', $assessment_item2)->orWhere('assessment_icd6', '=', $assessment_item2)->orWhere('assessment_icd7', '=', $assessment_item2)->orWhere('assessment_icd8', '=', $assessment_item2)->orWhere('assessment_icd9', '=', $assessment_item2)->orWhere('assessment_icd10', '=', $assessment_item2)->orWhere('assessment_icd11', '=', $assessment_item2)->orWhere('assessment_icd12', '=', $assessment_item2);
-                    } else {
-                        $query_array2->orWhere('assessment_icd1', '=', $assessment_item2)->orWhere('assessment_icd2', '=', $assessment_item2)->orWhere('assessment_icd3', '=', $assessment_item2)->orWhere('assessment_icd4', '=', $assessment_item2)->orWhere('assessment_icd5', '=', $assessment_item2)->orWhere('assessment_icd6', '=', $assessment_item2)->orWhere('assessment_icd7', '=', $assessment_item2)->orWhere('assessment_icd8', '=', $assessment_item2)->orWhere('assessment_icd9', '=', $assessment_item2)->orWhere('assessment_icd10', '=', $assessment_item2)->orWhere('assessment_icd11', '=', $assessment_item2)->orWhere('assessment_icd12', '=', $assessment_item2);
+                ->where('pid', '=', $pid)
+                ->where(function($query_array2) {
+                    $assessment_item_array2 = array('V85.51', 'V85.52', 'V85.53', 'V85.54', 'Z68.51', 'Z68.52', 'Z68.53', 'Z68.54');
+                    $count2 = 0;
+                    foreach ($assessment_item_array2 as $assessment_item2) {
+                        if ($count2 == 0) {
+                            $query_array2->where('assessment_icd1', '=', $assessment_item2)->orWhere('assessment_icd2', '=', $assessment_item2)->orWhere('assessment_icd3', '=', $assessment_item2)->orWhere('assessment_icd4', '=', $assessment_item2)->orWhere('assessment_icd5', '=', $assessment_item2)->orWhere('assessment_icd6', '=', $assessment_item2)->orWhere('assessment_icd7', '=', $assessment_item2)->orWhere('assessment_icd8', '=', $assessment_item2)->orWhere('assessment_icd9', '=', $assessment_item2)->orWhere('assessment_icd10', '=', $assessment_item2)->orWhere('assessment_icd11', '=', $assessment_item2)->orWhere('assessment_icd12', '=', $assessment_item2);
+                        } else {
+                            $query_array2->orWhere('assessment_icd1', '=', $assessment_item2)->orWhere('assessment_icd2', '=', $assessment_item2)->orWhere('assessment_icd3', '=', $assessment_item2)->orWhere('assessment_icd4', '=', $assessment_item2)->orWhere('assessment_icd5', '=', $assessment_item2)->orWhere('assessment_icd6', '=', $assessment_item2)->orWhere('assessment_icd7', '=', $assessment_item2)->orWhere('assessment_icd8', '=', $assessment_item2)->orWhere('assessment_icd9', '=', $assessment_item2)->orWhere('assessment_icd10', '=', $assessment_item2)->orWhere('assessment_icd11', '=', $assessment_item2)->orWhere('assessment_icd12', '=', $assessment_item2);
+                        }
+                        $count2++;
                     }
-                    $count2++;
-                }
-            })
-            ->orderBy('eid', 'desc')
-            ->first();
+                })
+                ->orderBy('eid', 'desc')
+                ->first();
         if ($query2) {
             $score++;
         } else {
             $data['fix'][] = 'BMI, height, and weight needs to be measured';
         }
         $query3 = DB::table('assessment')
-            ->where('pid', '=', $pid)
-            ->where(function($query_array3) {
-                $assessment_item_array3 = array('V65.3','Z71.3');
-                $count3 = 0;
-                foreach ($assessment_item_array3 as $assessment_item3) {
-                    if ($count3 == 0) {
-                        $query_array3->where('assessment_icd1', '=', $assessment_item3)->orWhere('assessment_icd2', '=', $assessment_item3)->orWhere('assessment_icd3', '=', $assessment_item3)->orWhere('assessment_icd4', '=', $assessment_item3)->orWhere('assessment_icd5', '=', $assessment_item3)->orWhere('assessment_icd6', '=', $assessment_item3)->orWhere('assessment_icd7', '=', $assessment_item3)->orWhere('assessment_icd8', '=', $assessment_item3)->orWhere('assessment_icd9', '=', $assessment_item3)->orWhere('assessment_icd10', '=', $assessment_item3)->orWhere('assessment_icd11', '=', $assessment_item3)->orWhere('assessment_icd12', '=', $assessment_item3);
-                    } else {
-                        $query_array3->orWhere('assessment_icd1', '=', $assessment_item3)->orWhere('assessment_icd2', '=', $assessment_item3)->orWhere('assessment_icd3', '=', $assessment_item3)->orWhere('assessment_icd4', '=', $assessment_item3)->orWhere('assessment_icd5', '=', $assessment_item3)->orWhere('assessment_icd6', '=', $assessment_item3)->orWhere('assessment_icd7', '=', $assessment_item3)->orWhere('assessment_icd8', '=', $assessment_item3)->orWhere('assessment_icd9', '=', $assessment_item3)->orWhere('assessment_icd10', '=', $assessment_item3)->orWhere('assessment_icd11', '=', $assessment_item3)->orWhere('assessment_icd12', '=', $assessment_item3);
+                ->where('pid', '=', $pid)
+                ->where(function($query_array3) {
+                    $assessment_item_array3 = array('V65.3', 'Z71.3');
+                    $count3 = 0;
+                    foreach ($assessment_item_array3 as $assessment_item3) {
+                        if ($count3 == 0) {
+                            $query_array3->where('assessment_icd1', '=', $assessment_item3)->orWhere('assessment_icd2', '=', $assessment_item3)->orWhere('assessment_icd3', '=', $assessment_item3)->orWhere('assessment_icd4', '=', $assessment_item3)->orWhere('assessment_icd5', '=', $assessment_item3)->orWhere('assessment_icd6', '=', $assessment_item3)->orWhere('assessment_icd7', '=', $assessment_item3)->orWhere('assessment_icd8', '=', $assessment_item3)->orWhere('assessment_icd9', '=', $assessment_item3)->orWhere('assessment_icd10', '=', $assessment_item3)->orWhere('assessment_icd11', '=', $assessment_item3)->orWhere('assessment_icd12', '=', $assessment_item3);
+                        } else {
+                            $query_array3->orWhere('assessment_icd1', '=', $assessment_item3)->orWhere('assessment_icd2', '=', $assessment_item3)->orWhere('assessment_icd3', '=', $assessment_item3)->orWhere('assessment_icd4', '=', $assessment_item3)->orWhere('assessment_icd5', '=', $assessment_item3)->orWhere('assessment_icd6', '=', $assessment_item3)->orWhere('assessment_icd7', '=', $assessment_item3)->orWhere('assessment_icd8', '=', $assessment_item3)->orWhere('assessment_icd9', '=', $assessment_item3)->orWhere('assessment_icd10', '=', $assessment_item3)->orWhere('assessment_icd11', '=', $assessment_item3)->orWhere('assessment_icd12', '=', $assessment_item3);
+                        }
+                        $count3++;
                     }
-                    $count3++;
-                }
-            })
-            ->orderBy('eid', 'desc')
-            ->first();
+                })
+                ->orderBy('eid', 'desc')
+                ->first();
         if ($query3) {
             $score++;
         } else {
             $data['fix'][] = 'Nutritional counseling needs to be performed';
         }
         $query4 = DB::table('assessment')
-            ->where('pid', '=', $pid)
-            ->where(function($query_array4) {
-                $assessment_item_array4 = array('V65.41','Z71.89');
-                $count4 = 0;
-                foreach ($assessment_item_array4 as $assessment_item4) {
-                    if ($count4 == 0) {
-                        $query_array4->where('assessment_icd1', '=', $assessment_item4)->orWhere('assessment_icd2', '=', $assessment_item4)->orWhere('assessment_icd3', '=', $assessment_item4)->orWhere('assessment_icd4', '=', $assessment_item4)->orWhere('assessment_icd5', '=', $assessment_item4)->orWhere('assessment_icd6', '=', $assessment_item4)->orWhere('assessment_icd7', '=', $assessment_item4)->orWhere('assessment_icd8', '=', $assessment_item4)->orWhere('assessment_icd9', '=', $assessment_item4)->orWhere('assessment_icd10', '=', $assessment_item4)->orWhere('assessment_icd11', '=', $assessment_item4)->orWhere('assessment_icd12', '=', $assessment_item4);
-                    } else {
-                        $query_array4->orWhere('assessment_icd1', '=', $assessment_item4)->orWhere('assessment_icd2', '=', $assessment_item4)->orWhere('assessment_icd3', '=', $assessment_item4)->orWhere('assessment_icd4', '=', $assessment_item4)->orWhere('assessment_icd5', '=', $assessment_item4)->orWhere('assessment_icd6', '=', $assessment_item4)->orWhere('assessment_icd7', '=', $assessment_item4)->orWhere('assessment_icd8', '=', $assessment_item4)->orWhere('assessment_icd9', '=', $assessment_item4)->orWhere('assessment_icd10', '=', $assessment_item4)->orWhere('assessment_icd11', '=', $assessment_item4)->orWhere('assessment_icd12', '=', $assessment_item4);
+                ->where('pid', '=', $pid)
+                ->where(function($query_array4) {
+                    $assessment_item_array4 = array('V65.41', 'Z71.89');
+                    $count4 = 0;
+                    foreach ($assessment_item_array4 as $assessment_item4) {
+                        if ($count4 == 0) {
+                            $query_array4->where('assessment_icd1', '=', $assessment_item4)->orWhere('assessment_icd2', '=', $assessment_item4)->orWhere('assessment_icd3', '=', $assessment_item4)->orWhere('assessment_icd4', '=', $assessment_item4)->orWhere('assessment_icd5', '=', $assessment_item4)->orWhere('assessment_icd6', '=', $assessment_item4)->orWhere('assessment_icd7', '=', $assessment_item4)->orWhere('assessment_icd8', '=', $assessment_item4)->orWhere('assessment_icd9', '=', $assessment_item4)->orWhere('assessment_icd10', '=', $assessment_item4)->orWhere('assessment_icd11', '=', $assessment_item4)->orWhere('assessment_icd12', '=', $assessment_item4);
+                        } else {
+                            $query_array4->orWhere('assessment_icd1', '=', $assessment_item4)->orWhere('assessment_icd2', '=', $assessment_item4)->orWhere('assessment_icd3', '=', $assessment_item4)->orWhere('assessment_icd4', '=', $assessment_item4)->orWhere('assessment_icd5', '=', $assessment_item4)->orWhere('assessment_icd6', '=', $assessment_item4)->orWhere('assessment_icd7', '=', $assessment_item4)->orWhere('assessment_icd8', '=', $assessment_item4)->orWhere('assessment_icd9', '=', $assessment_item4)->orWhere('assessment_icd10', '=', $assessment_item4)->orWhere('assessment_icd11', '=', $assessment_item4)->orWhere('assessment_icd12', '=', $assessment_item4);
+                        }
+                        $count4++;
                     }
-                    $count4++;
-                }
-            })
-            ->orderBy('eid', 'desc')
-            ->first();
+                })
+                ->orderBy('eid', 'desc')
+                ->first();
         if ($query4) {
             $score++;
         } else {
@@ -12024,8 +11810,7 @@ class Controller extends BaseController
         return $data;
     }
 
-    protected function healthwise_compile()
-    {
+    protected function healthwise_compile() {
         $core_url = 'https://myhealth.alberta.ca';
         $url = $core_url . '/health/aftercareinformation/Pages/default.aspx';
         $ch = curl_init();
@@ -12052,8 +11837,7 @@ class Controller extends BaseController
         return 'OK';
     }
 
-    protected function healthwise_view($link)
-    {
+    protected function healthwise_view($link) {
         $return = 'Having trouble getting materials.  Try again';
         $core_url = 'https://myhealth.alberta.ca';
         $url = $core_url . $link;
@@ -12082,7 +11866,7 @@ class Controller extends BaseController
                 $raw = curl_exec($ch1);
                 curl_close($ch1);
                 $file_path_name = time() . '_img_' . $i . '.jpg';
-                $file_path = public_path() .'/temp/' . $file_path_name;
+                $file_path = public_path() . '/temp/' . $file_path_name;
                 $new_url = asset('temp/' . $file_path_name);
                 File::put($file_path, $raw);
                 $return = str_replace($img_link, $new_url, $return);
@@ -12098,35 +11882,33 @@ class Controller extends BaseController
     }
 
     /**
-    * Human text to unix timestamp function
-    * @param string  $datestr - Human readable date string
-    * @return Response
-    */
-    protected function human_to_unix($datestr)
-    {
+     * Human text to unix timestamp function
+     * @param string  $datestr - Human readable date string
+     * @return Response
+     */
+    protected function human_to_unix($datestr) {
         $date = Date::parse($datestr);
         return $date->timestamp;
     }
 
-    protected function icd_search($code)
-    {
+    protected function icd_search($code) {
         $file = File::get(resource_path() . '/icd10cm_order_2017.txt');
         $arr = preg_split("/\\r\\n|\\r|\\n/", $file);
         foreach ($arr as $row) {
-            $icd10 = rtrim(substr($row,6,7));
+            $icd10 = rtrim(substr($row, 6, 7));
             if (strlen($icd10) !== 3) {
                 $icd10 = substr_replace($icd10, '.', 3, 0);
             }
             $preicd[$icd10] = [
                 'icd10' => $icd10,
-                'desc' => substr($row,77),
-                'type' => substr($row,14,1)
+                'desc' => substr($row, 77),
+                'type' => substr($row, 14, 1)
             ];
         }
         $result = [];
         $return = '';
         $result = array_where($preicd, function($value, $key) use ($code) {
-            if (stripos($value['icd10'] , $code) !== false) {
+            if (stripos($value['icd10'], $code) !== false) {
                 return true;
             }
         });
@@ -12137,16 +11919,15 @@ class Controller extends BaseController
         return $return;
     }
 
-    protected function icd10data($icd10q)
-    {
+    protected function icd10data($icd10q) {
         $url = 'http://www.icd10data.com/Search.aspx?search=' . $icd10q . '&codeBook=ICD10CM';
         $ch = curl_init();
-        curl_setopt($ch,CURLOPT_URL, $url);
-        curl_setopt($ch,CURLOPT_FAILONERROR,1);
-        curl_setopt($ch,CURLOPT_FOLLOWLOCATION,1);
-        curl_setopt($ch,CURLOPT_RETURNTRANSFER,1);
-        curl_setopt($ch,CURLOPT_TIMEOUT, 60);
-        curl_setopt($ch,CURLOPT_CONNECTTIMEOUT ,0);
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_FAILONERROR, 1);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 60);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 0);
         $result = curl_exec($ch);
         $html = new Htmldom($result);
         $data = [];
@@ -12165,16 +11946,15 @@ class Controller extends BaseController
         return $data;
     }
 
-    protected function icd10data_get($page, $data, $icd10q)
-    {
+    protected function icd10data_get($page, $data, $icd10q) {
         $url = 'http://www.icd10data.com/Search.aspx?search=' . $icd10q . '&codeBook=ICD10CM' . '&page=' . $page;
         $ch = curl_init();
-        curl_setopt($ch,CURLOPT_URL, $url);
-        curl_setopt($ch,CURLOPT_FAILONERROR,1);
-        curl_setopt($ch,CURLOPT_FOLLOWLOCATION,1);
-        curl_setopt($ch,CURLOPT_RETURNTRANSFER,1);
-        curl_setopt($ch,CURLOPT_TIMEOUT, 60);
-        curl_setopt($ch,CURLOPT_CONNECTTIMEOUT ,0);
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_FAILONERROR, 1);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 60);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 0);
         $result = curl_exec($ch);
         $html = new Htmldom($result);
         if (isset($html)) {
@@ -12199,8 +11979,7 @@ class Controller extends BaseController
         return $data;
     }
 
-    protected function ndc_convert($ndc)
-    {
+    protected function ndc_convert($ndc) {
         $pos1 = strpos($ndc, '-');
         $parts = explode("-", $ndc);
         if ($pos1 === 4) {
@@ -12217,19 +11996,18 @@ class Controller extends BaseController
     }
 
     /**
-    * NPI lookup
-    * @param string  $npi - NPI number
-    * @return Response array
-    */
-    protected function npi_lookup($npi)
-    {
+     * NPI lookup
+     * @param string  $npi - NPI number
+     * @return Response array
+     */
+    protected function npi_lookup($npi) {
         $url = 'https://npiregistry.cms.hhs.gov/api/?number=' . $npi . '&enumeration_type=&taxonomy_description=&first_name=&last_name=&organization_name=&address_purpose=&city=&state=&postal_code=&country_code=&limit=&skip=';
         $ch = curl_init();
-        curl_setopt($ch,CURLOPT_URL, $url);
-        curl_setopt($ch,CURLOPT_FAILONERROR,1);
-        curl_setopt($ch,CURLOPT_FOLLOWLOCATION,1);
-        curl_setopt($ch,CURLOPT_RETURNTRANSFER,1);
-        curl_setopt($ch,CURLOPT_TIMEOUT, 15);
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_FAILONERROR, 1);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 15);
         $json = curl_exec($ch);
         curl_close($ch);
         $arr = json_decode($json, true);
@@ -12255,29 +12033,26 @@ class Controller extends BaseController
         return $return;
     }
 
-    protected function orders_info($text)
-    {
+    protected function orders_info($text) {
         preg_match("/\[(.*?)\]/", $text, $match);
         $codes = explode(',', $match[1]);
         $data = [
             'facility' => $codes[0],
             'order_code' => $codes[1],
-            'cpt' => explode(';', str_replace(['(',')'], '', $codes[2])),
-            'loinc' => explode(';', str_replace(['(',')'], '', $codes[3])),
-            'result_code' => explode(';', str_replace(['(',')'], '', $codes[2]))
+            'cpt' => explode(';', str_replace(['(', ')'], '', $codes[2])),
+            'loinc' => explode(';', str_replace(['(', ')'], '', $codes[3])),
+            'result_code' => explode(';', str_replace(['(', ')'], '', $codes[2]))
         ];
         return $data;
     }
 
-    protected function pagecount($filename)
-    {
+    protected function pagecount($filename) {
         $pdftext = file_get_contents($filename);
-          $pagecount = preg_match_all("/\/Page\W/", $pdftext, $dummy);
+        $pagecount = preg_match_all("/\/Page\W/", $pdftext, $dummy);
         return $pagecount;
     }
 
-    protected function page_ccr($pid)
-    {
+    protected function page_ccr($pid) {
         $data['patientInfo'] = DB::table('demographics')->where('pid', '=', $pid)->first();
         $data['dob'] = date('m/d/Y', $this->human_to_unix($data['patientInfo']->DOB));
         $data['insuranceInfo'] = '';
@@ -12353,11 +12128,10 @@ class Controller extends BaseController
         }
         $body .= '<br />Printed by ' . Session::get('displayname') . '.';
         $data['letter'] = $body;
-        return view('pdf.ccr_page',$data);
+        return view('pdf.ccr_page', $data);
     }
 
-    protected function page_coverpage($job_id, $totalpages, $faxrecipients, $date)
-    {
+    protected function page_coverpage($job_id, $totalpages, $faxrecipients, $date) {
         $row = DB::table('sendfax')->where('job_id', '=', $job_id)->first();
         $data = [
             'user' => Session::get('displayname'),
@@ -12367,11 +12141,10 @@ class Controller extends BaseController
             'faxpages' => $totalpages,
             'faxdate' => $date
         ];
-        return view('pdf.coverpage',$data);
+        return view('pdf.coverpage', $data);
     }
 
-    protected function page_default()
-    {
+    protected function page_default() {
         $pid = Session::get('pid');
         $practice = DB::table('practiceinfo')->where('practice_id', '=', Session::get('practice_id'))->first();
         $data['practiceName'] = $practice->practice_name;
@@ -12393,8 +12166,7 @@ class Controller extends BaseController
         return $data;
     }
 
-    protected function page_financial_results($results)
-    {
+    protected function page_financial_results($results) {
         $body = '<br><br><table style="width:100%"><tr><th>Date</th><th>Last Name</th><th>First Name</th><th>Amount</th><th>Type</th></tr>';
         setlocale(LC_MONETARY, 'en_US.UTF-8');
         foreach ($results as $results_row1) {
@@ -12404,8 +12176,7 @@ class Controller extends BaseController
         return $body;
     }
 
-    protected function page_hippa_request($id, $pid)
-    {
+    protected function page_hippa_request($id, $pid) {
         $result = DB::table('hippa_request')->where('hippa_request_id', '=', $id)->first();
         $row = DB::table('demographics')->where('pid', '=', $pid)->first();
         $practice = DB::table('practiceinfo')->where('practice_id', '=', Session::get('practice_id'))->first();
@@ -12472,14 +12243,13 @@ class Controller extends BaseController
                     $data['from'] .= $address->street_address2 . '<br>';
                 }
                 $data['from'] .= $address->city . ', ' . $address->state . ' ' . $address->zip . '<br>';
-                $data['from'] .= $address->phone .'<br>';
+                $data['from'] .= $address->phone . '<br>';
             }
         }
         return view('pdf.hippa_request', $data);
     }
 
-    protected function page_immunization_list()
-    {
+    protected function page_immunization_list() {
         $data = $this->page_default();
         $data['body'] = 'Immunizations for ' . $data['firstname'] . ' ' . $data['lastname'] . ':<br />';
         $seq_arr = [
@@ -12507,8 +12277,7 @@ class Controller extends BaseController
         return view('pdf.letter_page', $data);
     }
 
-    protected function page_intro($title, $practice_id)
-    {
+    protected function page_intro($title, $practice_id) {
         $practice = DB::table('practiceinfo')->where('practice_id', '=', $practice_id)->first();
         $data['practiceName'] = $practice->practice_name;
         $data['website'] = $practice->website;
@@ -12524,14 +12293,13 @@ class Controller extends BaseController
         return view('pdf.intro', $data);
     }
 
-    protected function page_invoice1($eid)
-    {
+    protected function page_invoice1($eid) {
         $encounterInfo = DB::table('encounters')->where('eid', '=', $eid)->first();
         $pid = $encounterInfo->pid;
         $assessmentInfo = DB::table('assessment')->where('eid', '=', $eid)->first();
         $data['assessment'] = '';
         if ($assessmentInfo) {
-            for ($i=1;$i<=12;$i++) {
+            for ($i = 1; $i <= 12; $i++) {
                 $col = 'assessment_' . $i;
                 if ($assessmentInfo->{$col} != '') {
                     if ($i !== 1) {
@@ -12617,8 +12385,7 @@ class Controller extends BaseController
         return view('pdf.invoice_page', $data);
     }
 
-    protected function page_invoice2($id, $pid)
-    {
+    protected function page_invoice2($id, $pid) {
         $data['text'] = 'No procedures.';
         $result1 = DB::table('billing_core')->where('other_billing_id', '=', $id)->where('payment', '=', '0')->first();
         if ($result1) {
@@ -12674,8 +12441,7 @@ class Controller extends BaseController
         return view('pdf.invoice_page2', $data);
     }
 
-    protected function page_medication($rxl_id, $pid)
-    {
+    protected function page_medication($rxl_id, $pid) {
         $data['rx'] = DB::table('rx_list')->where('rxl_id', '=', $rxl_id)->first();
         $quantity = $data['rx']->rxl_quantity;
         $refill = $data['rx']->rxl_refill;
@@ -12722,8 +12488,7 @@ class Controller extends BaseController
         return view('pdf.prescription_page', $data);
     }
 
-    protected function page_letter($letter_to, $letter_body, $address_id)
-    {
+    protected function page_letter($letter_to, $letter_body, $address_id) {
         $body = '';
         if ($address_id != '') {
             $row = DB::table('addressbook')->where('address_id', '=', $address_id)->first();
@@ -12743,8 +12508,7 @@ class Controller extends BaseController
         return $body;
     }
 
-    protected function page_results($pid, $results, $patient_name, $from)
-    {
+    protected function page_results($pid, $results, $patient_name, $from) {
         $body = '';
         $body .= "<br>Test results for " . $patient_name . "<br><br>";
         $body .= "<table style='table-layout:fixed;width:800px'><tr><th style='width:100px'>Date</th><th style='width:200px'>Test</th><th style='width:300px'>Result</th><th style='width:50px'>Units</th><th style='width:100px'>Range</th><th style='width:50px'>Flags</th></tr>";
@@ -12756,8 +12520,7 @@ class Controller extends BaseController
         return $body;
     }
 
-    protected function page_letter_reply($body)
-    {
+    protected function page_letter_reply($body) {
         $row = DB::table('demographics')->where('pid', '=', Session::get('pid'))->first();
         $practice = DB::table('practiceinfo')->where('practice_id', '=', Session::get('practice_id'))->first();
         $data['practiceName'] = $practice->practice_name;
@@ -12777,16 +12540,15 @@ class Controller extends BaseController
         return view('pdf.letter_page', $data);
     }
 
-    protected function page_results_list($id)
-    {
+    protected function page_results_list($id) {
         $data = $this->page_default();
         $test_arr = $this->test_flag_arr();
         $row0 = DB::table('tests')->where('tests_id', '=', $id)->first();
         $query1 = DB::table('tests')
-            ->where('test_name', '=', $row0->test_name)
-            ->where('pid', '=', Session::get('pid'))
-            ->orderBy('test_datetime', 'asc')
-            ->get();
+                ->where('test_name', '=', $row0->test_name)
+                ->where('pid', '=', Session::get('pid'))
+                ->orderBy('test_datetime', 'asc')
+                ->get();
         $data['body'] = $row0->test_name . ' Results for ' . $data['firstname'] . ' ' . $data['lastname'] . ':<br />';
         if ($query1->count()) {
             $data['body'] .= '<table border="1" cellpadding="5"><thead><tr><th>Date</th><th>Result</th><th>Unit</th><th>Range</th><th>Flag</th></thead><tbody>';
@@ -12805,8 +12567,7 @@ class Controller extends BaseController
         return view('pdf.letter_page', $data);
     }
 
-    protected function page_orders($orders_id, $pid)
-    {
+    protected function page_orders($orders_id, $pid) {
         $data['orders'] = DB::table('orders')->where('orders_id', '=', $orders_id)->first();
         if ($data['orders']->orders_labs != '') {
             $data['title'] = "LABORATORY ORDER";
@@ -12862,8 +12623,7 @@ class Controller extends BaseController
         return view('pdf.order_page', $data);
     }
 
-    protected function page_plan($eid)
-    {
+    protected function page_plan($eid) {
         $pid = Session::get('pid');
         $ordersInfo = DB::table('orders')->where('eid', '=', $eid)->first();
         if ($ordersInfo) {
@@ -12874,7 +12634,7 @@ class Controller extends BaseController
                 foreach ($ordersInfo_labs_query as $ordersInfo_labs_result) {
                     $text1 = nl2br($ordersInfo_labs_result->orders_labs);
                     $address_row1 = DB::table('addressbook')->where('address_id', '=', $ordersInfo_labs_result->address_id)->first();
-                    $data['orders'] .= 'Orders sent to ' . $address_row1->displayname . ': '. $text1 . '<br />';
+                    $data['orders'] .= 'Orders sent to ' . $address_row1->displayname . ': ' . $text1 . '<br />';
                     $data['orders'] .= $address_row1->street_address1 . '<br />';
                     if ($address_row1->street_address2 != '') {
                         $data['orders'] .= $address_row1->street_address2 . '<br />';
@@ -12889,7 +12649,7 @@ class Controller extends BaseController
                 foreach ($ordersInfo_rad_query as $ordersInfo_rad_result) {
                     $text2 = nl2br($ordersInfo_rad_result->orders_radiology);
                     $address_row2 = DB::table('addressbook')->where('address_id', '=', $ordersInfo_rad_result->address_id)->first();
-                    $data['orders'] .= 'Orders sent to ' . $address_row2->displayname . ': '. $text2 . '<br />';
+                    $data['orders'] .= 'Orders sent to ' . $address_row2->displayname . ': ' . $text2 . '<br />';
                     $data['orders'] .= $address_row2->street_address1 . '<br />';
                     if ($address_row2->street_address2 != '') {
                         $data['orders'] .= $address_row2->street_address2 . '<br />';
@@ -12904,7 +12664,7 @@ class Controller extends BaseController
                 foreach ($ordersInfo_cp_query as $ordersInfo_cp_result) {
                     $text3 = nl2br($ordersInfo_cp_result->orders_cp);
                     $address_row3 = DB::table('addressbook')->where('address_id', '=', $ordersInfo_cp_result->address_id)->first();
-                    $data['orders'] .= 'Orders sent to ' . $address_row3->displayname . ': '. $text3 . '<br />';
+                    $data['orders'] .= 'Orders sent to ' . $address_row3->displayname . ': ' . $text3 . '<br />';
                     $data['orders'] .= $address_row3->street_address1 . '<br />';
                     if ($address_row3->street_address2 != '') {
                         $data['orders'] .= $address_row3->street_address2 . '<br />';
@@ -12934,12 +12694,12 @@ class Controller extends BaseController
         $rxInfo = DB::table('rx')->where('eid', '=', $eid)->first();
         if ($rxInfo) {
             $data['rx'] = '<br><h4>Prescriptions and Immunizations:</h4><p class="view">';
-            if ($rxInfo->rx_rx!= '') {
+            if ($rxInfo->rx_rx != '') {
                 $data['rx'] .= '<strong>Medications: </strong>';
                 $data['rx'] .= nl2br($rxInfo->rx_orders_summary);
                 $data['rx'] .= '<br /><br />';
             }
-            if ($rxInfo->rx_supplements!= '') {
+            if ($rxInfo->rx_supplements != '') {
                 $data['rx'] .= '<strong>Supplements to take: </strong>';
                 $data['rx'] .= nl2br($rxInfo->rx_supplements_orders_summary);
                 $data['rx'] .= '<br /><br />';
@@ -12957,7 +12717,7 @@ class Controller extends BaseController
         $planInfo = DB::table('plan')->where('eid', '=', $eid)->first();
         if ($planInfo) {
             $data['plan'] = '<br><h4>Plan:</h4><p class="view">';
-            if ($planInfo->plan!= '') {
+            if ($planInfo->plan != '') {
                 $data['plan'] .= '<strong>Recommendations: </strong>';
                 $data['plan'] .= nl2br($planInfo->plan);
                 $data['plan'] .= '<br /><br />';
@@ -12996,8 +12756,7 @@ class Controller extends BaseController
         return view('pdf.instruction_page', $data);
     }
 
-    function parse_era($era_string)
-    {
+    function parse_era($era_string) {
         $return = [];
         $lines = explode('~', $era_string);
         $pos1 = strpos($era_string, '~');
@@ -13083,9 +12842,9 @@ class Controller extends BaseController
                         } elseif ($elements[0] == 'N3' && $return['loop_id'] == '1000B') {
                             $return['payee_street'] = trim($elements[1]);
                         } elseif ($elements[0] == 'N4' && $return['loop_id'] == '1000B') {
-                            $return['payee_city']  = trim($elements[1]);
+                            $return['payee_city'] = trim($elements[1]);
                             $return['payee_state'] = trim($elements[2]);
-                            $return['payee_zip']   = trim($elements[3]);
+                            $return['payee_zip'] = trim($elements[3]);
                         } elseif ($elements[0] == 'LX') {
                             if (!$return['loop_id']) {
                                 $return['error'][] = 'Unexpected LX segment for ' . $return['loop_id'];
@@ -13101,10 +12860,10 @@ class Controller extends BaseController
                                 $return['loop_id'] = '2100';
                                 // Clear some stuff to start the new claim:
                                 $claim_num = $return['clp_segment_count'];
-                                $return['clp_segment_count']++;
-                                $return['claim'][$claim_num]['subscriber_lastname']     = '';
-                                $return['claim'][$claim_num]['subscriber_firstname']     = '';
-                                $return['claim'][$claim_num]['subscriber_middle']     = '';
+                                $return['clp_segment_count'] ++;
+                                $return['claim'][$claim_num]['subscriber_lastname'] = '';
+                                $return['claim'][$claim_num]['subscriber_firstname'] = '';
+                                $return['claim'][$claim_num]['subscriber_middle'] = '';
                                 $return['claim'][$claim_num]['subscriber_member_id'] = '';
                                 $return['claim'][$claim_num]['claim_forward'] = 0;
                                 $return['claim'][$claim_num]['item'] = array();
@@ -13119,10 +12878,11 @@ class Controller extends BaseController
                             $return['adjustment'] = array();
                             $i = 0;
                             for ($k = 2; $k < 20; $k += 3) {
-                                if (!$elements[$k]) break;
+                                if (!$elements[$k])
+                                    break;
                                 $return['claim'][$claim_num]['adjustment'][$i]['group_code'] = $elements[1];
                                 $return['claim'][$claim_num]['adjustment'][$i]['reason_code'] = $elements[$k];
-                                $return['claim'][$claim_num]['adjustment'][$i]['amount'] = $elements[$k+1];
+                                $return['claim'][$claim_num]['adjustment'][$i]['amount'] = $elements[$k + 1];
                                 $i++;
                             }
                         } elseif ($elements[0] == 'NM1' && $elements[1] == 'QC' && $return['loop_id'] == '2100') {
@@ -13176,7 +12936,7 @@ class Controller extends BaseController
                                     $return['claim'][$claim_num]['item'][$l]['modifier'] .= isset($item[3]) ? $item[3] . ':' : '';
                                     $return['claim'][$claim_num]['item'][$l]['modifier'] .= isset($item[4]) ? $item[4] . ':' : '';
                                     $return['claim'][$claim_num]['item'][$l]['modifier'] .= isset($item[5]) ? $item[5] . ':' : '';
-                                    $return['claim'][$claim_num]['item'][$l]['modifier'] = preg_replace('/:$/','',$return['claim'][$claim_num]['item'][$l]['modifier']);
+                                    $return['claim'][$claim_num]['item'][$l]['modifier'] = preg_replace('/:$/', '', $return['claim'][$claim_num]['item'][$l]['modifier']);
                                 }
                                 $return['claim'][$claim_num]['item'][$l]['charge'] = $elements[2];
                                 $return['claim'][$claim_num]['item'][$l]['paid'] = $elements[3];
@@ -13187,15 +12947,16 @@ class Controller extends BaseController
                         } elseif ($elements[0] == 'CAS' && $return['loop_id'] == '2110') {
                             $m = count($return['claim'][$claim_num]['item']) - 1;
                             for ($n = 2; $n < 20; $n += 3) {
-                                if (!isset($elements[$n])) break;
-                                if ($elements[1] == 'CO' && $elements[$n+1] < 0) {
-                                    $elements[$n+1] = 0 - $elements[$n+1];
+                                if (!isset($elements[$n]))
+                                    break;
+                                if ($elements[1] == 'CO' && $elements[$n + 1] < 0) {
+                                    $elements[$n + 1] = 0 - $elements[$n + 1];
                                 }
                                 $o = count($return['claim'][$claim_num]['item'][$m]['adjustment']);
                                 $return['claim'][$claim_num]['item'][$m]['adjustment'][$o] = array();
-                                $return['claim'][$claim_num]['item'][$m]['adjustment'][$o]['group_cpt']  = $elements[1];
+                                $return['claim'][$claim_num]['item'][$m]['adjustment'][$o]['group_cpt'] = $elements[1];
                                 $return['claim'][$claim_num]['item'][$m]['adjustment'][$o]['reason_cpt'] = $elements[$n];
-                                $return['claim'][$claim_num]['item'][$m]['adjustment'][$o]['amount'] = $elements[$n+1];
+                                $return['claim'][$claim_num]['item'][$m]['adjustment'][$o]['amount'] = $elements[$n + 1];
                             }
                         } elseif ($elements[0] == 'AMT' && $elements[1] == 'B6' && $return['loop_id'] == '2110') {
                             $p = count($return['claim'][$claim_num]['item']) - 1;
@@ -13205,9 +12966,10 @@ class Controller extends BaseController
                             $return['claim'][$claim_num]['item'][$q]['remark'] = $elements[2];
                         } elseif ($elements[0] == 'PLB') {
                             for ($r = 3; $r < 15; $r += 2) {
-                                if (!$elements[$r]) break;
+                                if (!$elements[$r])
+                                    break;
                                 $return['plb'] .= 'PROVIDER LEVEL ADJUSTMENT (not claim-specific): $' .
-                                    sprintf('%.2f', $elements[$r+1]) . " with reason cpt " . $elements[$r] . "\n";
+                                        sprintf('%.2f', $elements[$r + 1]) . " with reason cpt " . $elements[$r] . "\n";
                             }
                         } elseif ($elements[0] == 'SE') {
                             //$this->parse_era_2100($return, $cb);
@@ -13239,7 +13001,7 @@ class Controller extends BaseController
                         $error_line = $return['st_segment_count'] + 1;
                         $return['error'][] = 'Error reading line ' . $error_line;
                     }
-                    $return['st_segment_count']++;
+                    $return['st_segment_count'] ++;
                 }
                 if ($elements[0] != 'IEA') {
                     $return['error'][] = 'Premature end of ERA file';
@@ -13253,8 +13015,7 @@ class Controller extends BaseController
         return $return;
     }
 
-    protected function patient_is_user($pid)
-    {
+    protected function patient_is_user($pid) {
         $row = DB::table('demographics_relate')->where('pid', '=', $pid)->where('practice_id', '=', Session::get('practice_id'))->first();
         $row2 = DB::table('demographics')->where('pid', '=', $pid)->first();
         $data = [];
@@ -13269,8 +13030,7 @@ class Controller extends BaseController
         return $data;
     }
 
-    protected function plan_build($type, $action, $text)
-    {
+    protected function plan_build($type, $action, $text) {
         $eid = Session::get('eid');
         $pid = Session::get('pid');
         $encounter_provider = Session::get('displayname');
@@ -13287,7 +13047,7 @@ class Controller extends BaseController
             ${$rx_col}[] = $text;
             if ($rx_row) {
                 $rx_row_parts = explode("\n\n", $rx_row->rx_rx);
-                foreach($rx_row_parts as $rx_row_part) {
+                foreach ($rx_row_parts as $rx_row_part) {
                     if (strpos($rx_row_part, "PRESCRIBED MEDICATIONS:") !== false) {
                         $arr1 = explode("\n", str_replace("PRESCRIBED MEDICATIONS:  ", "", $rx_row_part));
                         $arr1 = array_where($arr1, function($value, $key) {
@@ -13326,19 +13086,19 @@ class Controller extends BaseController
                     }
                 }
             }
-            if(count($rx_prescribe_text_arr) > 0) {
+            if (count($rx_prescribe_text_arr) > 0) {
                 array_unshift($rx_prescribe_text_arr, "PRESCRIBED MEDICATIONS:  ");
                 $rx_rx_arr[] = implode("\n", $rx_prescribe_text_arr);
             }
-            if(count($rx_eie_text_arr) > 0) {
+            if (count($rx_eie_text_arr) > 0) {
                 array_unshift($rx_eie_text_arr, "ENTERED MEDICATIONS IN ERROR:  ");
-                $rx_rx_arr[]= implode("\n", $rx_eie_text_arr);
+                $rx_rx_arr[] = implode("\n", $rx_eie_text_arr);
             }
-            if(count($rx_inactivate_text_arr) > 0) {
+            if (count($rx_inactivate_text_arr) > 0) {
                 array_unshift($rx_inactivate_text_arr, "DISCONTINUED MEDICATIONS:  ");
                 $rx_rx_arr[] = implode("\n", $rx_inactivate_text_arr);
             }
-            if(count($rx_reactivate_text_arr) > 0) {
+            if (count($rx_reactivate_text_arr) > 0) {
                 array_unshift($rx_reactivate_text_arr, "REINSTATED MEDICATIONS:  ");
                 $rx_rx_arr[] = implode("\n", $rx_reactivate_text_arr);
             }
@@ -13420,7 +13180,7 @@ class Controller extends BaseController
             ${$sup_col}[] = $text;
             if ($rx_row) {
                 $sup_row_parts = explode("\n\n", $rx_row->rx_supplements);
-                foreach($sup_row_parts as $sup_row_part) {
+                foreach ($sup_row_parts as $sup_row_part) {
                     if (strpos($sup_row_part, "SUPPLEMENTS ADVISED:") !== false) {
                         $arr5 = explode("\n", str_replace("SUPPLEMENTS ADVISED:  ", "", $sup_row_part));
                         $arr5 = array_where($arr5, function($value, $key) {
@@ -13459,19 +13219,19 @@ class Controller extends BaseController
                     }
                 }
             }
-            if(count($sup_order_text_arr) > 0) {
+            if (count($sup_order_text_arr) > 0) {
                 array_unshift($sup_order_text_arr, "SUPPLEMENTS ADVISED:  ");
                 $rx_supplements_arr[] = implode("\n", $sup_order_text_arr);
             }
-            if(count($sup_purchase_text_arr) > 0) {
+            if (count($sup_purchase_text_arr) > 0) {
                 array_unshift($sup_purchase_text_arr, "SUPPLEMENTS PURCHASED BY PATIENT:  ");
-                $rx_supplements_arr[]= implode("\n", $sup_purchase_text_arr);
+                $rx_supplements_arr[] = implode("\n", $sup_purchase_text_arr);
             }
-            if(count($sup_inactivate_text_arr) > 0) {
+            if (count($sup_inactivate_text_arr) > 0) {
                 array_unshift($sup_inactivate_text_arr, "DISCONTINUED SUPPLEMENTS:  ");
                 $rx_supplements_arr[] = implode("\n", $sup_inactivate_text_arr);
             }
-            if(count($sup_reactivate_text_arr) > 0) {
+            if (count($sup_reactivate_text_arr) > 0) {
                 array_unshift($sup_reactivate_text_arr, "REINSTATED SUPPLEMENTS:  ");
                 $rx_supplements_arr[] = implode("\n", $sup_reactivate_text_arr);
             }
@@ -13501,8 +13261,7 @@ class Controller extends BaseController
         return $return;
     }
 
-    protected function pnosh_notification()
-    {
+    protected function pnosh_notification() {
         $core_practice = DB::table('practiceinfo')->where('practice_id', '=', '1')->first();
         if ($core_practice->patient_centric == 'y') {
             $providers = DB::table('users')->where('group_id', '=', '2')->get();
@@ -13519,8 +13278,7 @@ class Controller extends BaseController
         return true;
     }
 
-    protected function pnosh_sync($sync_data)
-    {
+    protected function pnosh_sync($sync_data) {
         $result = '';
         if (Session::get('patient_centric') == 'yp' || Session::get('patient_centric') == 'y') {
             $url = str_replace('/nosh', '/pnosh_sync', URL::to('/'));
@@ -13530,17 +13288,16 @@ class Controller extends BaseController
             curl_setopt($ch, CURLOPT_URL, $url);
             curl_setopt($ch, CURLOPT_POST, 1);
             curl_setopt($ch, CURLOPT_POSTFIELDS, $message);
-            curl_setopt($ch, CURLOPT_FOLLOWLOCATION,1);
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER,1);
+            curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
             curl_setopt($ch, CURLOPT_TIMEOUT, 60);
-            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT ,0);
+            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 0);
             $result = curl_exec($ch);
         }
         return $result;
     }
 
-    protected function practice_logo($practice_id)
-    {
+    protected function practice_logo($practice_id) {
         $logo = '<br><br><br><br><br>';
         $practice = DB::table('practiceinfo')->where('practice_id', '=', $practice_id)->first();
         if ($practice->practice_logo !== '' && $practice->practice_logo !== null) {
@@ -13552,53 +13309,51 @@ class Controller extends BaseController
         return $logo;
     }
 
-    protected function practice_stats()
-    {
+    protected function practice_stats() {
         $practice_id = Session::get('practice_id');
         $current_date = time();
         $query1 = DB::table('demographics')
-            ->join('demographics_relate', 'demographics_relate.pid', '=', 'demographics.pid')
-            ->where('demographics.active', '=', '1')
-            ->where('demographics_relate.practice_id', '=', $practice_id)
-            ->get();
+                ->join('demographics_relate', 'demographics_relate.pid', '=', 'demographics.pid')
+                ->where('demographics.active', '=', '1')
+                ->where('demographics_relate.practice_id', '=', $practice_id)
+                ->get();
         $total = count($query1);
         $a = $current_date - 568024668;
         $a1 = date('Y-m-d H:i:s', $a);
         $query2 = DB::table('demographics')
-            ->join('demographics_relate', 'demographics_relate.pid', '=', 'demographics.pid')
-            ->where('demographics.active', '=', '1')
-            ->where('demographics_relate.practice_id', '=', $practice_id)
-            ->where('demographics.DOB', '>=', $a1)
-            ->get();
+                ->join('demographics_relate', 'demographics_relate.pid', '=', 'demographics.pid')
+                ->where('demographics.active', '=', '1')
+                ->where('demographics_relate.practice_id', '=', $practice_id)
+                ->where('demographics.DOB', '>=', $a1)
+                ->get();
         $num1 = count($query2);
         $b = $current_date - 2051200190;
         $b1 = date('Y-m-d H:i:s', $b);
         $query3 = DB::table('demographics')
-            ->join('demographics_relate', 'demographics_relate.pid', '=', 'demographics.pid')
-            ->where('demographics.active', '=', '1')
-            ->where('demographics_relate.practice_id', '=', $practice_id)
-            ->where('demographics.DOB', '<', $a1)
-            ->where('demographics.DOB', '>=', $b1)
-            ->get();
+                ->join('demographics_relate', 'demographics_relate.pid', '=', 'demographics.pid')
+                ->where('demographics.active', '=', '1')
+                ->where('demographics_relate.practice_id', '=', $practice_id)
+                ->where('demographics.DOB', '<', $a1)
+                ->where('demographics.DOB', '>=', $b1)
+                ->get();
         $num2 = count($query3);
         $query4 = DB::table('demographics')
-            ->join('demographics_relate', 'demographics_relate.pid', '=', 'demographics.pid')
-            ->where('demographics.active', '=', '1')
-            ->where('demographics_relate.practice_id', '=', $practice_id)
-            ->where('demographics.DOB', '<', $b1)
-            ->get();
+                ->join('demographics_relate', 'demographics_relate.pid', '=', 'demographics.pid')
+                ->where('demographics.active', '=', '1')
+                ->where('demographics_relate.practice_id', '=', $practice_id)
+                ->where('demographics.DOB', '<', $b1)
+                ->get();
         $num3 = count($query4);
         $html = '<h4>Age Distribution of Patients in the Practice:</h4><ul>';
-        $html .= '<li><b>0-18 years of age:</b> ' . round($num1/$total*100) . "% of patients</li>";
-        $html .= '<li><b>19-64 years of age:</b> ' . round($num2/$total*100) . "% of patients</li>";
-        $html .= '<li><b>65+ years of age:</b> ' . round($num3/$total*100) . "% of patients</li></ul>";
+        $html .= '<li><b>0-18 years of age:</b> ' . round($num1 / $total * 100) . "% of patients</li>";
+        $html .= '<li><b>19-64 years of age:</b> ' . round($num2 / $total * 100) . "% of patients</li>";
+        $html .= '<li><b>65+ years of age:</b> ' . round($num3 / $total * 100) . "% of patients</li></ul>";
         return $html;
     }
 
-    protected function prescription_notification($id, $to='')
-    {
+    protected function prescription_notification($id, $to = '') {
         $row = DB::table('demographics')->where('pid', '=', Session::get('pid'))->first();
-        $row2 = DB::table('practiceinfo')->where('practice_id', '=',Session::get('practice_id'))->first();
+        $row2 = DB::table('practiceinfo')->where('practice_id', '=', Session::get('practice_id'))->first();
         if ($to == '') {
             $to = $row->reminder_to;
             $reminder_method = $row->reminder_method;
@@ -13629,9 +13384,8 @@ class Controller extends BaseController
      * @param    $pid = Patient ID
      *  @param    $type = Options: all, queue, 1year
      */
-    protected function print_chart($hippa_id, $pid, $type)
-    {
-        ini_set('memory_limit','196M');
+    protected function print_chart($hippa_id, $pid, $type) {
+        ini_set('memory_limit', '196M');
         $result = DB::table('practiceinfo')->where('practice_id', '=', Session::get('practice_id'))->first();
         $patient = DB::table('demographics')->where('pid', '=', $pid)->first();
         $lastname = str_replace(' ', '_', $patient->lastname);
@@ -13645,62 +13399,62 @@ class Controller extends BaseController
         $html = $this->page_intro('Medical Records', Session::get('practice_id'));
         if ($type == 'all') {
             $query1 = DB::table('encounters')
-                ->where('pid', '=', $pid)
-                ->where('encounter_signed', '=', 'Yes')
-                ->where('addendum', '=', 'n')
-                ->where('practice_id', '=', Session::get('practice_id'))
-                ->orderBy('encounter_DOS', 'desc')
-                ->get();
+                    ->where('pid', '=', $pid)
+                    ->where('encounter_signed', '=', 'Yes')
+                    ->where('addendum', '=', 'n')
+                    ->where('practice_id', '=', Session::get('practice_id'))
+                    ->orderBy('encounter_DOS', 'desc')
+                    ->get();
             $query2 = DB::table('t_messages')
-                ->where('pid', '=', $pid)
-                ->where('t_messages_signed', '=', 'Yes')
-                ->where('practice_id', '=', Session::get('practice_id'))
-                ->orderBy('t_messages_dos', 'desc')
-                ->get();
+                    ->where('pid', '=', $pid)
+                    ->where('t_messages_signed', '=', 'Yes')
+                    ->where('practice_id', '=', Session::get('practice_id'))
+                    ->orderBy('t_messages_dos', 'desc')
+                    ->get();
             $query3 = DB::table('documents')
-                ->where('pid', '=', $pid)
-                ->orderBy('documents_date', 'desc')->get();
+                            ->where('pid', '=', $pid)
+                            ->orderBy('documents_date', 'desc')->get();
         } elseif ($type == 'queue') {
             $query1 = DB::table('hippa')
-                ->join('encounters', 'hippa.eid', '=', 'encounters.eid')
-                ->where('hippa.other_hippa_id', '=', $hippa_id)
-                ->whereNotNull('hippa.eid')
-                ->orderBy('encounters.encounter_DOS', 'desc')
-                ->get();
+                    ->join('encounters', 'hippa.eid', '=', 'encounters.eid')
+                    ->where('hippa.other_hippa_id', '=', $hippa_id)
+                    ->whereNotNull('hippa.eid')
+                    ->orderBy('encounters.encounter_DOS', 'desc')
+                    ->get();
             $query2 = DB::table('hippa')
-                ->join('t_messages', 'hippa.t_messages_id', '=', 't_messages.t_messages_id')
-                ->where('hippa.other_hippa_id', '=', $hippa_id)
-                ->whereNotNull('hippa.t_messages_id')
-                ->orderBy('t_messages.t_messages_dos', 'desc')
-                ->get();
+                    ->join('t_messages', 'hippa.t_messages_id', '=', 't_messages.t_messages_id')
+                    ->where('hippa.other_hippa_id', '=', $hippa_id)
+                    ->whereNotNull('hippa.t_messages_id')
+                    ->orderBy('t_messages.t_messages_dos', 'desc')
+                    ->get();
             $query3 = DB::table('hippa')
-                ->join('documents', 'hippa.documents_id', '=', 'documents.documents_id')
-                ->where('hippa.other_hippa_id', '=', $hippa_id)
-                ->whereNotNull('hippa.documents_id')
-                ->orderBy('documents.documents_date', 'desc')
-                ->get();
+                    ->join('documents', 'hippa.documents_id', '=', 'documents.documents_id')
+                    ->where('hippa.other_hippa_id', '=', $hippa_id)
+                    ->whereNotNull('hippa.documents_id')
+                    ->orderBy('documents.documents_date', 'desc')
+                    ->get();
         } else {
             $end = time();
             $start = $end - 31556926;
             $query1 = DB::table('encounters')->where('pid', '=', $pid)
-                ->whereRaw("UNIX_TIMESTAMP(encounter_DOS) >= ?", [$start])
-                ->whereRaw("UNIX_TIMESTAMP(encounter_DOS) <= ?", [$end])
-                ->where('encounter_signed', '=', 'Yes')
-                ->where('addendum', '=', 'n')
-                ->where('practice_id', '=', Session::get('practice_id'))
-                ->orderBy('encounter_DOS', 'desc')->get();
+                            ->whereRaw("UNIX_TIMESTAMP(encounter_DOS) >= ?", [$start])
+                            ->whereRaw("UNIX_TIMESTAMP(encounter_DOS) <= ?", [$end])
+                            ->where('encounter_signed', '=', 'Yes')
+                            ->where('addendum', '=', 'n')
+                            ->where('practice_id', '=', Session::get('practice_id'))
+                            ->orderBy('encounter_DOS', 'desc')->get();
             $query2 = DB::table('t_messages')->where('pid', '=', $pid)
-                ->whereRaw("UNIX_TIMESTAMP(t_messages_dos) >= ?", [$start])
-                ->whereRaw("UNIX_TIMESTAMP(t_messages_dos) <= ?", [$end])
-                ->where('t_messages_signed', '=', 'Yes')
-                ->where('practice_id', '=', Session::get('practice_id'))
-                ->orderBy('t_messages_dos', 'desc')
-                ->get();
+                    ->whereRaw("UNIX_TIMESTAMP(t_messages_dos) >= ?", [$start])
+                    ->whereRaw("UNIX_TIMESTAMP(t_messages_dos) <= ?", [$end])
+                    ->where('t_messages_signed', '=', 'Yes')
+                    ->where('practice_id', '=', Session::get('practice_id'))
+                    ->orderBy('t_messages_dos', 'desc')
+                    ->get();
             $query3 = DB::table('documents')->where('pid', '=', $pid)
-                ->whereRaw("UNIX_TIMESTAMP(documents_date) >= ?", [$start])
-                ->whereRaw("UNIX_TIMESTAMP(documents_date) <= ?", [$end])
-                ->orderBy('documents_date', 'desc')
-                ->get();
+                    ->whereRaw("UNIX_TIMESTAMP(documents_date) >= ?", [$start])
+                    ->whereRaw("UNIX_TIMESTAMP(documents_date) <= ?", [$end])
+                    ->orderBy('documents_date', 'desc')
+                    ->get();
         }
         if ($query1->count()) {
             $html .= '<table width="100%" style="font-size:1em"><tr><th style="background-color: gray;color: #FFFFFF;">ENCOUNTERS</th></tr></table>';
@@ -13745,8 +13499,7 @@ class Controller extends BaseController
         return $file_path;
     }
 
-    protected function printimage($eid)
-    {
+    protected function printimage($eid) {
         $query = DB::table('billing')->where('eid', '=', $eid)->get();
         $new_template = '';
         foreach ($query as $result) {
@@ -14007,8 +13760,7 @@ class Controller extends BaseController
         return $new_template;
     }
 
-    protected function procedure_build($eid)
-    {
+    protected function procedure_build($eid) {
         $pre_proc = [];
         $proc_row = DB::table('procedure')->where('eid', '=', $eid)->first();
         if ($proc_row) {
@@ -14038,15 +13790,13 @@ class Controller extends BaseController
         return $pre_proc;
     }
 
-    protected function progress_track($percent)
-    {
+    protected function progress_track($percent) {
         $track_data['template'] = $percent;
         DB::table('users')->where('id', '=', Session::get('user_id'))->update($track_data);
         return true;
     }
 
-    protected function query_build($values)
-    {
+    protected function query_build($values) {
         $search_field_arr = [
             "" => trans('nosh.superquery_select'),
             "age" => trans('nosh.superquery_age'),
@@ -14133,28 +13883,25 @@ class Controller extends BaseController
         return $return;
     }
 
-    protected function recursive_array_search($needle, $haystack)
-    {
-        foreach ($haystack as $key=>$value) {
+    protected function recursive_array_search($needle, $haystack) {
+        foreach ($haystack as $key => $value) {
             $current_key = $key;
-            if ($needle === $value OR (is_array($value) && $this->recursive_array_search($needle, $value) !== FALSE)) {
+            if ($needle === $value OR ( is_array($value) && $this->recursive_array_search($needle, $value) !== FALSE)) {
                 return $current_key;
             }
         }
         return false;
     }
 
-    protected function remove_array_item($array, $item )
-    {
+    protected function remove_array_item($array, $item) {
         $index = array_search($item, $array);
         if ($index !== false) {
-            unset( $array[$index] );
+            unset($array[$index]);
         }
         return $array;
     }
 
-    protected function resource_composite_array($value)
-    {
+    protected function resource_composite_array($value) {
         $return_value = [
             'value' => $value,
             'parameter' => ''
@@ -14169,8 +13916,7 @@ class Controller extends BaseController
         return $return_value;
     }
 
-    protected function resource_detail($row, $resource_type)
-    {
+    protected function resource_detail($row, $resource_type) {
         $gender_arr = $this->array_gender();
         $gender_arr1 = $this->array_gender2();
         $route_arr = $this->array_route1();
@@ -14197,7 +13943,7 @@ class Controller extends BaseController
                 'family' => [$row->lastname],
                 'given' => [$row->firstname],
             ];
-            $response['text']['div'] .= '<tr><td><b>Name</b></td><td>' . $row->firstname . ' ' . $row->lastname .'</td></tr>';
+            $response['text']['div'] .= '<tr><td><b>Name</b></td><td>' . $row->firstname . ' ' . $row->lastname . '</td></tr>';
             if ($row->nickname != '') {
                 $response['name'][] = [
                     'use' => 'usual',
@@ -14210,7 +13956,7 @@ class Controller extends BaseController
                     'value' => $row->phone_home,
                     'system' => 'phone'
                 ];
-                $response['text']['div'] .= '<tr><td><b>Telcom, Home</b></td><td>' . $row->phone_home .'</td></tr>';
+                $response['text']['div'] .= '<tr><td><b>Telcom, Home</b></td><td>' . $row->phone_home . '</td></tr>';
             }
             if ($row->phone_work != '') {
                 $response['telecom'][] = [
@@ -14218,7 +13964,7 @@ class Controller extends BaseController
                     'value' => $row->phone_work,
                     'system' => 'phone'
                 ];
-                $response['text']['div'] .= '<tr><td><b>Telcom, Work</b></td><td>' . $row->phone_work .'</td></tr>';
+                $response['text']['div'] .= '<tr><td><b>Telcom, Work</b></td><td>' . $row->phone_work . '</td></tr>';
             }
             $gender = $gender_arr[$row->sex];
             $gender_full = $gender_arr1[$row->sex];
@@ -14227,10 +13973,10 @@ class Controller extends BaseController
                 'code' => $gender,
                 'display' => $gender_full
             ];
-            $response['text']['div'] .= '<tr><td><b>Gender</b></td><td>' . $gender_full .'</td></tr>';
+            $response['text']['div'] .= '<tr><td><b>Gender</b></td><td>' . $gender_full . '</td></tr>';
             $birthdate = date('Y-m-d', $this->human_to_unix($row->DOB));
             $response['birthDate'] = $birthdate;
-            $response['text']['div'] .= '<tr><td><b>Birthdate</b></td><td>' . $birthdate .'</td></tr>';
+            $response['text']['div'] .= '<tr><td><b>Birthdate</b></td><td>' . $birthdate . '</td></tr>';
             $response['deceasedBoolean'] = false;
             $response['address'][] = [
                 'use' => 'home',
@@ -14293,7 +14039,7 @@ class Controller extends BaseController
                             'code' => str_replace(']', '', $code_array[1]),
                             'display' => $code_array[0]
                         ];
-                        $response['text']['div'] = '<div>' . $condition_row_array['assessment_' . $i] . ', <a href="' . route('home') . '/fhir/Encounter/' . $row->eid .'">Encounter Assessment</a>, Date Active: ' . date('Y-m-d', $this->human_to_unix($row->assessment_date)) . '</div>';
+                        $response['text']['div'] = '<div>' . $condition_row_array['assessment_' . $i] . ', <a href="' . route('home') . '/fhir/Encounter/' . $row->eid . '">Encounter Assessment</a>, Date Active: ' . date('Y-m-d', $this->human_to_unix($row->assessment_date)) . '</div>';
                     }
                     $i++;
                 }
@@ -14732,27 +14478,26 @@ class Controller extends BaseController
         return $response;
     }
 
-    protected function resource_medication_reference($ndcid)
-    {
+    protected function resource_medication_reference($ndcid) {
         $return = [];
         $url = 'https://rxnav.nlm.nih.gov/REST/rxcui.json?idtype=NDC&id=' . $ndcid;
         $ch = curl_init();
-        curl_setopt($ch,CURLOPT_URL, $url);
-        curl_setopt($ch,CURLOPT_FAILONERROR,1);
-        curl_setopt($ch,CURLOPT_FOLLOWLOCATION,1);
-        curl_setopt($ch,CURLOPT_RETURNTRANSFER,1);
-        curl_setopt($ch,CURLOPT_TIMEOUT, 15);
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_FAILONERROR, 1);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 15);
         $json = curl_exec($ch);
         curl_close($ch);
         $rxnorm = json_decode($json, true);
         if (isset($rxnorm['idGroup']['rxnormId'][0])) {
             $url1 = 'https://rxnav.nlm.nih.gov/REST/rxcui/' . $rxnorm['idGroup']['rxnormId'][0] . '/properties.json';
             $ch1 = curl_init();
-            curl_setopt($ch1,CURLOPT_URL, $url1);
-            curl_setopt($ch1,CURLOPT_FAILONERROR,1);
-            curl_setopt($ch1,CURLOPT_FOLLOWLOCATION,1);
-            curl_setopt($ch1,CURLOPT_RETURNTRANSFER,1);
-            curl_setopt($ch1,CURLOPT_TIMEOUT, 15);
+            curl_setopt($ch1, CURLOPT_URL, $url1);
+            curl_setopt($ch1, CURLOPT_FAILONERROR, 1);
+            curl_setopt($ch1, CURLOPT_FOLLOWLOCATION, 1);
+            curl_setopt($ch1, CURLOPT_RETURNTRANSFER, 1);
+            curl_setopt($ch1, CURLOPT_TIMEOUT, 15);
             $json1 = curl_exec($ch1);
             curl_close($ch1);
             $rxnorm1 = json_decode($json1, true);
@@ -14765,8 +14510,7 @@ class Controller extends BaseController
         return $return;
     }
 
-    protected function resource_query_build($query, $table_key, $key1, $comparison, $value1, $or, $resource, $table)
-    {
+    protected function resource_query_build($query, $table_key, $key1, $comparison, $value1, $or, $resource, $table) {
         $proceed = false;
         // check if resource is a condition and clean up identifier values if present
         if ($resource == 'Condition') {
@@ -14892,8 +14636,7 @@ class Controller extends BaseController
     }
 
     // $data is Input array, $table_key is key translation for associated table, $is_date is boolean
-    protected function resource_translation($data, $table, $table_primary_key, $table_key)
-    {
+    protected function resource_translation($data, $table, $table_primary_key, $table_key) {
         $i = 0;
         $parameters = [];
         foreach ($data as $key => $value) {
@@ -15007,7 +14750,6 @@ class Controller extends BaseController
                                         'comparison' => $comparison,
                                         'value' => $value2
                                     ];
-
                                 } else {
                                     $code[$j] = [
                                         'key' => $key1,
@@ -15082,13 +14824,12 @@ class Controller extends BaseController
     }
 
     /**
-    * Result build
-    * @param array  $list_array - ['label' => '', 'pid' => 'Patient ID', 'edit' => 'URL', 'delete' => 'URL', 'reactivate' => 'URL, 'inactivate' => 'URL', 'origin' => 'previous URL', 'active' => boolean, 'danger' => boolean, 'label_class' => 'class', 'label_data' => 'label information']
-    * @param int $id - Item key in database
-    * @return Response
-    */
-    protected function result_build($list_array, $id, $nosearch=false, $viewfirst=false)
-    {
+     * Result build
+     * @param array  $list_array - ['label' => '', 'pid' => 'Patient ID', 'edit' => 'URL', 'delete' => 'URL', 'reactivate' => 'URL, 'inactivate' => 'URL', 'origin' => 'previous URL', 'active' => boolean, 'danger' => boolean, 'label_class' => 'class', 'label_data' => 'label information']
+     * @param int $id - Item key in database
+     * @return Response
+     */
+    protected function result_build($list_array, $id, $nosearch = false, $viewfirst = false) {
         $return = '';
         if ($nosearch == false) {
             $return .= '<form role="form"><div class="form-group"><input class="form-control" id="searchinput" type="search" placeholder="Filter Results..." /></div>';
@@ -15188,40 +14929,37 @@ class Controller extends BaseController
         return $return;
     }
 
-    protected function rpHash($value)
-	{
-		$hash = 5381;
-		$value = strtoupper($value);
-		if (PHP_INT_SIZE == 4) {
-			for($i = 0; $i < strlen($value); $i++) {
-				$hash = (($hash << 5) + $hash) + ord(substr($value, $i));
-			}
-		} else {
-			for($i = 0; $i < strlen($value); $i++) {
-				$hash = ($this->rp_leftShift32($hash, 5) + $hash) + ord(substr($value, $i));
-			}
-		}
-		return $hash;
-	}
+    protected function rpHash($value) {
+        $hash = 5381;
+        $value = strtoupper($value);
+        if (PHP_INT_SIZE == 4) {
+            for ($i = 0; $i < strlen($value); $i++) {
+                $hash = (($hash << 5) + $hash) + ord(substr($value, $i));
+            }
+        } else {
+            for ($i = 0; $i < strlen($value); $i++) {
+                $hash = ($this->rp_leftShift32($hash, 5) + $hash) + ord(substr($value, $i));
+            }
+        }
+        return $hash;
+    }
 
-	protected function rp_leftShift32($number, $steps)
-	{
-		$binary = decbin($number);
-		$binary = str_pad($binary, 32, "0", STR_PAD_LEFT);
-		$binary = $binary.str_repeat("0", $steps);
-		$binary = substr($binary, strlen($binary) - 32);
-		return ($binary{0} == "0" ? bindec($binary) : -(pow(2, 31) - bindec(substr($binary, 1))));
-	}
+    protected function rp_leftShift32($number, $steps) {
+        $binary = decbin($number);
+        $binary = str_pad($binary, 32, "0", STR_PAD_LEFT);
+        $binary = $binary . str_repeat("0", $steps);
+        $binary = substr($binary, strlen($binary) - 32);
+        return ($binary{0} == "0" ? bindec($binary) : -(pow(2, 31) - bindec(substr($binary, 1))));
+    }
 
-    protected function rxnorm_search($item)
-    {
+    protected function rxnorm_search($item) {
         $url = 'http://rxnav.nlm.nih.gov/REST/rxcui.json?name=' . strtolower($item);
         $ch = curl_init();
-        curl_setopt($ch,CURLOPT_URL, $url);
-        curl_setopt($ch,CURLOPT_FAILONERROR,1);
-        curl_setopt($ch,CURLOPT_FOLLOWLOCATION,1);
-        curl_setopt($ch,CURLOPT_RETURNTRANSFER,1);
-        curl_setopt($ch,CURLOPT_TIMEOUT, 15);
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_FAILONERROR, 1);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 15);
         $json = curl_exec($ch);
         curl_close($ch);
         $rxnorm = json_decode($json, true);
@@ -15232,15 +14970,14 @@ class Controller extends BaseController
         return $return;
     }
 
-    protected function rxnorm_search1($item)
-    {
+    protected function rxnorm_search1($item) {
         $url = 'http://rxnav.nlm.nih.gov/REST/Prescribe/rxcui/' . $item . '/properties.json';
         $ch = curl_init();
-        curl_setopt($ch,CURLOPT_URL, $url);
-        curl_setopt($ch,CURLOPT_FAILONERROR,1);
-        curl_setopt($ch,CURLOPT_FOLLOWLOCATION,1);
-        curl_setopt($ch,CURLOPT_RETURNTRANSFER,1);
-        curl_setopt($ch,CURLOPT_TIMEOUT, 15);
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_FAILONERROR, 1);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 15);
         $json = curl_exec($ch);
         curl_close($ch);
         $rxnorm = json_decode($json, true);
@@ -15255,11 +14992,11 @@ class Controller extends BaseController
         }
         $url1 = 'https://rxnav.nlm.nih.gov/REST/Prescribe/rxcui/' . $item . '/allProperties.json?prop=attributes';
         $ch1 = curl_init();
-        curl_setopt($ch1,CURLOPT_URL, $url1);
-        curl_setopt($ch1,CURLOPT_FAILONERROR,1);
-        curl_setopt($ch1,CURLOPT_FOLLOWLOCATION,1);
-        curl_setopt($ch1,CURLOPT_RETURNTRANSFER,1);
-        curl_setopt($ch1,CURLOPT_TIMEOUT, 15);
+        curl_setopt($ch1, CURLOPT_URL, $url1);
+        curl_setopt($ch1, CURLOPT_FAILONERROR, 1);
+        curl_setopt($ch1, CURLOPT_FOLLOWLOCATION, 1);
+        curl_setopt($ch1, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($ch1, CURLOPT_TIMEOUT, 15);
         $json1 = curl_exec($ch1);
         curl_close($ch1);
         $rxnorm1 = json_decode($json1, true);
@@ -15273,23 +15010,23 @@ class Controller extends BaseController
                     foreach ($units as $unit) {
                         $key = array_search($unit, $arr);
                         if ($key) {
-                            $key1 = $key-1;
+                            $key1 = $key - 1;
                             $dosage_arr[] = $arr[$key1];
                             $unit_arr[] = $arr[$key];
                         }
                     }
                     $return['dosage'] = implode(';', $dosage_arr);
-                    $return['dosage_unit'] =implode(';', $unit_arr);
+                    $return['dosage_unit'] = implode(';', $unit_arr);
                 }
             }
         }
         $url2 = 'https://rxnav.nlm.nih.gov/REST/Prescribe/rxcui/' . $item . '/ndcs.json';
         $ch2 = curl_init();
-        curl_setopt($ch2,CURLOPT_URL, $url2);
-        curl_setopt($ch2,CURLOPT_FAILONERROR,1);
-        curl_setopt($ch2,CURLOPT_FOLLOWLOCATION,1);
-        curl_setopt($ch2,CURLOPT_RETURNTRANSFER,1);
-        curl_setopt($ch2,CURLOPT_TIMEOUT, 15);
+        curl_setopt($ch2, CURLOPT_URL, $url2);
+        curl_setopt($ch2, CURLOPT_FAILONERROR, 1);
+        curl_setopt($ch2, CURLOPT_FOLLOWLOCATION, 1);
+        curl_setopt($ch2, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($ch2, CURLOPT_TIMEOUT, 15);
         $json2 = curl_exec($ch2);
         curl_close($ch2);
         $rxnorm2 = json_decode($json2, true);
@@ -15299,10 +15036,9 @@ class Controller extends BaseController
         return $return;
     }
 
-    protected function saveImage($img, $finalDestination)
-    {
+    protected function saveImage($img, $finalDestination) {
         $type = strtolower(strrchr($finalDestination, '.'));
-        switch($type) {
+        switch ($type) {
             case '.jpg':
             case '.jpeg':
                 if (imagetypes() & IMG_JPG) {
@@ -15325,8 +15061,7 @@ class Controller extends BaseController
         imagedestroy($img);
     }
 
-    protected function schedule_notification($appt_id)
-    {
+    protected function schedule_notification($appt_id) {
         $appt = DB::table('schedule')->where('appt_id', '=', $appt_id)->first();
         if ($appt->pid !== '0') {
             $patient = DB::table('demographics')->where('pid', '=', $appt->pid)->first();
@@ -15351,8 +15086,7 @@ class Controller extends BaseController
         }
     }
 
-    protected function sidebar_build($type)
-    {
+    protected function sidebar_build($type) {
         $return = [];
         $return['sidebar_content'] = $type;
         if ($type == 'chart') {
@@ -15389,7 +15123,7 @@ class Controller extends BaseController
                 $return['medications_badge'] = count($medications);
                 $return['medications_preview'] = '<ul>';
                 foreach ($medications as $medication) {
-                    $return['medications_preview'] .= '<li>' . $medication->rxl_medication. '</li>';
+                    $return['medications_preview'] .= '<li>' . $medication->rxl_medication . '</li>';
                 }
                 $return['medications_preview'] .= '</ul>';
             }
@@ -15401,7 +15135,7 @@ class Controller extends BaseController
                 $return['supplements_badge'] = count($supplements);
                 $return['supplements_preview'] = '<ul>';
                 foreach ($supplements as $supplement) {
-                    $return['supplements_preview'] .= '<li>' . $supplement->sup_supplement. '</li>';
+                    $return['supplements_preview'] .= '<li>' . $supplement->sup_supplement . '</li>';
                 }
                 $return['supplements_preview'] .= '</ul>';
             }
@@ -15413,7 +15147,7 @@ class Controller extends BaseController
                 $return['allergies_badge'] = count($allergies);
                 $return['allergies_preview'] = '<ul>';
                 foreach ($allergies as $allergy) {
-                    $return['allergies_preview'] .= '<li>' . $allergy->allergies_med. '</li>';
+                    $return['allergies_preview'] .= '<li>' . $allergy->allergies_med . '</li>';
                 }
                 $return['allergies_preview'] .= '</ul>';
             }
@@ -15425,7 +15159,7 @@ class Controller extends BaseController
                 $return['immunizations_badge'] = count($immunizations);
                 $return['immunizations_preview'] = '<ul>';
                 foreach ($immunizations as $immunization) {
-                    $return['immunizations_preview'] .= '<li>' . $immunization->imm_immunization. '</li>';
+                    $return['immunizations_preview'] .= '<li>' . $immunization->imm_immunization . '</li>';
                 }
                 $return['immunizations_preview'] .= '</ul>';
             }
@@ -15435,7 +15169,7 @@ class Controller extends BaseController
             $return['orders_badge'] = DB::table('orders')->where('pid', '=', Session::get('pid'))->where('orders_completed', '=', '0')->count();
             // Encounters
             $encounters_query = DB::table('encounters')->where('pid', '=', Session::get('pid'))
-                ->where('addendum', '=', 'n');
+                    ->where('addendum', '=', 'n');
             if (Session::get('patient_centric') == 'n') {
                 $encounters_query->where('practice_id', '=', Session::get('practice_id'));
             }
@@ -15492,16 +15226,16 @@ class Controller extends BaseController
                             $orders_displayname = 'Unknown';
                         }
                         if ($ordersInfo->orders_labs != '') {
-                            $orders_lab_array[] = 'Orders sent to ' . $orders_displayname . ': '. nl2br($ordersInfo->orders_labs) . '<br />';
+                            $orders_lab_array[] = 'Orders sent to ' . $orders_displayname . ': ' . nl2br($ordersInfo->orders_labs) . '<br />';
                         }
                         if ($ordersInfo->orders_radiology != '') {
-                            $orders_radiology_array[] = 'Orders sent to ' . $orders_displayname . ': '. nl2br($ordersInfo->orders_radiology) . '<br />';
+                            $orders_radiology_array[] = 'Orders sent to ' . $orders_displayname . ': ' . nl2br($ordersInfo->orders_radiology) . '<br />';
                         }
                         if ($ordersInfo->orders_cp != '') {
-                            $orders_cp_array[] = 'Orders sent to ' . $orders_displayname . ': '. nl2br($ordersInfo->orders_cp) . '<br />';
+                            $orders_cp_array[] = 'Orders sent to ' . $orders_displayname . ': ' . nl2br($ordersInfo->orders_cp) . '<br />';
                         }
                         if ($ordersInfo->orders_referrals != '') {
-                            $orders_referrals_array[] = 'Referral sent to ' . $orders_displayname . ': '. nl2br($ordersInfo->orders_referrals) . '<br />';
+                            $orders_referrals_array[] = 'Referral sent to ' . $orders_displayname . ': ' . nl2br($ordersInfo->orders_referrals) . '<br />';
                         }
                     }
                     if (count($orders_lab_array) > 0) {
@@ -15567,8 +15301,7 @@ class Controller extends BaseController
         return $return;
     }
 
-    protected function signature($id)
-    {
+    protected function signature($id) {
         $user = DB::table('users')->where('id', '=', $id)->first();
         $sig = '<br><br><br><br><br><br><br>' . $user->displayname;
         $signature = DB::table('providers')->where('id', '=', $id)->first();
@@ -15576,7 +15309,7 @@ class Controller extends BaseController
             if ($signature->signature !== '') {
                 if (file_exists($signature->signature)) {
                     $name = time() . '_signature.png';
-                    $temp_path = public_path() .'/temp/' . $name;
+                    $temp_path = public_path() . '/temp/' . $name;
                     $url = asset('temp/' . $name);
                     copy($signature->signature, $temp_path);
                     $link = HTML::image($url, 'Signature', ['border' => '0']);
@@ -15588,8 +15321,7 @@ class Controller extends BaseController
         return $sig;
     }
 
-    protected function send_fax($job_id, $faxnumber, $faxrecipient)
-    {
+    protected function send_fax($job_id, $faxnumber, $faxrecipient) {
         $fax_data = DB::table('sendfax')->where('job_id', '=', $job_id)->first();
         $meta = ["(", ")", "-", " "];
         if ($faxnumber != '' && $faxrecipient != '') {
@@ -15620,13 +15352,13 @@ class Controller extends BaseController
         }
         if ($fax_data->faxcoverpage == 'yes') {
             $cover_filename = Session::get('documents_dir') . 'sentfax/' . $job_id . '/coverpage.pdf';
-            if(file_exists($cover_filename)) {
+            if (file_exists($cover_filename)) {
                 unlink($cover_filename);
             }
             $cover_html = $this->page_intro('Cover Page', Session::get('practice_id'));
             $cover_html .= $this->page_coverpage($job_id, $totalpages, $faxrecipients, date("M d, Y, h:i", time()));
             $this->generate_pdf($cover_html, $cover_filename, 'footerpdf');
-            while(!file_exists($cover_filename)) {
+            while (!file_exists($cover_filename)) {
                 sleep(2);
             }
         }
@@ -15658,10 +15390,9 @@ class Controller extends BaseController
         return 'Fax Job ' . $job_id . ' Sent';
     }
 
-    protected function send_mail($template, $data_message, $subject, $to, $practice_id)
-    {
+    protected function send_mail($template, $data_message, $subject, $to, $practice_id) {
         $practice = DB::table('practiceinfo')->where('practice_id', '=', $practice_id)->first();
-        $file = File::get(base_path() . "/.google");
+        $file = File::get(base_path() . "/public/.google");
         if ($file !== '') {
             $file_arr = json_decode($file, true);
             $google = new Google_Client();
@@ -15678,7 +15409,7 @@ class Controller extends BaseController
                 'mail.from' => ['address' => null, 'name' => null],
                 'mail.encryption' => 'ssl',
                 'mail.username' => $practice->smtp_user,
-                'mail.password' =>  $credentials['access_token'],
+                'mail.password' => $credentials['access_token'],
                 'mail.sendmail' => '/usr/sbin/sendmail -bs'
             ];
             config($config);
@@ -15695,20 +15426,19 @@ class Controller extends BaseController
             Mail::setSwiftMailer(new Swift_Mailer($transport));
             Mail::send($template, $data_message, function ($message) use ($to, $subject, $practice) {
                 $message->to($to)
-                    ->from($practice->email, $practice->practice_name)
-                    ->subject($subject);
+                        ->from($practice->email, $practice->practice_name)
+                        ->subject($subject);
             });
         }
         return true;
     }
 
     /**
-    * Set patient into session
-    * @param string  $pid - patient id
-    * @return Response
-    */
-    protected function setpatient($pid)
-    {
+     * Set patient into session
+     * @param string  $pid - patient id
+     * @return Response
+     */
+    protected function setpatient($pid) {
         $row = DB::table('demographics')->where('pid', '=', $pid)->first();
         $date = Date::parse($row->DOB);
         $dob1 = $date->timestamp;
@@ -15766,15 +15496,13 @@ class Controller extends BaseController
      *
      *    @return    object
      */
-
-    protected function sigJsonToImage($json, $options=[])
-    {
+    protected function sigJsonToImage($json, $options = []) {
         $defaultOptions = [
             'imageSize' => [198, 55],
             'bgColour' => [0xff, 0xff, 0xff],
             'penWidth' => 2,
             'penColour' => [0x14, 0x53, 0x94],
-            'drawMultiplier'=> 12
+            'drawMultiplier' => 12
         ];
         $options = array_merge($defaultOptions, $options);
         $img = imagecreatetruecolor($options['imageSize'][0] * $options['drawMultiplier'], $options['imageSize'][1] * $options['drawMultiplier']);
@@ -15784,15 +15512,15 @@ class Controller extends BaseController
         $pen = imagecolorallocate($img, $options['penColour'][0], $options['penColour'][1], $options['penColour'][2]);
         // imagefill($img, 0, 0, $bg);
         imagefill($img, 0, 0, $color);
-        if(is_string($json)) {
+        if (is_string($json)) {
             $json = json_decode(stripslashes($json));
         }
-        foreach($json as $v) {
+        foreach ($json as $v) {
             $this->sigdrawThickLine($img, $v->lx * $options['drawMultiplier'], $v->ly * $options['drawMultiplier'], $v->mx * $options['drawMultiplier'], $v->my * $options['drawMultiplier'], $pen, $options['penWidth'] * ($options['drawMultiplier'] / 2));
         }
         $imgDest = imagecreatetruecolor($options['imageSize'][0], $options['imageSize'][1]);
-        imagealphablending($imgDest, false );
-        imagesavealpha($imgDest, true );
+        imagealphablending($imgDest, false);
+        imagesavealpha($imgDest, true);
         imagecopyresampled($imgDest, $img, 0, 0, 0, 0, $options['imageSize'][0], $options['imageSize'][0], $options['imageSize'][0] * $options['drawMultiplier'], $options['imageSize'][0] * $options['drawMultiplier']);
         imagedestroy($img);
         return $imgDest;
@@ -15812,8 +15540,7 @@ class Controller extends BaseController
      *
      *    @return    void
      */
-    protected function sigdrawThickLine($img, $startX, $startY, $endX, $endY, $colour, $thickness)
-    {
+    protected function sigdrawThickLine($img, $startX, $startY, $endX, $endY, $colour, $thickness) {
         $angle = (atan2(($startY - $endY), ($endX - $startX)));
         $dist_x = $thickness * (sin($angle));
         $dist_y = $thickness * (cos($angle));
@@ -15825,12 +15552,11 @@ class Controller extends BaseController
         $p3y = ceil(($endY - $dist_y));
         $p4x = ceil(($startX - $dist_x));
         $p4y = ceil(($startY - $dist_y));
-        $array = array(0=>$p1x, $p1y, $p2x, $p2y, $p3x, $p3y, $p4x, $p4y);
-        imagefilledpolygon($img, $array, (count($array)/2), $colour);
+        $array = array(0 => $p1x, $p1y, $p2x, $p2y, $p3x, $p3y, $p4x, $p4y);
+        imagefilledpolygon($img, $array, (count($array) / 2), $colour);
     }
 
-    protected function snomed($query, $single=false)
-    {
+    protected function snomed($query, $single = false) {
         if (!Session::has('tgt')) {
             $url = 'https://utslogin.nlm.nih.gov/cas/v1/api-key';
             $message = http_build_query([
@@ -15845,14 +15571,14 @@ class Controller extends BaseController
             curl_close($ch);
             $html = new Htmldom($data);
             if (isset($html)) {
-                $form = $html->find('form',0);
+                $form = $html->find('form', 0);
                 $action = $form->action;
                 $action_arr = explode('/', $action);
                 $tgt = end($action_arr);
             }
             Session::put('tgt', $tgt);
         }
-        $url1 = 'https://utslogin.nlm.nih.gov/cas/v1/tickets/' .  Session::get('tgt');
+        $url1 = 'https://utslogin.nlm.nih.gov/cas/v1/tickets/' . Session::get('tgt');
         $message1 = http_build_query([
             'service' => 'http://umlsks.nlm.nih.gov'
         ]);
@@ -15899,20 +15625,19 @@ class Controller extends BaseController
         }
     }
 
-    protected function string_format($str, $len)
-    {
-        if (strlen((string)$str) < $len) {
-            $str1 = str_pad((string)$str, $len);
+    protected function string_format($str, $len) {
+        if (strlen((string) $str) < $len) {
+            $str1 = str_pad((string) $str, $len);
         } else {
-            $str1 = substr((string)$str, 0, $len);
+            $str1 = substr((string) $str, 0, $len);
         }
-        $str1 = strtoupper((string)$str1);
+        $str1 = strtoupper((string) $str1);
         return $str1;
     }
 
-    protected function striposa($haystack, $needle, $offset=0)
-    {
-        if (!is_array($needle)) $needle = array($needle);
+    protected function striposa($haystack, $needle, $offset = 0) {
+        if (!is_array($needle))
+            $needle = array($needle);
         $count = count($needle);
         $i = 0;
         foreach ($needle as $query) {
@@ -15926,8 +15651,7 @@ class Controller extends BaseController
         return false;
     }
 
-    protected function super_unique($array)
-    {
+    protected function super_unique($array) {
         $result = array_map('unserialize', array_unique(array_map('serialize', $array)));
         foreach ($result as $key => $value) {
             if (is_array($value)) {
@@ -15937,8 +15661,7 @@ class Controller extends BaseController
         return $result;
     }
 
-    protected function supplements_compile()
-    {
+    protected function supplements_compile() {
         $url = 'https://medlineplus.gov/druginfo/herb_All.html';
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url);
@@ -15950,7 +15673,7 @@ class Controller extends BaseController
         if (isset($html)) {
             foreach ($html->find('[class=section-body]') as $div) {
                 foreach ($div->find('li') as $li) {
-                    $a = $li->find('a',0);
+                    $a = $li->find('a', 0);
                     if (!in_array($a->innertext, $data1)) {
                         $data1[] = $a->innertext;
                     }
@@ -15964,8 +15687,7 @@ class Controller extends BaseController
         return 'OK';
     }
 
-    protected function tables_oboslete()
-    {
+    protected function tables_oboslete() {
         $data = [
             'ci_sessions',
             'curr_associationrefset_d',
@@ -15997,12 +15719,11 @@ class Controller extends BaseController
     }
 
     /**
-    * SMS notifcation with TextBelt
-    *
-    * @return Response
-    */
-    protected function textbelt($number, $message, $practice_id)
-    {
+     * SMS notifcation with TextBelt
+     *
+     * @return Response
+     */
+    protected function textbelt($number, $message, $practice_id) {
         $url = "http://cloud.noshchartingsystem.com:9090/text";
         $practice = DB::table('practiceinfo')->where('practice_id', '=', $practice_id)->first();
         if ($practice->sms_url !== '' && $practice->sms_url !== null) {
@@ -16022,8 +15743,7 @@ class Controller extends BaseController
         return $output;
     }
 
-    protected function timeline()
-    {
+    protected function timeline() {
         $pid = Session::get('pid');
         $json = [];
         $date_arr = [];
@@ -16085,7 +15805,7 @@ class Controller extends BaseController
                 $date_arr[] = $this->human_to_unix($row1->t_messages_dos);
             }
         }
-        $query2 = DB::table('rx_list')->where('pid', '=', $pid)->orderBy('rxl_date_active','asc')->groupBy('rxl_medication')->get();
+        $query2 = DB::table('rx_list')->where('pid', '=', $pid)->orderBy('rxl_date_active', 'asc')->groupBy('rxl_medication')->get();
         if ($query2->count()) {
             foreach ($query2 as $row2) {
                 $row2a = DB::table('rx_list')->where('rxl_id', '=', $row2->rxl_id)->first();
@@ -16184,7 +15904,7 @@ class Controller extends BaseController
         }
         if (count($json) > 0) {
             foreach ($json as $key => $value) {
-                $item[$key]  = $value['startDate'];
+                $item[$key] = $value['startDate'];
             }
             array_multisort($item, SORT_DESC, $json);
         }
@@ -16204,8 +15924,7 @@ class Controller extends BaseController
         return $arr;
     }
 
-    protected function timeline_item($value, $type, $category, $date, $title, $p, $status='')
-    {
+    protected function timeline_item($value, $type, $category, $date, $title, $p, $status = '') {
         $div = '<div class="cd-timeline-block" data-nosh-category="' . $category . '">';
         if ($category == 'Encounter') {
             $div .= '<div class="cd-timeline-img cd-encounter"><i class="fa fa-stethoscope fa-fw fa-lg"></i>';
@@ -16249,8 +15968,7 @@ class Controller extends BaseController
         return $div;
     }
 
-    protected function timezone($unixtime)
-    {
+    protected function timezone($unixtime) {
         $practice = DB::table('practiceinfo')->where('practice_id', '=', Session::get('practice_id'))->first();
         date_default_timezone_set('UTC');
         $str = date('d-m-Y H:i:s', $unixtime);
@@ -16258,8 +15976,7 @@ class Controller extends BaseController
         return strtotime($str);
     }
 
-    protected function t_messages_view($t_messages_id, $print=false)
-    {
+    protected function t_messages_view($t_messages_id, $print = false) {
         $row = DB::table('t_messages')->where('t_messages_id', '=', $t_messages_id)->first();
         $text = '<table cellspacing="2" style="font-size:0.9em; width:100%;">';
         if ($print == true) {
@@ -16278,8 +15995,7 @@ class Controller extends BaseController
         return $text;
     }
 
-    protected function total_balance($pid)
-    {
+    protected function total_balance($pid) {
         $practice_id = Session::get('practice_id');
         $query1 = DB::table('encounters')->where('pid', '=', $pid)->where('addendum', '=', 'n')->where('practice_id', '=', $practice_id)->get();
         $i = 0;
@@ -16322,12 +16038,11 @@ class Controller extends BaseController
         if ($result->billing_notes !== '' && $result->billing_notes !== null) {
             $billing_notes = nl2br($result->billing_notes);
         }
-        $note = "<strong>Total Balance: $" .  number_format($total_balance, 2, '.', ',') . "</strong><br><br><strong>Billing Notes: </strong>" . $billing_notes . "<br>";
+        $note = "<strong>Total Balance: $" . number_format($total_balance, 2, '.', ',') . "</strong><br><br><strong>Billing Notes: </strong>" . $billing_notes . "<br>";
         return $note;
     }
 
-    protected function treedata_x_build($nodes_arr)
-    {
+    protected function treedata_x_build($nodes_arr) {
         $return = [];
         $nodes_partners = [];
         $nodes_sibling = [];
@@ -16335,8 +16050,7 @@ class Controller extends BaseController
         $nodes_maternal = [];
         $nodes_children = [];
         $nodes_placeholder = [];
-        foreach ($nodes_arr as $node)
-        {
+        foreach ($nodes_arr as $node) {
             if ($node['id'] !== 'patient') {
                 if (isset($node['sibling_group'])) {
                     if ($node['sibling_group'] == 'Partners') {
@@ -16382,7 +16096,7 @@ class Controller extends BaseController
             $bf = 1;
             $bm = -1;
             foreach ($nodes_children as $node2) {
-                if ($node2['color'] == 'rgb(125,125,255)')  {
+                if ($node2['color'] == 'rgb(125,125,255)') {
                     $node2['x'] = 8 * $bm;
                     $return[] = $node2;
                     $bm--;
@@ -16418,14 +16132,13 @@ class Controller extends BaseController
                         break;
                     }
                 }
-                if ($node5['color'] == 'rgb(125,125,255)')  {
+                if ($node5['color'] == 'rgb(125,125,255)') {
                     if ($node5['y'] == -10) {
                         $node5['x'] = $orig_x - 8;
                     }
                     if ($node5['y'] == -20) {
                         $node5['x'] = $orig_x - 4;
                     }
-
                 } else {
                     if ($node5['y'] == -10) {
                         $node5['x'] = $orig_x + 8;
@@ -16440,8 +16153,7 @@ class Controller extends BaseController
         return $return;
     }
 
-    protected function treedata_build($arr, $key, $nodes_arr, $edges_arr, $placeholder_count)
-    {
+    protected function treedata_build($arr, $key, $nodes_arr, $edges_arr, $placeholder_count) {
         $rel_arr = [
             'Father' => ['Paternal Grandfather', 'Paternal Grandmother', -20, -10, 'Paternal'],
             'Mother' => ['Maternal Grandfather', 'Maternal Grandmother', -20, -10, 'Maternal'],
@@ -16496,7 +16208,7 @@ class Controller extends BaseController
                 if ($arr[$key]['Relationship'] == 'Son' || $arr[$key]['Relationship'] == 'Daughter') {
                     $parents1_arr = ['Patient', $arr[$key]['Mother']];
                     if ($patient->sex == 'f') {
-                        $parents1_arr = [$arr[$key]['Father'],'Patient'];
+                        $parents1_arr = [$arr[$key]['Father'], 'Patient'];
                     }
                     $node['y'] = 10;
                     $node['sibling_group'] = 'Children';
@@ -16675,15 +16387,14 @@ class Controller extends BaseController
         return [$nodes_arr, $edges_arr, $placeholder_count];
     }
 
-    protected function uma_policy($resource_set_id, $email, $name, $scopes, $policy_id='')
-    {
+    protected function uma_policy($resource_set_id, $email, $name, $scopes, $policy_id = '') {
         $open_id_url = str_replace('/nosh', '', URL::to('/'));
         $practice = DB::table('practiceinfo')->where('practice_id', '=', '1')->first();
         $client_id = $practice->uma_client_id;
         $client_secret = $practice->uma_client_secret;
         $refresh_token = $practice->uma_refresh_token;
         $oidc1 = new OpenIDConnectClient($open_id_url, $client_id, $client_secret);
-        $oidc1->refresh($refresh_token,true);
+        $oidc1->refresh($refresh_token, true);
         if ($oidc1->getRefreshToken() != '') {
             $refresh_data['uma_refresh_token'] = $oidc1->getRefreshToken();
             DB::table('practiceinfo')->where('practice_id', '=', '1')->update($refresh_data);
@@ -16702,16 +16413,14 @@ class Controller extends BaseController
         return true;
     }
 
-    protected function update200()
-    {
+    protected function update200() {
         $data['version'] = '2.0.0';
         // Update version
         DB::table('practiceinfo')->update($data);
         return true;
     }
 
-    protected function vaccine_supplement_alert($practice_id)
-    {
+    protected function vaccine_supplement_alert($practice_id) {
         $time_exp = date('Y-m-d H:i:s', time() + (28 * 24 * 60 * 60));
         $return = '';
         $vaccine_alert_query = DB::table('vaccine_inventory')->where('quantity', '<=', '2')->where('practice_id', '=', $practice_id)->get();
@@ -16762,8 +16471,7 @@ class Controller extends BaseController
         return $return;
     }
 
-    protected function yaml_check($yaml)
-    {
+    protected function yaml_check($yaml) {
         $check = substr($yaml, 0, 3);
         if ($check == '---') {
             return true;
@@ -16773,8 +16481,7 @@ class Controller extends BaseController
     }
 
     // Future functions
-    public function send_api_data($url, $data, $username, $password)
-    {
+    public function send_api_data($url, $data, $username, $password) {
         if (is_array($data)) {
             $data_string = json_encode($data);
         } else {
@@ -16793,7 +16500,7 @@ class Controller extends BaseController
         );
         $result = curl_exec($ch);
         $result_arr = json_decode($result, true);
-        if(curl_errno($ch)){
+        if (curl_errno($ch)) {
             $result_arr['url_error'] = 'Error:' . curl_error($ch);
         } else {
             $result_arr['url_error'] = '';
@@ -16802,11 +16509,11 @@ class Controller extends BaseController
         return $result_arr;
     }
 
-    public function api_sync_data()
-    {
+    public function api_sync_data() {
         $check = DB::table('demographics_relate')->where('pid', '=', Session::get('pid'))->whereNotNull('api_key')->first();
         if ($check) {
-
+            
         }
     }
+
 }
