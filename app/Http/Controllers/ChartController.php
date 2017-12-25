@@ -26,8 +26,7 @@ use URL;
 
 class ChartController extends Controller {
 
-    public function __construct()
-    {
+    public function __construct() {
         $this->middleware('checkinstall');
         $this->middleware('auth');
         $this->middleware('csrf');
@@ -35,8 +34,7 @@ class ChartController extends Controller {
         $this->middleware('patient');
     }
 
-    public function action_edit(Request $request, $table, $index, $id, $yaml_id='new', $column='actions')
-    {
+    public function action_edit(Request $request, $table, $index, $id, $yaml_id = 'new', $column = 'actions') {
         $arr = [];
         $query = DB::table($table)->where($index, '=', $id)->first();
         if ($query) {
@@ -141,8 +139,7 @@ class ChartController extends Controller {
         }
     }
 
-    public function alerts_list(Request $request, $type)
-    {
+    public function alerts_list(Request $request, $type) {
         $data['message_action'] = Session::get('message_action');
         Session::forget('message_action');
         $query = DB::table('alerts')->where('pid', '=', Session::get('pid'))->where('practice_id', '=', Session::get('practice_id'));
@@ -168,30 +165,30 @@ class ChartController extends Controller {
         }
         if ($type == 'active') {
             $query->where('alert_date_active', '<=', date('Y-m-d H:i:s', time() + 1209600))
-                ->where('alert_date_complete', '=', '0000-00-00 00:00:00')
-                ->where('alert_reason_not_complete', '=', '');
+                    ->where('alert_date_complete', '=', '0000-00-00 00:00:00')
+                    ->where('alert_reason_not_complete', '=', '');
         }
         if ($type == 'completed') {
             $query->where('alert_date_complete', '!=', '0000-00-00 00:00:00')
-                ->where('alert_reason_not_complete', '=', '');
+                    ->where('alert_reason_not_complete', '=', '');
         }
         if ($type == 'canceled') {
             $query->where('alert_date_complete', '=', '0000-00-00 00:00:00')
-                ->where('alert_reason_not_complete', '!=', '');
+                    ->where('alert_reason_not_complete', '!=', '');
         }
         if ($type == 'pending') {
             $query->where('alert_date_active', '>', date('Y-m-d H:i:s', time() + 1209600))
-                ->where('alert_date_complete', '=', '0000-00-00 00:00:00')
-                ->where('alert_reason_not_complete', '=', '');
+                    ->where('alert_date_complete', '=', '0000-00-00 00:00:00')
+                    ->where('alert_reason_not_complete', '=', '');
         }
         if ($type == 'results') {
             $query->where('alert_date_complete', '=', '0000-00-00 00:00:00')
-                ->where('alert_reason_not_complete', '=', '')
-                ->where(function($query_array1) {
-                    $query_array1->where('alert', '=', 'Laboratory results pending')
-                    ->orWhere('alert', '=', 'Radiology results pending')
-                    ->orWhere('alert', '=', 'Cardiopulmonary results pending');
-                });
+                    ->where('alert_reason_not_complete', '=', '')
+                    ->where(function($query_array1) {
+                        $query_array1->where('alert', '=', 'Laboratory results pending')
+                        ->orWhere('alert', '=', 'Radiology results pending')
+                        ->orWhere('alert', '=', 'Cardiopulmonary results pending');
+                    });
         }
         $dropdown_array['items'] = $items;
         $data['panel_dropdown'] = $this->dropdown_build($dropdown_array);
@@ -252,8 +249,7 @@ class ChartController extends Controller {
         return view('chart', $data);
     }
 
-    public function allergies_list(Request $request, $type)
-    {
+    public function allergies_list(Request $request, $type) {
         $data['message_action'] = Session::get('message_action');
         Session::forget('message_action');
         $query = DB::table('allergies')->where('pid', '=', Session::get('pid'))->orderBy('allergies_med', 'asc');
@@ -358,13 +354,11 @@ class ChartController extends Controller {
         return view('chart', $data);
     }
 
-    public function api_patient(Request $request)
-    {
-
+    public function api_patient(Request $request) {
+        
     }
 
-    public function billing_delete_invoice(Request $request, $id)
-    {
+    public function billing_delete_invoice(Request $request, $id) {
         DB::table('billing_core')->where('billing_core_id', '=', $id)->delete();
         $this->audit('Delete');
         DB::table('billing_core')->where('other_billing_id', '=', $id)->delete();
@@ -373,8 +367,7 @@ class ChartController extends Controller {
         return redirect(Session::get('last_page'));
     }
 
-    public function billing_details(Request $request, $id)
-    {
+    public function billing_details(Request $request, $id) {
         if ($request->isMethod('post')) {
             $this->validate($request, [
                 'cpt_charge' => 'numeric'
@@ -499,8 +492,7 @@ class ChartController extends Controller {
         }
     }
 
-    public function billing_make_payment(Request $request, $id, $index, $billing_id='')
-    {
+    public function billing_make_payment(Request $request, $id, $index, $billing_id = '') {
         if ($request->isMethod('post')) {
             $this->validate($request, [
                 'payment' => 'numeric'
@@ -615,8 +607,7 @@ class ChartController extends Controller {
         }
     }
 
-    public function billing_notes(Request $request)
-    {
+    public function billing_notes(Request $request) {
         if ($request->isMethod('post')) {
             $data['billing_notes'] = $request->input('billing_notes');
             DB::table('demographics_notes')->where('pid', '=', Session::get('pid'))->where('practice_id', '=', Session::get('practice_id'))->update($data);
@@ -655,16 +646,14 @@ class ChartController extends Controller {
         }
     }
 
-    public function billing_payment_delete(Request $request, $id, $index, $billing_id)
-    {
+    public function billing_payment_delete(Request $request, $id, $index, $billing_id) {
         DB::table('billing_core')->where('billing_core_id', '=', $billing_id)->delete();
         $this->audit('Delete');
         Session::put('message_action', 'Payment deleted');
         return redirect()->route('billing_payment_history', [$id, $index]);
     }
 
-    public function billing_payment_history(Request $request, $id, $index)
-    {
+    public function billing_payment_history(Request $request, $id, $index) {
         $return = '';
         $result = DB::table('billing_core')->where($index, '=', $id)->where('payment', '!=', '0')->get();
         if ($result->count()) {
@@ -686,14 +675,14 @@ class ChartController extends Controller {
         ];
         $data['panel_dropdown'] = $this->dropdown_build($dropdown_array);
         $dropdown_array1 = [
-           'items_button_icon' => 'fa-plus'
+            'items_button_icon' => 'fa-plus'
         ];
         $items1 = [];
         $items1[] = [
-           'type' => 'item',
-           'label' => '',
-           'icon' => 'fa-plus',
-           'url' => route('billing_make_payment', [$id, $index])
+            'type' => 'item',
+            'label' => '',
+            'icon' => 'fa-plus',
+            'url' => route('billing_make_payment', [$id, $index])
         ];
         $dropdown_array1['items'] = $items1;
         $data['panel_dropdown'] .= '<span class="fa-btn"></span>' . $this->dropdown_build($dropdown_array1);
@@ -708,14 +697,13 @@ class ChartController extends Controller {
         return view('chart', $data);
     }
 
-    public function care_opportunities(Request $request, $type)
-    {
+    public function care_opportunities(Request $request, $type) {
         $row = DB::table('demographics')->where('pid', '=', Session::get('pid'))->first();
         $gender = 'Male';
         if ($row->sex == 'f' || $row->sex == 'u') {
             $gender = 'Female';
         }
-        $age = (time() - $this->human_to_unix($row->DOB))/31556926;
+        $age = (time() - $this->human_to_unix($row->DOB)) / 31556926;
         $age_date = Date::parse($row->DOB);
         $age1 = $age_date->diffinYears();
         $return = '';
@@ -767,8 +755,8 @@ class ChartController extends Controller {
                 $grade_c = '<div class="alert alert-warning"><h5>Grade C</h5><p>Offer or provide this service for selected patients depending on individual circumstances:</p><ul>';
                 $grade_d = '<div class="alert alert-danger"><h5>Grade D</h5><p>Discourage the use of this service:</p><ul>';
                 $grade_i = '<div class="alert alert-info"><h5>Grade I</h5><p>Read the clinical considerations section of USPSTF Recommendation Statement. If the service is offered, patients should understand the uncertainty about the balance of benefits and harms:</p><ul>';
-                 foreach ($epss['specificRecommendations'] as $rec) {
-                    $rec_text = '<li>' . $rec['title'] . rtrim($rec['text']) .'</li>';
+                foreach ($epss['specificRecommendations'] as $rec) {
+                    $rec_text = '<li>' . $rec['title'] . rtrim($rec['text']) . '</li>';
                     if ($rec['grade'] == 'A' || $rec['grade'] == 'B') {
                         $grade_ab .= $rec_text;
                     }
@@ -794,7 +782,7 @@ class ChartController extends Controller {
         if ($type == 'immunizations') {
             if (Session::get('agealldays') < 6574.5) {
                 $imm_arr['patientImmunizationHistory'] = [];
-                $imm_arr['patientAgeMonths'] = round(Session::get('agealldays')/30.436875);
+                $imm_arr['patientAgeMonths'] = round(Session::get('agealldays') / 30.436875);
                 $imms = DB::table('immunizations')->where('pid', '=', Session::get('pid'))->get();
                 if ($imms->count()) {
                     foreach ($imms as $imm) {
@@ -834,7 +822,7 @@ class ChartController extends Controller {
             $return .= '<h4>ASCVD Risk Calculation</h4>';
             $ascvd_arr = $this->ascvd_calc();
             if ($ascvd_arr['status'] !== 'missing') {
-                $return .= '<div class="alert alert-info"><strong>Baseline 10 year ASCVD Risk: </strong>' . $ascvd_arr['baselineRisk'] .'%</div>';
+                $return .= '<div class="alert alert-info"><strong>Baseline 10 year ASCVD Risk: </strong>' . $ascvd_arr['baselineRisk'] . '%</div>';
                 $ascvd_arr1 = [];
                 foreach ($ascvd_arr['therapyChoice'] as $ascvd_item_k => $ascvd_item_v) {
                     if ($ascvd_item_v !== 'NA') {
@@ -862,13 +850,12 @@ class ChartController extends Controller {
     }
 
     /**
-    * Chart form action
-    * @param string  $table
-    * @param string  $action (save, inactivate, reactivate, delete, eie, prescribe, order)
-    * @return Response
-    */
-    public function chart_action(Request $request, $table, $action, $id, $index)
-    {
+     * Chart form action
+     * @param string  $table
+     * @param string  $action (save, inactivate, reactivate, delete, eie, prescribe, order)
+     * @return Response
+     */
+    public function chart_action(Request $request, $table, $action, $id, $index) {
         $date_convert_array = [
             'issue_date_active',
             'issue_date_inactive',
@@ -1040,24 +1027,26 @@ class ChartController extends Controller {
         // Convert NDC numbers
         foreach ($ndc_tables as $ndc_table) {
             if ($ndc_table == $table) {
-                if (strpos($data['allergies_med'], ', ') === false) {
-                    $ndcid = '';
-                } else {
-                    $med_name = explode(", ", $data['allergies_med'], -1);
-                    $ndcid = "";
-                    if ($med_name[0]) {
-                        $med_result = DB::table('meds_full_package')
-                            ->join('meds_full', 'meds_full.PRODUCTNDC', '=', 'meds_full_package.PRODUCTNDC')
-                            ->select('meds_full_package.NDCPACKAGECODE')
-                            ->where('meds_full.PROPRIETARYNAME', '=', $med_name[0])
-                            ->first();
-                        if ($med_result) {
-                            $ndcid = $this->ndc_convert($med_result->NDCPACKAGECODE);
+                if (isset($data['allergies_med'])) {
+                    if (strpos($data['allergies_med'], ', ') === false) {
+                        $ndcid = '';
+                    } else {
+                        $med_name = explode(", ", $data['allergies_med'], -1);
+                        $ndcid = "";
+                        if ($med_name[0]) {
+                            $med_result = DB::table('meds_full_package')
+                                    ->join('meds_full', 'meds_full.PRODUCTNDC', '=', 'meds_full_package.PRODUCTNDC')
+                                    ->select('meds_full_package.NDCPACKAGECODE')
+                                    ->where('meds_full.PROPRIETARYNAME', '=', $med_name[0])
+                                    ->first();
+                            if ($med_result) {
+                                $ndcid = $this->ndc_convert($med_result->NDCPACKAGECODE);
+                            }
                         }
                     }
-                }
-                if ($table == 'allergies') {
-                    $data['meds_ndcid'] = $ndcid;
+                    if ($table == 'allergies') {
+                        $data['meds_ndcid'] = $ndcid;
+                    }
                 }
             }
         }
@@ -1105,8 +1094,8 @@ class ChartController extends Controller {
                 $demographicsInfo = DB::table('demographics')->where('pid', '=', Session::get('pid'))->first();
                 $a = $this->human_to_unix($encounterInfo->encounter_DOS);
                 $b = $this->human_to_unix($demographicsInfo->DOB);
-                $data['pedsage'] = ($a - $b)/2629743;
-                $data['vitals_age'] = ($a - $b)/31556926;
+                $data['pedsage'] = ($a - $b) / 2629743;
+                $data['vitals_age'] = ($a - $b) / 31556926;
                 $data['vitals_date'] = $encounterInfo->encounter_DOS;
             }
         }
@@ -1179,7 +1168,7 @@ class ChartController extends Controller {
                     if (Session::get('patient_centric') == 'yp' || Session::get('patient_centric') == 'y') {
                         // Synchronize with HIE of One AS
                         $old_demo = DB::table('demographics')->where('pid', '=', '1')->first();
-                        if ($data['email'] !==  $old_demo->email || $data['phone_cell'] !== $old_demo->phone_cell) {
+                        if ($data['email'] !== $old_demo->email || $data['phone_cell'] !== $old_demo->phone_cell) {
                             $pnosh_practice = DB::table('practiceinfo')->where('practice_id', '=', '1')->first();
                             $sync_data = [
                                 'old_email' => $old_demo->email,
@@ -1221,7 +1210,7 @@ class ChartController extends Controller {
                     if ($request->input('imm_elsewhere') == 'No') {
                         $encounter_text = $request->input('imm_immunization') . '; Sequence: ' . $request->input('imm_sequence') . '; Dosage: ' . $request->input('imm_dosage') . ' ' . $request->input('imm_dosage_unit') . ' ' . $request->input('imm_route') . ' administered to the ' . $request->input('imm_body_site');
                         $encounter_text .= '; Manufacturer: ' . $request->input('imm_manufacturer') . '; Lot number: ' . $request->input('imm_lot') . '; Expiration date: ' . $request->input('imm_expiration');
-                        $this->plan_build('imm','save', $encounter_text);
+                        $this->plan_build('imm', 'save', $encounter_text);
                     }
                 }
                 if ($table == 'sup_list') {
@@ -1238,7 +1227,7 @@ class ChartController extends Controller {
                     } else {
                         $encounter_text .= ', ' . $request->input('sup_instructions') . ' for ' . $request->input('sup_reason');
                     }
-                    $this->plan_build('sup','order', $encounter_text);
+                    $this->plan_build('sup', 'order', $encounter_text);
                 }
                 if ($table == 'vitals') {
                     if (Session::get('agealldays') < 6574.5) {
@@ -1328,7 +1317,7 @@ class ChartController extends Controller {
                         $order_address = DB::table('addressbook')->where('address_id', '=', $data['address_id'])->first();
                         $description = $type_v[0] . ' sent to ' . $order_address->displayname;
                         if ($type_k !== 'orders_referrals') {
-                            $description .= ': '. implode(', ', $orders_new_arr);
+                            $description .= ': ' . implode(', ', $orders_new_arr);
                         }
                         if ($id == '0') {
                             $orders_alert_data = [
@@ -1486,7 +1475,7 @@ class ChartController extends Controller {
             $arr['message'] = $message . 'moved to Surgical History';
         }
         if ($action == 'delete') {
-            if($practice->rcopia_extension == 'y') {
+            if ($practice->rcopia_extension == 'y') {
                 foreach ($rcopia_tables as $rcopia_table) {
                     if ($rcopia_table == $table) {
                         $data4 = array(
@@ -1494,7 +1483,7 @@ class ChartController extends Controller {
                         );
                         DB::table($table)->where($index, '=', $id)->update($data4);
                         $this->audit('Update');
-                        while(!$this->check_rcopia_delete($table, $id)) {
+                        while (!$this->check_rcopia_delete($table, $id)) {
                             sleep(2);
                         }
                     }
@@ -1518,7 +1507,7 @@ class ChartController extends Controller {
                     if ($immunization->imm_elsewhere == 'No') {
                         $encounter_text = $immunization->imm_immunization . '; Sequence: ' . $immunization->imm_sequence . '; Dosage: ' . $immunization->imm_dosage . ' ' . $immunization->imm_dosage_unit . ' ' . $immunization->imm_route . ' administered to the ' . $immunization->imm_body_site;
                         $encounter_text .= '; Manufacturer: ' . $immunization->imm_manufacturer . '; Lot number: ' . $immunization->imm_lot . '; Expiration date: ' . $immunization->imm_expiration;
-                        $this->plan_build('imm','delete', $encounter_text);
+                        $this->plan_build('imm', 'delete', $encounter_text);
                     }
                 }
             }
@@ -1537,10 +1526,10 @@ class ChartController extends Controller {
             $data['rxl_license'] = $provider->license . ' - ' . $provider->license_state;
             $data['rxl_dea'] = '';
             $data['rxl_daw'] = '';
-            if($request->input('dea') == 'Yes') {
+            if ($request->input('dea') == 'Yes') {
                 $data['rxl_dea'] = $provider->dea;
             }
-            if($request->input('daw') == 'Yes') {
+            if ($request->input('daw') == 'Yes') {
                 $data['rxl_daw'] = 'Dispense As Written';
             }
             unset($data['dea']);
@@ -1612,8 +1601,8 @@ class ChartController extends Controller {
             } else {
                 Session::put('prescription_notification_to', $to);
                 // Create FHIR JSON prescription
-        		$json_row = DB::table('rx_list')->where('rxl_id', '=', $row_id1)->first();
-        		$prescription_json = $this->resource_detail($json_row, 'MedicationRequest');
+                $json_row = DB::table('rx_list')->where('rxl_id', '=', $row_id1)->first();
+                $prescription_json = $this->resource_detail($json_row, 'MedicationRequest');
                 $json_data['json'] = json_encode($prescription_json);
                 DB::table('rx_list')->where('rxl_id', '=', $json_row->rxl_id)->update($json_data);
                 $this->audit('Update');
@@ -1665,15 +1654,15 @@ class ChartController extends Controller {
                 $instructions = $row->rxl_sig . ', ' . $row->rxl_route . ', ' . $row->rxl_frequency;
             }
             if (Session::has('eid')) {
-                $encounter_text =  $row->rxl_medication . ' ' . $row->rxl_dosage . ' ' . $row->rxl_dosage_unit . ', ' . $instructions . ' for ' . $row->rxl_reason;
+                $encounter_text = $row->rxl_medication . ' ' . $row->rxl_dosage . ' ' . $row->rxl_dosage_unit . ', ' . $instructions . ' for ' . $row->rxl_reason;
                 $this->plan_build('rx', 'eie', $encounter_text);
             }
             $row1 = DB::table('rx_list')
-                ->where('rxl_medication', '=', $row->rxl_medication)
-                ->where('rxl_date_inactive', '=', '0000-00-00 00:00:00')
-                ->where('rxl_date_old', '!=', '0000-00-00 00:00:00')
-                ->orderBy('rxl_date_old', 'desc')
-                ->first();
+                    ->where('rxl_medication', '=', $row->rxl_medication)
+                    ->where('rxl_date_inactive', '=', '0000-00-00 00:00:00')
+                    ->where('rxl_date_old', '!=', '0000-00-00 00:00:00')
+                    ->orderBy('rxl_date_old', 'desc')
+                    ->first();
             if ($row1) {
                 $rxl_id = $row1->rxl_id;
                 $eie_data = [
@@ -1684,11 +1673,11 @@ class ChartController extends Controller {
                 $this->audit('Update');
                 // $this->api_data('update', 'rx_list', 'rxl_id', $row1->rxl_id);
             }
-            if($practice->rcopia_extension == 'y') {
+            if ($practice->rcopia_extension == 'y') {
                 $eie_data1['rcopia_sync'] = 'nd';
                 DB::table('rx_list')->where('rxl_id', '=', $old_rxl_id)->update($eie_data1);
                 $this->audit('Update');
-                while(!$this->check_rcopia_delete('rx_list', $old_rxl_id)) {
+                while (!$this->check_rcopia_delete('rx_list', $old_rxl_id)) {
                     sleep(2);
                 }
             }
@@ -1715,8 +1704,7 @@ class ChartController extends Controller {
         }
     }
 
-    public function chart_form(Request $request, $table, $index, $id, $subtype='')
-    {
+    public function chart_form(Request $request, $table, $index, $id, $subtype = '') {
         if ($id == '0') {
             $result = [];
             $items[] = [
@@ -2091,8 +2079,7 @@ class ChartController extends Controller {
         return view('chart', $data);
     }
 
-    public function chart_queue(Request $request, $action, $hippa_id, $pid, $type='encounters')
-    {
+    public function chart_queue(Request $request, $action, $hippa_id, $pid, $type = 'encounters') {
         $data['message_action'] = Session::get('message_action');
         Session::forget('message_action');
         $type_arr = [
@@ -2219,8 +2206,7 @@ class ChartController extends Controller {
         return view('chart', $data);
     }
 
-    public function conditions_list(Request $request, $type="")
-    {
+    public function conditions_list(Request $request, $type = "") {
         $data['message_action'] = Session::get('message_action');
         Session::forget('message_action');
         $query = DB::table('issues')->where('pid', '=', Session::get('pid'))->orderBy('issue', 'asc');
@@ -2423,8 +2409,7 @@ class ChartController extends Controller {
         return view('chart', $data);
     }
 
-    public function demographics(Request $request)
-    {
+    public function demographics(Request $request) {
         $data['message_action'] = Session::get('message_action');
         Session::forget('message_action');
         $result = DB::table('demographics')->where('pid', '=', Session::get('pid'))->first();
@@ -2545,18 +2530,17 @@ class ChartController extends Controller {
         return view('chart', $data);
     }
 
-    public function document_letter(Request $request)
-    {
+    public function document_letter(Request $request) {
         $pid = Session::get('pid');
         if ($request->isMethod('post')) {
-            ini_set('memory_limit','196M');
+            ini_set('memory_limit', '196M');
             $result = DB::table('practiceinfo')->where('practice_id', '=', Session::get('practice_id'))->first();
             $html = $this->page_intro('Letter', Session::get('practice_id'))->render();
             $html .= $this->page_letter($request->input('letter_to'), $request->input('letter_body'), $request->input('address_id'));
             $user_id = Session::get('user_id');
             $file_path = $result->documents_dir . $pid . '/letter_' . time() . '.pdf';
             $this->generate_pdf($html, $file_path, 'footerpdf', '', '1');
-            while(!file_exists($file_path)) {
+            while (!file_exists($file_path)) {
                 sleep(2);
             }
             $desc = 'Letter for ' . Session::get('ptname');
@@ -2575,10 +2559,10 @@ class ChartController extends Controller {
         } else {
             $pt = DB::table('demographics')->where('pid', '=', $pid)->first();
             $encounter = DB::table('encounters')->where('pid', '=', Session::get('pid'))
-                ->where('eid', '!=', '')
-                ->where('practice_id', '=', Session::get('practice_id'))
-                ->orderBy('eid', 'desc')
-                ->first();
+                    ->where('eid', '!=', '')
+                    ->where('practice_id', '=', Session::get('practice_id'))
+                    ->orderBy('eid', 'desc')
+                    ->first();
             $start = 'This letter is in regards to ' . $pt->firstname . ' ' . $pt->lastname . ' (Date of Birth: ' . date('F jS, Y', $this->human_to_unix($pt->DOB)) . '), who is a patient of mine.  ';
             if ($encounter) {
                 $start .= $pt->firstname . ' was last seen by me on ' . date('F jS, Y', strtotime($encounter->encounter_DOS)) . '.  ';
@@ -2623,8 +2607,7 @@ class ChartController extends Controller {
         }
     }
 
-    public function document_upload(Request $request)
-    {
+    public function document_upload(Request $request) {
         if ($request->isMethod('post')) {
             $pid = Session::get('pid');
             $directory = Session::get('documents_dir') . $pid;
@@ -2654,8 +2637,7 @@ class ChartController extends Controller {
         }
     }
 
-    public function document_view(Request $request, $id)
-    {
+    public function document_view(Request $request, $id) {
         $pid = Session::get('pid');
         $result = DB::table('documents')->where('documents_id', '=', $id)->first();
         if ($result->documents_type == 'ccda' || $result->documents_type == 'ccr') {
@@ -2669,7 +2651,7 @@ class ChartController extends Controller {
         $data['filepath'] = public_path() . '/temp/' . $name;
         copy($file_path, $data['filepath']);
         Session::put('file_path_temp', $data['filepath']);
-        while(!file_exists($data['filepath'])) {
+        while (!file_exists($data['filepath'])) {
             sleep(2);
         }
         $data['document_url'] = asset('temp/' . $name);
@@ -2701,8 +2683,7 @@ class ChartController extends Controller {
         return view('documents', $data);
     }
 
-    public function documents_list(Request $request, $type)
-    {
+    public function documents_list(Request $request, $type) {
         $data['message_action'] = Session::get('message_action');
         Session::forget('message_action');
         $query = DB::table('documents')->where('pid', '=', Session::get('pid'))->where('documents_type', '=', $type)->orderBy('documents_date', 'desc');
@@ -2760,7 +2741,7 @@ class ChartController extends Controller {
         }
         $data['content'] = $return;
         $data['documents_active'] = true;
-        $data['panel_header'] = 'Documents';
+        $data['panel_header'] = 'Patient Education and Documents Section';
         $data = array_merge($data, $this->sidebar_build('chart'));
         //$data['template_content'] = 'test';
         if ($edit == true) {
@@ -2807,8 +2788,7 @@ class ChartController extends Controller {
         return view('chart', $data);
     }
 
-    public function download_ccda(Request $request, $action, $hippa_id)
-    {
+    public function download_ccda(Request $request, $action, $hippa_id) {
         if (Session::has('download_ccda')) {
             Session::forget('download_ccda');
             $pid = Session::get('pid');
@@ -2830,8 +2810,7 @@ class ChartController extends Controller {
         }
     }
 
-    public function electronic_sign($action, $id, $pid, $subtype='')
-    {
+    public function electronic_sign($action, $id, $pid, $subtype = '') {
         if ($action == 'rx_list') {
             $data['medications_active'] = true;
             $data['panel_header'] = 'Sign Prescription';
@@ -2872,8 +2851,7 @@ class ChartController extends Controller {
         return view('uport', $data);
     }
 
-    public function electronic_sign_demo(Request $request, $table, $index, $id)
-    {
+    public function electronic_sign_demo(Request $request, $table, $index, $id) {
         $message_arr = [
             'rx_list' => 'Prescription digitally signed',
             'orders' => 'Order digitally signed'
@@ -2886,8 +2864,7 @@ class ChartController extends Controller {
         return redirect()->route('medications_list', ['active']);
     }
 
-    public function encounter(Request $request, $eid, $section='s')
-    {
+    public function encounter(Request $request, $eid, $section = 's') {
         $data['message_action'] = Session::get('message_action');
         Session::forget('message_action');
         Session::put('eid', $eid);
@@ -2972,7 +2949,7 @@ class ChartController extends Controller {
                 foreach ($ros_arr as $ros_k => $ros_v) {
                     if ($ros->{$ros_k} !== '' && $ros->{$ros_k} !== null) {
                         if ($ros_k !== 'ros') {
-                            $ros_val .=  $ros_v . ': ';
+                            $ros_val .= $ros_v . ': ';
                         }
                         $ros_val .= $ros->{$ros_k};
                         $ros_val .= "\n\n";
@@ -3033,14 +3010,14 @@ class ChartController extends Controller {
                     $vitals_include = $this->array_vitals();
                     $vitals_percent_arr = $this->array_vitals1();
                     $vitals_display_arr = [];
-                    foreach ($vitals_include as $vitals_key=>$vitals_value) {
+                    foreach ($vitals_include as $vitals_key => $vitals_value) {
                         if ($vitals->{$vitals_key} !== '') {
-                            $vitals_display_arr[] = '<b>' .$vitals_value['name'] . ':</b> ' . $vitals->{$vitals_key};
+                            $vitals_display_arr[] = '<b>' . $vitals_value['name'] . ':</b> ' . $vitals->{$vitals_key};
                         }
                     }
-                    foreach ($vitals_percent_arr as $vitals_key1=>$vitals_value1) {
+                    foreach ($vitals_percent_arr as $vitals_key1 => $vitals_value1) {
                         if ($vitals->{$vitals_key1} !== '') {
-                            $vitals_display_arr[] = '<b>' .$vitals_value1 . ':</b> ' . $vitals->{$vitals_key1};
+                            $vitals_display_arr[] = '<b>' . $vitals_value1 . ':</b> ' . $vitals->{$vitals_key1};
                         }
                     }
                     if (count($vitals_display_arr) > 0) {
@@ -3049,7 +3026,7 @@ class ChartController extends Controller {
                         $vitals_arr['label'] .= '</p>';
                     }
                     if ($vitals->vitals_other !== '') {
-                        $vitals_arr['label'] .= '<p><b>Notes:</b>' . nl2br($vitals->vitals_other) .'</p>';
+                        $vitals_arr['label'] .= '<p><b>Notes:</b>' . nl2br($vitals->vitals_other) . '</p>';
                     }
                     $vitals_arr['view'] = route('encounter_vitals_view', [$eid]);
                     $vitals_arr['edit'] = route('chart_form', ['vitals', 'eid', $eid]);
@@ -3092,7 +3069,7 @@ class ChartController extends Controller {
                 }
                 $return .= '</ol><div class="carousel-inner" role="listbox">';
                 foreach ($image_arr as $image_item) {
-                    $return .= '<div class="' . $image_item['active'] .'" style="height:130px;overflow:hidden;">' . $image_item['path'];
+                    $return .= '<div class="' . $image_item['active'] . '" style="height:130px;overflow:hidden;">' . $image_item['path'];
                     // $return .= '</div>';
                     $return .= '<div class="carousel-caption nosh-image" nosh-data-src="' . $image_item['src'] . '"><p>' . $image_item['description'] . '</p></div></div>';
                 }
@@ -3110,7 +3087,7 @@ class ChartController extends Controller {
                     foreach ($pe_arr as $pe_k => $pe_v) {
                         if ($pe->{$pe_k} !== '' && $pe->{$pe_k} !== null) {
                             if ($pe_k !== 'pe') {
-                                $pe_val .=  $pe_v . ': ';
+                                $pe_val .= $pe_v . ': ';
                             }
                             $pe_val .= $pe->{$pe_k};
                             $pe_val .= "\n\n";
@@ -3243,16 +3220,16 @@ class ChartController extends Controller {
                     $orders_displayname = 'Unknown';
                 }
                 if ($ordersInfo->orders_labs != '') {
-                    $orders_lab_array[] = 'Orders sent to ' . $orders_displayname . ': '. nl2br($ordersInfo->orders_labs) . '<br />';
+                    $orders_lab_array[] = 'Orders sent to ' . $orders_displayname . ': ' . nl2br($ordersInfo->orders_labs) . '<br />';
                 }
                 if ($ordersInfo->orders_radiology != '') {
-                    $orders_radiology_array[] = 'Orders sent to ' . $orders_displayname . ': '. nl2br($ordersInfo->orders_radiology) . '<br />';
+                    $orders_radiology_array[] = 'Orders sent to ' . $orders_displayname . ': ' . nl2br($ordersInfo->orders_radiology) . '<br />';
                 }
                 if ($ordersInfo->orders_cp != '') {
-                    $orders_cp_array[] = 'Orders sent to ' . $orders_displayname . ': '. nl2br($ordersInfo->orders_cp) . '<br />';
+                    $orders_cp_array[] = 'Orders sent to ' . $orders_displayname . ': ' . nl2br($ordersInfo->orders_cp) . '<br />';
                 }
                 if ($ordersInfo->orders_referrals != '') {
-                    $orders_referrals_array[] = 'Referral sent to ' . $orders_displayname . ': '. nl2br($ordersInfo->orders_referrals) . '<br />';
+                    $orders_referrals_array[] = 'Referral sent to ' . $orders_displayname . ': ' . nl2br($ordersInfo->orders_referrals) . '<br />';
                 }
             }
             if (count($orders_lab_array) > 0) {
@@ -3470,11 +3447,11 @@ class ChartController extends Controller {
         $data['panel_dropdown'] .= '<span class="fa-btn"></span>' . $this->dropdown_build($dropdown_array1);
         $data['content'] = $return;
         $data['encounters_active'] = true;
-        $data['panel_header'] = 'Encounter - ' .  date('Y-m-d', $this->human_to_unix($encounter->encounter_DOS));
+        $data['panel_header'] = 'Encounter - ' . date('Y-m-d', $this->human_to_unix($encounter->encounter_DOS));
         $data = array_merge($data, $this->sidebar_build('chart'));
         Session::put('last_page', $request->fullUrl());
         Session::put('last_page_encounter', $request->fullUrl());
-        Session::put('action_redirect',  $request->fullUrl());
+        Session::put('action_redirect', $request->fullUrl());
         if (Session::has('download_now')) {
             $data['download_now'] = route('download_now');
         }
@@ -3483,8 +3460,7 @@ class ChartController extends Controller {
         return view('chart', $data);
     }
 
-    public function encounter_addendum(Request $request, $eid)
-    {
+    public function encounter_addendum(Request $request, $eid) {
         $encounter = DB::table('encounters')->where('eid', '=', $eid)->first();
         $data = (array) $encounter;
         unset($data['eid']);
@@ -3511,7 +3487,7 @@ class ChartController extends Controller {
             $table_array1 = ["hpi", "vitals", "assessment", "plan"];
             $table_array2 = ["other_history", "orders", "billing", "billing_core", "image"];
         }
-        foreach($table_array1 as $table1) {
+        foreach ($table_array1 as $table1) {
             $table_query1 = DB::table($table1)->where('eid', '=', $eid)->first();
             if ($table_query1) {
                 $data2 = (array) $table_query1;
@@ -3522,7 +3498,7 @@ class ChartController extends Controller {
                 // $this->api_data('add', $table1, 'eid', $new_eid);
             }
         }
-        foreach($table_array2 as $table2) {
+        foreach ($table_array2 as $table2) {
             $table_query2 = DB::table($table2)->where('eid', '=', $eid)->get();
             if ($table_query2->count()) {
                 if ($table2 == 'other_history') {
@@ -3562,8 +3538,7 @@ class ChartController extends Controller {
         }
     }
 
-    public function encounter_add_photo(Request $request, $eid)
-    {
+    public function encounter_add_photo(Request $request, $eid) {
         if ($request->isMethod('post')) {
             $pid = Session::get('pid');
             $directory = Session::get('documents_dir') . $pid;
@@ -3598,8 +3573,7 @@ class ChartController extends Controller {
         }
     }
 
-    public function encounter_assessment_add(Request $request, $type, $id)
-    {
+    public function encounter_assessment_add(Request $request, $type, $id) {
         $query = DB::table('assessment')->where('eid', '=', Session::get('eid'))->first();
         $copy_arr = [];
         $message_some = '';
@@ -3645,14 +3619,14 @@ class ChartController extends Controller {
             $file = File::get(resource_path() . '/icd10cm_order_2017.txt');
             $arr = preg_split("/\\r\\n|\\r|\\n/", $file);
             foreach ($arr as $row) {
-                $icd10 = rtrim(substr($row,6,7));
+                $icd10 = rtrim(substr($row, 6, 7));
                 if (strlen($icd10) !== 3) {
                     $icd10 = substr_replace($icd10, '.', 3, 0);
                 }
                 $preicd[$icd10] = [
                     'icd10' => $icd10,
-                    'desc' => substr($row,77),
-                    'type' => substr($row,14,1)
+                    'desc' => substr($row, 77),
+                    'type' => substr($row, 14, 1)
                 ];
             }
             $copy_arr[] = [
@@ -3703,8 +3677,7 @@ class ChartController extends Controller {
         return redirect(Session::get('last_page'));
     }
 
-    public function encounter_assessment_delete(Request $request, $id)
-    {
+    public function encounter_assessment_delete(Request $request, $id) {
         $data = [
             'assessment_' . $id => '',
             'assessment_icd' . $id => ''
@@ -3739,8 +3712,7 @@ class ChartController extends Controller {
         return redirect(Session::get('last_page'));
     }
 
-    public function encounter_assessment_edit(Request $request, $id)
-    {
+    public function encounter_assessment_edit(Request $request, $id) {
         $query = DB::table('assessment')->where('eid', '=', Session::get('eid'))->first();
         if ($request->isMethod('post')) {
             $data1 = [
@@ -3755,7 +3727,7 @@ class ChartController extends Controller {
                 $data1['eid'] = Session::get('eid');
                 $data1['pid'] = Session::get('pid');
                 $data1['encounter_provider'] = Session::get('displayname');
-                DB::table('assessment')->where('eid', '=', Session::get('eid'))-insert($data1);
+                DB::table('assessment')->where('eid', '=', Session::get('eid')) - insert($data1);
                 $this->audit('Add');
                 Session::put('message_action', 'Assessment added');
             }
@@ -3814,8 +3786,7 @@ class ChartController extends Controller {
         }
     }
 
-    public function encounter_assessment_move(Request $request, $id, $direction)
-    {
+    public function encounter_assessment_move(Request $request, $id, $direction) {
         $query = DB::table('assessment')->where('eid', '=', Session::get('eid'))->first();
         $orig_key = 'assessment_' . $id;
         $orig_key1 = 'assessment_icd' . $id;
@@ -3823,7 +3794,6 @@ class ChartController extends Controller {
             $new_id = $id + 1;
             $new_key = 'assessment_' . $new_id;
             $new_key1 = 'assessment_icd' . $new_id;
-
         } else {
             $new_id = $id - 1;
             $new_key = 'assessment_' . $new_id;
@@ -3841,8 +3811,8 @@ class ChartController extends Controller {
         return redirect(Session::get('last_page'));
     }
 
-    public function encounter_billing(Request $request, $eid, $section='what')
-    {
+    public function encounter_billing(Request $request, $eid, $section = 'what') {
+
         if ($request->isMethod('post')) {
             // Make sure insurance 2 is not the same as insurance 1, otherwise, remove it
             $insurance_id_2 = $request->input('insurance_id_2');
@@ -3863,7 +3833,7 @@ class ChartController extends Controller {
             $data['message_action'] = Session::get('message_action');
             Session::forget('message_action');
             $encounter = DB::table('encounters')->where('eid', '=', $eid)->first();
-            $billing = DB::table('billing')->where('eid', '=', $eid)->first();
+            $billing = DB::table('billing_core')->where('eid', '=', $eid)->first();
             $insurance_result = DB::table('insurance')->where('pid', '=', Session::get('pid'))->where('insurance_plan_active', '=', 'Yes')->get();
             $insurance_arr['0'] = 'No Insurance';
             if ($insurance_result->count()) {
@@ -3873,10 +3843,10 @@ class ChartController extends Controller {
             }
             $insurance_id_1 = null;
             $insurance_id_2 = null;
-            if ($billing) {
-                $insurance_id_1 = $billing->insurance_id_1;
-                $insurance_id_2 = $billing->insurance_id_2;
-            }
+//            if ($billing->insurance_id_1) {
+//                $insurance_id_1 = $billing->insurance_id_1;
+//                $insurance_id_2 = $billing->insurance_id_2;
+//            }
             $return = '<ul class="nav nav-tabs"><li class="active"><a data-toggle="tab" href="#what" title="What to bill"><span>What</span></a></li><li><a data-toggle="tab" href="#who" title="Who to bill"><span>Who</span></a></li><li><a data-toggle="tab" href="#action" title="Action"><span>Action</span></a></li></ul><div class="tab-content" style="margin-top:15px;">';
             // What to Bill
             $return .= '<div id="what" class="tab-pane fade';
@@ -3886,15 +3856,17 @@ class ChartController extends Controller {
             $return .= '">';
             $cpt_array = [];
             $cpt_codes = DB::table('billing_core')
-                ->join('cpt_relate', 'billing_core.cpt', '=', 'cpt_relate.cpt')
-                ->where('billing_core.eid', '=', $eid)
-                ->where('cpt_relate.practice_id', '=', Session::get('practice_id'))
-                ->select('billing_core.*', 'cpt_relate.cpt_description')
-                ->distinct()
-                ->get();
+                    ->join('cpt_relate', 'billing_core.cpt', '=', 'cpt_relate.cpt')
+                    ->where('billing_core.eid', '=', $eid)
+                    ->where('cpt_relate.practice_id', '=', Session::get('practice_id'))
+                    ->select('billing_core.*', 'cpt_relate.cpt_description')
+                    ->distinct()
+                    ->get();
             $columns = Schema::getColumnListing('billing_core');
             $row_index = $columns[0];
+
             $dx_pointer_arr = $this->array_assessment_billing($eid);
+
             if (count($dx_pointer_arr) == 0) {
                 Session::put('message_action', 'Error - Assessment needs to assigned to encounter first');
                 return redirect()->route('encounter', [$eid, 'a']);
@@ -3973,7 +3945,7 @@ class ChartController extends Controller {
             ];
             if (Session::has('last_page_encounter')) {
                 $url_ex = explode('/', Session::get('last_page_encounter'));
-                if ($url_ex[5] == $eid) {
+                if (isset($url_ex[5]) && $url_ex[5] == $eid) {
                     $dropdown_array['default_button_text_url'] = Session::get('last_page_encounter');
                     $data['encounters_active'] = true;
                 } else {
@@ -3998,7 +3970,7 @@ class ChartController extends Controller {
             $dropdown_array['items'] = $items;
             $data['panel_dropdown'] = $this->dropdown_build($dropdown_array);
             $data['content'] = $return;
-            $data['panel_header'] = 'Encounter - ' .  date('Y-m-d', $this->human_to_unix($encounter->encounter_DOS));
+            $data['panel_header'] = 'Encounter - ' . date('Y-m-d', $this->human_to_unix($encounter->encounter_DOS));
             $data = array_merge($data, $this->sidebar_build('chart'));
             Session::put('billing_last_page', $request->fullUrl());
             if (!Session::has('eid')) {
@@ -4014,14 +3986,12 @@ class ChartController extends Controller {
         }
     }
 
-    public function encounter_close(Request $request)
-    {
+    public function encounter_close(Request $request) {
         Session::forget('eid');
         return redirect()->route('patient');
     }
 
-    public function encounter_details(Request $request, $eid)
-    {
+    public function encounter_details(Request $request, $eid) {
         $practice = DB::table('practiceinfo')->where('practice_id', '=', Session::get('practice_id'))->first();
         if ($request->isMethod('post')) {
             $appt_id = "";
@@ -4107,7 +4077,7 @@ class ChartController extends Controller {
                     if (Session::has('encounter_details')) {
                         $details = Session::get('encounter_details');
                         Session::forget('encounter_details');
-                        foreach ($details as $detail_k=>$detail_v) {
+                        foreach ($details as $detail_k => $detail_v) {
                             $encounter[$detail_k] = $detail_v;
                         }
                     }
@@ -4290,8 +4260,7 @@ class ChartController extends Controller {
         }
     }
 
-    public function encounter_education(Request $request)
-    {
+    public function encounter_education(Request $request) {
         if ($request->isMethod('post')) {
             $view = $this->healthwise_view($request->input('url'));
             if ($view == 'Having trouble getting materials.  Try again') {
@@ -4305,7 +4274,7 @@ class ChartController extends Controller {
             $html .= $view;
             // return $html;
             $this->generate_pdf($html, $file_path);
-            while(!file_exists($file_path)) {
+            while (!file_exists($file_path)) {
                 sleep(2);
             }
             $pages_data = [
@@ -4376,8 +4345,7 @@ class ChartController extends Controller {
         }
     }
 
-    public function encounter_edit_image(Request $request, $id)
-    {
+    public function encounter_edit_image(Request $request, $id) {
         $practice = DB::table('practiceinfo')->where('practice_id', '=', Session::get('practice_id'))->first();
         $directory = $practice->documents_dir . Session::get('pid') . "/";
         if ($request->isMethod('post')) {
@@ -4536,8 +4504,7 @@ class ChartController extends Controller {
         }
     }
 
-    public function encounter_form_add(Request $request, $id)
-    {
+    public function encounter_form_add(Request $request, $id) {
         $message = $this->copy_form($id);
         if ($message !== '') {
             Session::put('message_action', $message);
@@ -4545,22 +4512,19 @@ class ChartController extends Controller {
         return redirect(Session::get('last_page'));
     }
 
-    public function encounter_print_plan(Request $request, $eid)
-    {
+    public function encounter_print_plan(Request $request, $eid) {
         $html = $this->page_plan($eid);
         $name = "plan_" . time() . "_" . Session::get('user_id') . ".pdf";
         $filepath = public_path() . '/temp/' . time() . '_' . Session::get('user_id');
         $this->generate_pdf($html, $filepath);
-        while(!file_exists($filepath)) {
+        while (!file_exists($filepath)) {
             sleep(2);
         }
         Session::put('download_now', $filepath);
         return redirect(Session::get('last_page'));
     }
 
-
-    public function encounter_save(Request $request, $eid, $section)
-    {
+    public function encounter_save(Request $request, $eid, $section) {
         $table_arr = [
             'encounters' => ['encounter_cc'],
             'hpi' => ['hpi', 'situation'],
@@ -4571,7 +4535,8 @@ class ChartController extends Controller {
         ];
         foreach ($table_arr as $table => $columns) {
             foreach ($columns as $column) {
-                if ($request->has($column)) {;
+                if ($request->has($column)) {
+                    ;
                     $data = [];
                     $data[$column] = $request->input($column);
                     $query = DB::table($table)->where('eid', '=', $eid)->first();
@@ -4606,16 +4571,15 @@ class ChartController extends Controller {
         return redirect($url);
     }
 
-    public function encounter_sign(Request $request, $eid)
-    {
+    public function encounter_sign(Request $request, $eid) {
         $eid = Session::get('eid');
-        $encounter = DB::table('encounters')->where('eid', '=',$eid)->first();
+        $encounter = DB::table('encounters')->where('eid', '=', $eid)->first();
         // Validation
         $error_arr = [];
-        $hpi = DB::table('hpi')->where('eid', '=',$eid)->first();
+        $hpi = DB::table('hpi')->where('eid', '=', $eid)->first();
         $pe = DB::table('pe')->where('eid', '=', $eid)->first();
         $assessment = DB::table('assessment')->where('eid', '=', $eid)->first();
-        $billing = DB::table('billing')->where('eid', '=', $eid)->first();
+        $billing = DB::table('billing_core')->where('eid', '=', $eid)->first();
         if (!$hpi) {
             $error_arr[] = "Subjective";
         }
@@ -4648,10 +4612,10 @@ class ChartController extends Controller {
             // $this->api_data('update', 'encounters', 'eid', Session::get('eid'));
             if ($encounter->encounter_template == 'standardpsych') {
                 $patient = DB::table('demographics_relate')
-                    ->where('pid', '=', Session::get('pid'))
-                    ->where('practice_id', '=', Session::get('practice_id'))
-                    ->whereNotNull('id')
-                    ->first();
+                        ->where('pid', '=', Session::get('pid'))
+                        ->where('practice_id', '=', Session::get('practice_id'))
+                        ->whereNotNull('id')
+                        ->first();
                 $alert_send_message = 'n';
                 if ($patient) {
                     $alert_send_message = 'y';
@@ -4683,8 +4647,7 @@ class ChartController extends Controller {
         }
     }
 
-    public function encounter_view(Request $request, $eid, $previous=false)
-    {
+    public function encounter_view(Request $request, $eid, $previous = false) {
         $data['message_action'] = Session::get('message_action');
         Session::forget('message_action');
         $encounter = DB::table('encounters')->where('eid', '=', $eid)->first();
@@ -4764,15 +4727,14 @@ class ChartController extends Controller {
         }
         $data['content'] = $return;
         $data['encounters_active'] = true;
-        $data['panel_header'] = 'Encounter - ' .  date('Y-m-d', $this->human_to_unix($encounter->encounter_DOS));
+        $data['panel_header'] = 'Encounter - ' . date('Y-m-d', $this->human_to_unix($encounter->encounter_DOS));
         $data = array_merge($data, $this->sidebar_build('chart'));
         $data['assets_js'] = $this->assets_js('chart');
         $data['assets_css'] = $this->assets_css('chart');
         return view('chart', $data);
     }
 
-    public function encounter_vitals_view(Request $request, $eid='')
-    {
+    public function encounter_vitals_view(Request $request, $eid = '') {
         $vitals_arr = $this->array_vitals();
         $practice = DB::table('practiceinfo')->where('practice_id', '=', Session::get('practice_id'))->first();
         $return = '<div class="table-responsive"><table class="table table-striped"><thead><tr><th>Date</th>';
@@ -4835,8 +4797,7 @@ class ChartController extends Controller {
         return view('chart', $data);
     }
 
-    public function encounter_vitals_chart(Request $request, $type)
-    {
+    public function encounter_vitals_chart(Request $request, $type) {
         $pid = Session::get('pid');
         $demographics = DB::table('demographics')->where('pid', '=', $pid)->first();
         $vitals_arr = $this->array_vitals();
@@ -4845,11 +4806,11 @@ class ChartController extends Controller {
         $data['graph_series_name'] = $vitals_arr[$type]['name'];
         $data['graph_title'] = 'Chart of ' . $vitals_arr[$type]['name'] . ' over time for ' . $demographics->firstname . ' ' . $demographics->lastname . ' as of ' . date("Y-m-d, g:i a", time());
         $query1 = DB::table('vitals')
-            ->select($type, 'vitals_date')
-            ->where('pid', '=', $pid)
-            ->orderBy('vitals_date', 'asc')
-            ->distinct()
-            ->get();
+                ->select($type, 'vitals_date')
+                ->where('pid', '=', $pid)
+                ->orderBy('vitals_date', 'asc')
+                ->distinct()
+                ->get();
         $json = [];
         if ($query1->count()) {
             foreach ($query1 as $row1) {
@@ -4880,12 +4841,11 @@ class ChartController extends Controller {
         return view('graph', $data);
     }
 
-    public function encounters_list(Request $request)
-    {
+    public function encounters_list(Request $request) {
         $data['message_action'] = Session::get('message_action');
         Session::forget('message_action');
         $query = DB::table('encounters')->where('pid', '=', Session::get('pid'))
-            ->where('addendum', '=', 'n')->orderBy('encounter_DOS', 'desc');
+                        ->where('addendum', '=', 'n')->orderBy('encounter_DOS', 'desc');
         if (Session::get('patient_centric') == 'n') {
             $query->where('practice_id', '=', Session::get('practice_id'));
         }
@@ -4935,15 +4895,14 @@ class ChartController extends Controller {
         return view('chart', $data);
     }
 
-    public function family_history(Request $request)
-    {
+    public function family_history(Request $request) {
         $data['message_action'] = Session::get('message_action');
         Session::forget('message_action');
         $recent_query = DB::table('other_history')
-            ->where('pid', '=', Session::get('pid'))
-            ->where('eid', '!=', '0')
-            ->orderBy('eid', 'desc')
-            ->whereNotNull('oh_fh')->first();
+                        ->where('pid', '=', Session::get('pid'))
+                        ->where('eid', '!=', '0')
+                        ->orderBy('eid', 'desc')
+                        ->whereNotNull('oh_fh')->first();
         // Set up persistent values
         $persistent_check = DB::table('other_history')->where('pid', '=', Session::get('pid'))->where('eid', '=', '0')->first();
         if (!$persistent_check) {
@@ -5001,8 +4960,7 @@ class ChartController extends Controller {
         return view('sigma', $data);
     }
 
-    public function family_history_update(Request $request, $id)
-    {
+    public function family_history_update(Request $request, $id) {
         if ($request->isMethod('post')) {
             $data = [
                 'Name' => $request->input('name'),
@@ -5100,8 +5058,7 @@ class ChartController extends Controller {
         }
     }
 
-    public function fhir_aat(Request $request)
-    {
+    public function fhir_aat(Request $request) {
         // Check if call comes from rqp_claims redirect
         if (Session::has('uma_aat') && Session::has('uma_permission_ticket')) {
             if (isset($_REQUEST["authorization_state"])) {
@@ -5126,7 +5083,7 @@ class ChartController extends Controller {
             }
         }
         // Get AAT
-        $url_array = ['/oidc','/fhir/oidc'];
+        $url_array = ['/oidc', '/fhir/oidc'];
         $as_uri = Session::get('uma_uri');
         $client_id = Session::get('uma_client_id');
         $client_secret = Session::get('uma_client_secret');
@@ -5135,7 +5092,7 @@ class ChartController extends Controller {
         Session::put('uma_aat', $oidc->getAccessToken());
         // Get permission ticket
         $urlinit = $as_uri . '/fhir/' . Session::get('type') . '?subject:Patient=1';
-        $result = $this->fhir_request($urlinit,true);
+        $result = $this->fhir_request($urlinit, true);
         if (isset($result['error'])) {
             // error - return something
             return $result;
@@ -5150,8 +5107,7 @@ class ChartController extends Controller {
         $oidc->rqp_claims($permission_ticket);
     }
 
-    public function fhir_api(Request $request)
-    {
+    public function fhir_api(Request $request) {
         $as_uri = Session::get('uma_uri');
         if (!Session::has('rpt')) {
             // Send permission ticket + AAT to Authorization Server to get RPT
@@ -5185,7 +5141,7 @@ class ChartController extends Controller {
         }
         // Contact pNOSH again, now with RPT
         $urlinit = $as_uri . '/fhir/' . Session::get('type') . '?subject:Patient=1';
-        $result3 = $this->fhir_request($urlinit,false,$rpt);
+        $result3 = $this->fhir_request($urlinit, false, $rpt);
         if (isset($result3['ticket'])) {
             // New permission ticket issued, expire rpt session
             Session::forget('rpt');
@@ -5219,7 +5175,7 @@ class ChartController extends Controller {
                         $data['title'] = $title_array[$request->session()->get('type')];
                         $data['content'] .= '<li class="list-group-item">' . $entry['resource']['text']['div'];
                         $urlinit1 = $as_uri . '/fhir/MedicationStatement?subject:Patient=1';
-                        $result4 = $this->fhir_request($urlinit1,false,$rpt);
+                        $result4 = $this->fhir_request($urlinit1, false, $rpt);
                         if (isset($result4['total'])) {
                             if ($result4['total'] != '0') {
                                 $data['content'] .= '<strong>Medications</strong><ul>';
@@ -5230,7 +5186,7 @@ class ChartController extends Controller {
                             }
                         }
                         $data['content'] .= '</li>';
-                    } else  {
+                    } else {
                         $data['content'] .= '<li class="list-group-item">' . $entry['resource']['text']['div'] . '</li>';
                     }
                     if ($request->session()->get('type') == 'Patient') {
@@ -5251,20 +5207,19 @@ class ChartController extends Controller {
         return view('home', $data);
     }
 
-    public function fhir_connect(Request $request, $id='list')
-    {
+    public function fhir_connect(Request $request, $id = 'list') {
         $data['panel_header'] = 'Connect to a Patient Portal';
         $data['message_action'] = Session::get('message_action');
         Session::forget('message_action');
         // Get Open Epic servers
         $url = 'https://open.epic.com/MyApps/EndpointsJson';
         $ch = curl_init();
-        curl_setopt($ch,CURLOPT_URL, $url);
-        curl_setopt($ch,CURLOPT_FAILONERROR,1);
-        curl_setopt($ch,CURLOPT_FOLLOWLOCATION,1);
-        curl_setopt($ch,CURLOPT_RETURNTRANSFER,1);
-        curl_setopt($ch,CURLOPT_TIMEOUT, 60);
-        curl_setopt($ch,CURLOPT_CONNECTTIMEOUT ,0);
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_FAILONERROR, 1);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 60);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 0);
         $result = curl_exec($ch);
         $result_array = json_decode($result, true);
         if ($id == 'list') {
@@ -5280,7 +5235,7 @@ class ChartController extends Controller {
                 $data['content'] = '';
                 if ($practice->openepic_client_id == null || $practice->openepic_client_id == '') {
                     $data['content'] .= '<div class="alert alert-danger"><p>' . trans('nosh.openepic1') . '   Once you have the ';
-                    $data['content'] .= '<p><a href="https://github.com/shihjay2/hieofone-as/wiki/Client-registration-for-open.epic" target="_blank" class="nosh-no-load">' . trans('nosh.openepic2') . '</a></p>';
+
                     $data['content'] .= '<p>' . trans('nosh.openepic3') . '</p></div>';
                     $epic_items[] = [
                         'name' => 'openepic_client_id',
@@ -5368,8 +5323,7 @@ class ChartController extends Controller {
         return view('chart', $data);
     }
 
-    public function fhir_connect_display(Request $request, $type='Patient')
-    {
+    public function fhir_connect_display(Request $request, $type = 'Patient') {
         $token = Session::get('fhir_access_token');
         $title_array = [
             'Condition' => ['Conditions', 'fa-bars', 'issues', 'issue'],
@@ -5384,7 +5338,7 @@ class ChartController extends Controller {
         } else {
             $url = Session::get('fhir_url') . $type . '?Patient=' . Session::get('fhir_patient_token');
         }
-        $result = $this->fhir_request($url,false,$token,true);
+        $result = $this->fhir_request($url, false, $token, true);
         $data['message_action'] = Session::get('message_action');
         Session::forget('message_action');
         $gender_arr = $this->array_gender();
@@ -5392,10 +5346,10 @@ class ChartController extends Controller {
             $data['content'] = '<div class="alert alert-success">';
             $data['content'] .= '<strong>Name:</strong> ' . $result['name'][0]['given'][0] . ' ' . $result['name'][0]['family'][0];
             $data['content'] .= '<br><strong>Date of Birth:</strong> ' . date('Y-m-d', strtotime($result['birthDate']));
-            $data['content'] .= '<br><strong>Gender:</strong> ' . $gender_arr[strtolower(substr($result['gender'],0,1))];
+            $data['content'] .= '<br><strong>Gender:</strong> ' . $gender_arr[strtolower(substr($result['gender'], 0, 1))];
             $data['content'] .= '</div>';
             $data['content'] .= '<div class="list-group">';
-            foreach ($title_array as $title_k=>$title_v) {
+            foreach ($title_array as $title_k => $title_v) {
                 if ($title_k !== 'Patient') {
                     $data['content'] .= '<a href="' . route('fhir_connect_display', [$title_k]) . '" class="list-group-item"><i class="fa ' . $title_v[1] . ' fa-fw"></i><span style="margin:10px;">' . $title_v[0] . '</span></a>';
                 }
@@ -5419,14 +5373,14 @@ class ChartController extends Controller {
             $list_array = [];
             if ($result1->count()) {
                 if ($type == 'Condition') {
-                    foreach($result1 as $row1) {
+                    foreach ($result1 as $row1) {
                         $arr = [];
                         $arr['label'] = $row1->issue;
                         $list_array[] = $arr;
                     }
                 }
                 if ($type == 'MedicationStatement') {
-                    foreach($result1 as $row1) {
+                    foreach ($result1 as $row1) {
                         $arr = [];
                         if ($row1->rxl_sig == '') {
                             $arr['label'] = $row1->rxl_medication . ' ' . $row1->rxl_dosage . ' ' . $row1->rxl_dosage_unit . ', ' . $row1->rxl_instructions . ' for ' . $row1->rxl_reason;
@@ -5468,7 +5422,7 @@ class ChartController extends Controller {
                     foreach ($result['entry'] as $row2) {
                         if (isset($row2['resource']['clinicalStatus'])) {
                             if ($row2['resource']['clinicalStatus'] == 'active') {
-                                foreach($row2['resource']['code']['coding'] as $code) {
+                                foreach ($row2['resource']['code']['coding'] as $code) {
                                     if ($code['system'] !== "http://snomed.info/sct") {
                                         $icd = (string) $code['code'];
                                         $icd_desc = $this->icd_search($icd);
@@ -5578,7 +5532,7 @@ class ChartController extends Controller {
                                 }
                                 $arr['label_data_arr'] = [
                                     'data-nosh-type' => 'immunizations',
-                                    'data-nosh-name' =>  $imm_immunization,
+                                    'data-nosh-name' => $imm_immunization,
                                     'data-nosh-route' => '',
                                     'data-nosh-date' => $imm_date[0],
                                     'data-nosh-code' => $imm_code,
@@ -5637,8 +5591,7 @@ class ChartController extends Controller {
         return view('chart', $data);
     }
 
-    public function fhir_connect_response(Request $request)
-    {
+    public function fhir_connect_response(Request $request) {
         $practice = DB::table('practiceinfo')->where('practice_id', '=', '1')->first();
         if ($practice->openepic_client_id == null || $practice->openepic_client_id == '' || $practice->openepic_sandbox_client_id == null || $practice->openepic_sandbox_client_id == '') {
             return redirect()->route('fhir_connect', ['list']);
@@ -5673,9 +5626,8 @@ class ChartController extends Controller {
         return redirect()->route('fhir_connect_display');
     }
 
-    public function form_list(Request $request, $type)
-    {
-        $data['panel_header'] = 'Forms';
+    public function form_list(Request $request, $type) {
+        $data['panel_header'] = 'Health Analysis';
         $form_arr = [];
         $list_array = [];
         $return = '';
@@ -5731,7 +5683,7 @@ class ChartController extends Controller {
                         $arr['label'] = $row_k;
                         $arr['view'] = route('form_show', [$form['id'], $row_k]);
                     } else {
-                        $arr['label'] = '<b>' . $form['owner'] . '</b> - '. $row_k;
+                        $arr['label'] = '<b>' . $form['owner'] . '</b> - ' . $row_k;
                         $arr['view'] = route('form_show', [$form['id'], $row_k]);
                     }
                     if (isset($row_v['gender'])) {
@@ -5805,18 +5757,18 @@ class ChartController extends Controller {
         $dropdown_array['items'] = $items;
         $data['panel_dropdown'] = $this->dropdown_build($dropdown_array);
         if ($edit == true) {
-           $dropdown_array1 = [
-               'items_button_icon' => 'fa-plus'
-           ];
-           $items1 = [];
-           $items1[] = [
-               'type' => 'item',
-               'label' => 'Add Form',
-               'icon' => 'fa-plus',
-               'url' => route('configure_form_details', ['0'])
-           ];
-           $dropdown_array1['items'] = $items1;
-           $data['panel_dropdown'] .= '<span class="fa-btn"></span>' . $this->dropdown_build($dropdown_array1);
+            $dropdown_array1 = [
+                'items_button_icon' => 'fa-plus'
+            ];
+            $items1 = [];
+            $items1[] = [
+                'type' => 'item',
+                'label' => 'Add Form',
+                'icon' => 'fa-plus',
+                'url' => route('configure_form_details', ['0'])
+            ];
+            $dropdown_array1['items'] = $items1;
+            $data['panel_dropdown'] .= '<span class="fa-btn"></span>' . $this->dropdown_build($dropdown_array1);
         }
         $data['content'] = $return;
         $data['forms_active'] = true;
@@ -5829,8 +5781,7 @@ class ChartController extends Controller {
         return view('chart', $data);
     }
 
-    public function form_show(Request $request, $id, $type, $origin='users')
-    {
+    public function form_show(Request $request, $id, $type, $origin = 'users') {
         if ($origin == 'users') {
             $user = DB::table('users')->where('id', '=', $id)->first();
             $formatter = Formatter::make($user->forms, Formatter::YAML);
@@ -5909,7 +5860,7 @@ class ChartController extends Controller {
                         if (isset($row_v['options'])) {
                             $options_arr = explode(',', $row_v['options']);
                             foreach ($options_arr as $options_item)
-                            $options[$options_item] = $options_item;
+                                $options[$options_item] = $options_item;
                         }
                         if ($row_v['input'] == 'select') {
                             $form_item['select_items'] = $options;
@@ -5942,8 +5893,7 @@ class ChartController extends Controller {
         }
     }
 
-    public function form_view(Request $request, $id)
-    {
+    public function form_view(Request $request, $id) {
         $data['message_action'] = Session::get('message_action');
         Session::forget('message_action');
         if (Session::has('eid')) {
@@ -5977,8 +5927,7 @@ class ChartController extends Controller {
         return view('chart', $data);
     }
 
-    public function generate_hcfa1($flatten, $eid, $insurance_id_1, $insurance_id_2='')
-    {
+    public function generate_hcfa1($flatten, $eid, $insurance_id_1, $insurance_id_2 = '') {
         $result = $this->billing_save_common($insurance_id_1, $insurance_id_2, $eid);
         $file_path = $this->hcfa($eid, $flatten);
         if ($file_path) {
@@ -5989,8 +5938,7 @@ class ChartController extends Controller {
         }
     }
 
-    public function growth_chart(Request $request, $type)
-    {
+    public function growth_chart(Request $request, $type) {
         $pid = Session::get('pid');
         $displayname = Session::get('displayname');
         $demographics = DB::table('demographics')->where('pid', '=', $pid)->first();
@@ -6037,17 +5985,16 @@ class ChartController extends Controller {
         return view('graph', $data);
     }
 
-    public function immunizations_csv(Request $request)
-    {
+    public function immunizations_csv(Request $request) {
         $pid = Session::get('pid');
         $result = DB::table('immunizations')
-            ->join('demographics', 'demographics.pid', '=', 'immunizations.pid')
-            ->join('insurance', 'insurance.pid' , '=', 'immunizations.pid')
-            ->where('immunizations.pid', '=', $pid)
-            ->where('insurance.insurance_plan_active', '=', 'Yes')
-            ->where('insurance.insurance_order', '=', 'Primary')
-            ->select('immunizations.pid', 'demographics.lastname', 'demographics.firstname', 'demographics.DOB', 'demographics.sex', 'demographics.address', 'demographics.city', 'demographics.state', 'demographics.zip', 'demographics.phone_home', 'immunizations.imm_cvxcode', 'immunizations.imm_elsewhere', 'immunizations.imm_date', 'immunizations.imm_lot', 'immunizations.imm_manufacturer', 'insurance.insurance_plan_name')
-            ->get();
+                ->join('demographics', 'demographics.pid', '=', 'immunizations.pid')
+                ->join('insurance', 'insurance.pid', '=', 'immunizations.pid')
+                ->where('immunizations.pid', '=', $pid)
+                ->where('insurance.insurance_plan_active', '=', 'Yes')
+                ->where('insurance.insurance_order', '=', 'Primary')
+                ->select('immunizations.pid', 'demographics.lastname', 'demographics.firstname', 'demographics.DOB', 'demographics.sex', 'demographics.address', 'demographics.city', 'demographics.state', 'demographics.zip', 'demographics.phone_home', 'immunizations.imm_cvxcode', 'immunizations.imm_elsewhere', 'immunizations.imm_date', 'immunizations.imm_lot', 'immunizations.imm_manufacturer', 'insurance.insurance_plan_name')
+                ->get();
         $csv = '';
         if ($result->count()) {
             $csv .= "PatientID,Last,First,BirthDate,Gender,PatientAddress,City,State,Zip,Phone,ImmunizationCVX,OtherClinic,DateGiven,LotNumber,Manufacturer,InsuredPlanName";
@@ -6065,23 +6012,22 @@ class ChartController extends Controller {
                 $csv .= implode(',', $row);
             }
         }
-        $file_path = public_path() . '/temp/' . time() . '_'. Session::get('user_id') . '_immunization_csv.txt';
+        $file_path = public_path() . '/temp/' . time() . '_' . Session::get('user_id') . '_immunization_csv.txt';
         File::put($file_path, $csv);
-        while(!file_exists($file_path)) {
+        while (!file_exists($file_path)) {
             sleep(2);
         }
         Session::put('download_now', $file_path);
         return redirect(Session::get('last_page'));
     }
 
-    public function immunizations_list(Request $request)
-    {
+    public function immunizations_list(Request $request) {
         $data['message_action'] = Session::get('message_action');
         Session::forget('message_action');
         $query = DB::table('immunizations')
-            ->where('pid', '=', Session::get('pid'))
-            ->orderBy('imm_immunization', 'asc')
-            ->orderBy('imm_sequence', 'asc');
+                ->where('pid', '=', Session::get('pid'))
+                ->orderBy('imm_immunization', 'asc')
+                ->orderBy('imm_sequence', 'asc');
         $result = $query->get();
         $return = '';
         $edit = $this->access_level('7');
@@ -6107,7 +6053,7 @@ class ChartController extends Controller {
                 $arr['label'] = '<b>' . $row->imm_immunization . '</b> - ' . date('Y-m-d', $this->human_to_unix($row->imm_date));
                 if (isset($row->imm_sequence)) {
                     if (isset($seq_array[$row->imm_sequence])) {
-                        $arr['label'] = '<b>' . $row->imm_immunization . $seq_array[$row->imm_sequence]  . '</b> - ' . date('Y-m-d', $this->human_to_unix($row->imm_date));
+                        $arr['label'] = '<b>' . $row->imm_immunization . $seq_array[$row->imm_sequence] . '</b> - ' . date('Y-m-d', $this->human_to_unix($row->imm_date));
                     }
                 }
                 if ($edit == true) {
@@ -6176,8 +6122,7 @@ class ChartController extends Controller {
         return view('chart', $data);
     }
 
-    public function immunizations_notes(Request $request)
-    {
+    public function immunizations_notes(Request $request) {
         if ($request->isMethod('post')) {
             $data['imm_notes'] = $request->input('imm_notes');
             DB::table('demographics_notes')->where('pid', '=', Session::get('pid'))->where('practice_id', '=', Session::get('practice_id'))->update($data);
@@ -6216,22 +6161,20 @@ class ChartController extends Controller {
         }
     }
 
-    public function immunizations_print()
-    {
-        ini_set('memory_limit','196M');
+    public function immunizations_print() {
+        ini_set('memory_limit', '196M');
         $html = $this->page_immunization_list()->render();
         $user_id = Session::get('user_id');
         $file_path = public_path() . "/temp/" . time() . "_imm_list_" . $user_id . ".pdf";
         $this->generate_pdf($html, $file_path);
-        while(!file_exists($file_path)) {
+        while (!file_exists($file_path)) {
             sleep(2);
         }
         Session::put('download_now', $file_path);
         return redirect(Session::get('last_page'));
     }
 
-    public function inventory(Request $request, $action, $id, $pid, $subtype='')
-    {
+    public function inventory(Request $request, $action, $id, $pid, $subtype = '') {
         if ($request->isMethod('post')) {
             $this->validate($request, [
                 'amount' => 'numeric'
@@ -6239,7 +6182,7 @@ class ChartController extends Controller {
             if ($action == 'sup_list') {
                 $data['supplement_id'] = $request->input('supplement_id');
                 $inventory_result = DB::table('supplement_inventory')->where('supplement_id', '=', $request->input('supplement_id'))->first();
-                $inventory_data['quantity1'] =  $inventory_result->quantity1 - $request->input('amount');
+                $inventory_data['quantity1'] = $inventory_result->quantity1 - $request->input('amount');
                 DB::table('supplement_inventory')->where('supplement_id', '=', $request->input('supplement_id'))->update($inventory_data);
                 $this->audit('Update');
                 $message = 'Supplement inventory updated';
@@ -6285,9 +6228,9 @@ class ChartController extends Controller {
                     $this->audit('Add');
                     if ($sales_tax_check->sales_tax !== '') {
                         $sales_tax_add_query1 = DB::table('billing_core')
-                            ->where('eid', '=', $eid)
-                            ->where('cpt', 'LIKE', "sp%")
-                            ->get();
+                                ->where('eid', '=', $eid)
+                                ->where('cpt', 'LIKE', "sp%")
+                                ->get();
                         if ($sales_tax_add_query1->count()) {
                             $sales_tax_total1 = $inventory_result->charge * $request->input('amount');
                             foreach ($sales_tax_add_query1 as $sales_tax_add_row1) {
@@ -6311,9 +6254,9 @@ class ChartController extends Controller {
                             'practice_id' => Session::get('practice_id')
                         ];
                         $sales_tax_row1 = DB::table('billing_core')
-                            ->where('cpt', '=', 'sptax')
-                            ->where('eid', '=', $eid)
-                            ->first();
+                                ->where('cpt', '=', 'sptax')
+                                ->where('eid', '=', $eid)
+                                ->first();
                         if ($sales_tax_row1) {
                             DB::table('billing_core')->where('billing_core_id', '=', $sales_tax_row1->billing_core_id)->update($sales_tax1);
                             $this->audit('Update');
@@ -6386,8 +6329,6 @@ class ChartController extends Controller {
                 ];
                 $data['panel_header'] = 'Supplement Inventory Use';
                 $data['supplements_active'] = true;
-
-
             }
             if ($action == 'immunizations') {
                 $vaccine = null;
@@ -6424,8 +6365,7 @@ class ChartController extends Controller {
         }
     }
 
-    public function medications_list(Request $request, $type)
-    {
+    public function medications_list(Request $request, $type) {
         $data['message_action'] = Session::get('message_action');
         Session::forget('message_action');
         $query = DB::table('rx_list')->where('pid', '=', Session::get('pid'))->orderBy('rxl_medication', 'asc');
@@ -6469,11 +6409,11 @@ class ChartController extends Controller {
                     $arr['label'] = '<strong>' . $row->rxl_medication . '</strong> ' . $row->rxl_dosage . ' ' . $row->rxl_dosage_unit . ', ' . $row->rxl_sig . ', ' . $row->rxl_route . ', ' . $row->rxl_frequency . ' for ' . $row->rxl_reason;
                 }
                 $previous = DB::table('rx_list')
-        			->where('pid', '=', Session::get('pid'))
-        			->where('rxl_medication', '=', $row->rxl_medication)
-        			->select('rxl_date_prescribed', 'prescription')
-                    ->orderBy('rxl_date_prescribed', 'desc')
-        			->first();
+                        ->where('pid', '=', Session::get('pid'))
+                        ->where('rxl_medication', '=', $row->rxl_medication)
+                        ->select('rxl_date_prescribed', 'prescription')
+                        ->orderBy('rxl_date_prescribed', 'desc')
+                        ->first();
                 if ($previous) {
                     if ($previous->rxl_date_prescribed !== null && $previous->rxl_date_prescribed !== '0000-00-00 00:00:00') {
                         $previous_date = new Date($this->human_to_unix($previous->rxl_date_prescribed));
@@ -6569,8 +6509,7 @@ class ChartController extends Controller {
         return view('chart', $data);
     }
 
-    public function patient(Request $request)
-    {
+    public function patient(Request $request) {
         $data['message_action'] = Session::get('message_action');
         Session::forget('message_action');
         $data['content'] = '';
@@ -6580,13 +6519,13 @@ class ChartController extends Controller {
                 $data['content'] .= '<div class="alert alert-success"><span style="margin-right:15px;"><i class="fa fa-hand-o-right fa-lg"></i></span><strong>Next Appointment</strong>: ' . date('F jS, Y, g:i A', $next_appt->start) . '</div>';
             }
             $last_visit = DB::table('encounters')->where('pid', '=', Session::get('pid'))
-    			->where('eid', '!=', '')
-    			->where('practice_id', '=', Session::get('practice_id'))
-    			->orderBy('eid', 'desc')
-    			->first();
-    		if ($last_visit) {
+                    ->where('eid', '!=', '')
+                    ->where('practice_id', '=', Session::get('practice_id'))
+                    ->orderBy('eid', 'desc')
+                    ->first();
+            if ($last_visit) {
                 $data['content'] .= '<div class="alert alert-success"><span style="margin-right:15px;"><i class="fa fa-calendar-check-o fa-lg" aria-hidden="true"></i></span><strong>Last Visit with Your Practice</strong>: ' . date('F jS, Y', strtotime($last_visit->encounter_DOS)) . '</div>';
-    		}
+            }
             $lmc = DB::table('schedule')->where('pid', '=', Session::get('pid'))->where('status', '=', 'LMC')->get();
             $dnka = DB::table('schedule')->where('pid', '=', Session::get('pid'))->where('status', '=', 'DNKA')->get();
             if ($lmc->count()) {
@@ -6683,8 +6622,7 @@ class ChartController extends Controller {
         return view('chart', $data);
     }
 
-    public function payors_list(Request $request, $type)
-    {
+    public function payors_list(Request $request, $type) {
         $data['message_action'] = Session::get('message_action');
         Session::forget('message_action');
         $query = DB::table('insurance')->where('pid', '=', Session::get('pid'))->orderBy('insurance_order', 'asc');
@@ -6780,11 +6718,11 @@ class ChartController extends Controller {
         Session::put('last_page', $request->fullUrl());
         $data['assets_js'] = $this->assets_js('chart');
         $data['assets_css'] = $this->assets_css('chart');
+
         return view('chart', $data);
     }
 
-    public function print_action($action, $id, $pid, $subtype='')
-    {
+    public function print_action($action, $id, $pid, $subtype = '') {
         if ($action == 'rx_list') {
             $data['medications_active'] = true;
             $data['panel_header'] = 'Print Prescription';
@@ -6813,16 +6751,19 @@ class ChartController extends Controller {
         return view('chart', $data);
     }
 
-    public function print_chart_action($hippa_id, $type)
-    {
+    public function print_chart_action($hippa_id, $type) {
         $file_path = $this->print_chart($hippa_id, Session::get('pid'), $type);
         return response()->download($file_path);
     }
 
-    public function orders_list(Request $request, $type)
-    {
+    public function orders_list(Request $request, $type) {
         $data['message_action'] = Session::get('message_action');
         Session::forget('message_action');
+
+        if (!isset($type)) {
+            $type = 'orders_labs';
+        }
+
         $query = DB::table('orders')->where('pid', '=', Session::get('pid'))->where($type, '!=', '')->orderBy('orders_date', 'desc');
         $type_arr = [
             'orders_labs' => ['Laboratory', 'fa-flask'],
@@ -6830,91 +6771,94 @@ class ChartController extends Controller {
             'orders_cp' => ['Cardiopulmonary', 'fa-heartbeat'],
             'orders_referrals' => ['Referrals', 'fa-hand-o-right']
         ];
-        $dropdown_array = [
-            'items_button_text' => $type_arr[$type][0]
-        ];
-        foreach ($type_arr as $key => $value) {
-            if ($key !== $type) {
-                $items[] = [
-                    'type' => 'item',
-                    'label' => $value[0],
-                    'icon' => $value[1],
-                    'url' => route('orders_list', [$key])
+        if (isset($type_arr[$type])) {
+            $dropdown_array = [
+                'items_button_text' => $type_arr[$type][0]
+            ];
+            foreach ($type_arr as $key => $value) {
+                if ($key !== $type) {
+                    $items[] = [
+                        'type' => 'item',
+                        'label' => $value[0],
+                        'icon' => $value[1],
+                        'url' => route('orders_list', [$key])
+                    ];
+                }
+            }
+            $dropdown_array['items'] = $items;
+            $data['panel_dropdown'] = $this->dropdown_build($dropdown_array);
+            $result = $query->get();
+            $return = '';
+            $edit = $this->access_level('2');
+            $columns = Schema::getColumnListing('orders');
+            $row_index = $columns[0];
+            if ($result->count()) {
+                $list_array = [];
+                foreach ($result as $row) {
+                    $arr = [];
+                    $arr['label'] = '<b>' . date('Y-m-d', $this->human_to_unix($row->orders_date)) . '</b> - ' . $row->{$type};
+                    if ($type == 'orders_referrals') {
+                        $address = DB::table('addressbook')->where('address_id', '=', $row->address_id)->first();
+                        $arr['label'] = '<b>' . date('Y-m-d', $this->human_to_unix($row->orders_date)) . '</b> - ' . $address->specialty . ': ' . $address->displayname;
+                    }
+                    if ($edit == true) {
+                        $arr['edit'] = route('chart_form', ['orders', $row_index, $row->$row_index, $type]);
+                        $arr['complete'] = route('chart_action', ['table' => 'orders', 'action' => 'complete', 'index' => $row_index, 'id' => $row->$row_index]);
+                        $arr['delete'] = route('chart_action', ['table' => 'orders', 'action' => 'delete', 'index' => $row_index, 'id' => $row->$row_index]);
+                    }
+                    $list_array[] = $arr;
+                }
+                $return .= $this->result_build($list_array, 'orders_list');
+            } else {
+                $return .= ' None.';
+            }
+            $data['content'] = $return;
+            $data['orders_active'] = true;
+            $data['panel_header'] = 'Pending Orders';
+            $data = array_merge($data, $this->sidebar_build('chart'));
+            //$data['template_content'] = 'test';
+            if ($edit == true) {
+                $dropdown_array1 = [
+                    'items_button_icon' => 'fa-plus'
                 ];
+                $items1 = [];
+                $items1[] = [
+                    'type' => 'item',
+                    'label' => 'Add Lab Order',
+                    'icon' => 'fa-plus',
+                    'url' => route('chart_form', ['orders', 'orders_id', '0', 'orders_labs'])
+                ];
+                $items1[] = [
+                    'type' => 'item',
+                    'label' => 'Add Imaging Order',
+                    'icon' => 'fa-plus',
+                    'url' => route('chart_form', ['orders', 'orders_id', '0', 'orders_radiology'])
+                ];
+                $items1[] = [
+                    'type' => 'item',
+                    'label' => 'Add Cardiopulmonary Order',
+                    'icon' => 'fa-plus',
+                    'url' => route('chart_form', ['orders', 'orders_id', '0', 'orders_cp'])
+                ];
+                $items1[] = [
+                    'type' => 'item',
+                    'label' => 'Add Referral',
+                    'icon' => 'fa-plus',
+                    'url' => route('chart_form', ['orders', 'orders_id', '0', 'orders_referrals'])
+                ];
+                $dropdown_array1['items'] = $items1;
+                $data['panel_dropdown'] .= '<span class="fa-btn"></span>' . $this->dropdown_build($dropdown_array1);
             }
+            Session::put('last_page', $request->fullUrl());
+
+            $data['assets_js'] = $this->assets_js('chart');
+            $data['assets_css'] = $this->assets_css('chart');
+            return view('chart', $data);
         }
-        $dropdown_array['items'] = $items;
-        $data['panel_dropdown'] = $this->dropdown_build($dropdown_array);
-        $result = $query->get();
-        $return = '';
-        $edit = $this->access_level('2');
-        $columns = Schema::getColumnListing('orders');
-        $row_index = $columns[0];
-        if ($result->count()) {
-            $list_array = [];
-            foreach ($result as $row) {
-                $arr = [];
-                $arr['label'] = '<b>' . date('Y-m-d', $this->human_to_unix($row->orders_date)) . '</b> - ' . $row->{$type};
-                if ($type == 'orders_referrals') {
-                    $address = DB::table('addressbook')->where('address_id', '=', $row->address_id)->first();
-                    $arr['label'] = '<b>' . date('Y-m-d', $this->human_to_unix($row->orders_date)) . '</b> - ' . $address->specialty . ': ' . $address->displayname;
-                }
-                if ($edit == true) {
-                    $arr['edit'] = route('chart_form', ['orders', $row_index, $row->$row_index, $type]);
-                    $arr['complete'] = route('chart_action', ['table' => 'orders', 'action' => 'complete', 'index' => $row_index, 'id' => $row->$row_index]);
-                    $arr['delete'] = route('chart_action', ['table' => 'orders', 'action' => 'delete', 'index' => $row_index, 'id' => $row->$row_index]);
-                }
-                $list_array[] = $arr;
-            }
-            $return .= $this->result_build($list_array, 'orders_list');
-        } else {
-            $return .= ' None.';
-        }
-        $data['content'] = $return;
-        $data['orders_active'] = true;
-        $data['panel_header'] = 'Pending Orders';
-        $data = array_merge($data, $this->sidebar_build('chart'));
-        //$data['template_content'] = 'test';
-        if ($edit == true) {
-            $dropdown_array1 = [
-                'items_button_icon' => 'fa-plus'
-            ];
-            $items1 = [];
-            $items1[] = [
-                'type' => 'item',
-                'label' => 'Add Lab Order',
-                'icon' => 'fa-plus',
-                'url' => route('chart_form', ['orders', 'orders_id', '0', 'orders_labs'])
-            ];
-            $items1[] = [
-                'type' => 'item',
-                'label' => 'Add Imaging Order',
-                'icon' => 'fa-plus',
-                'url' => route('chart_form', ['orders', 'orders_id', '0', 'orders_radiology'])
-            ];
-            $items1[] = [
-                'type' => 'item',
-                'label' => 'Add Cardiopulmonary Order',
-                'icon' => 'fa-plus',
-                'url' => route('chart_form', ['orders', 'orders_id', '0', 'orders_cp'])
-            ];
-            $items1[] = [
-                'type' => 'item',
-                'label' => 'Add Referral',
-                'icon' => 'fa-plus',
-                'url' => route('chart_form', ['orders', 'orders_id', '0', 'orders_referrals'])
-            ];
-            $dropdown_array1['items'] = $items1;
-            $data['panel_dropdown'] .= '<span class="fa-btn"></span>' . $this->dropdown_build($dropdown_array1);
-        }
-        Session::put('last_page', $request->fullUrl());
-        $data['assets_js'] = $this->assets_js('chart');
-        $data['assets_css'] = $this->assets_css('chart');
-        return view('chart', $data);
+        return redirect('/');
     }
 
-    public function records_list(Request $request, $type)
-    {
+    public function records_list(Request $request, $type) {
         $data['message_action'] = Session::get('message_action');
         Session::forget('message_action');
         if ($type == 'release') {
@@ -6930,7 +6874,7 @@ class ChartController extends Controller {
                 'url' => route('records_list', ['request'])
             ];
         } else {
-            $table ='hippa_request';
+            $table = 'hippa_request';
             $query = DB::table($table)->where('pid', '=', Session::get('pid'))->where('practice_id', '=', Session::get('practice_id'))->orderBy('hippa_date_request', 'desc');
             $dropdown_array = [
                 'items_button_text' => 'Records Requests'
@@ -7022,13 +6966,12 @@ class ChartController extends Controller {
         return view('chart', $data);
     }
 
-    public function register_patient(Request $request)
-    {
+    public function register_patient(Request $request) {
         $pid = Session::get('pid');
         $characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
         $token = '';
         for ($i = 0; $i < 6; $i++) {
-            $token .= $characters[mt_rand(0, strlen($characters)-1)];
+            $token .= $characters[mt_rand(0, strlen($characters) - 1)];
         }
         $data['registration_code'] = $token;
         DB::table('demographics')->where('pid', '=', $pid)->update($data);
@@ -7047,8 +6990,7 @@ class ChartController extends Controller {
         return redirect(Session::get('last_page'));
     }
 
-    public function results_chart(Request $request, $id)
-    {
+    public function results_chart(Request $request, $id) {
         $pid = Session::get('pid');
         $demographics = DB::table('demographics')->where('pid', '=', $pid)->first();
         $row0 = DB::table('tests')->where('tests_id', '=', $id)->first();
@@ -7058,10 +7000,10 @@ class ChartController extends Controller {
         $data['graph_series_name'] = $row0->test_name;
         $data['graph_title'] = 'Chart of ' . $row0->test_name . ' over time for ' . $demographics->firstname . ' ' . $demographics->lastname . ' as of ' . date("Y-m-d, g:i a", time());
         $query1 = DB::table('tests')
-            ->where('test_name', '=', $row0->test_name)
-            ->where('pid', '=', $pid)
-            ->orderBy('test_datetime', 'asc')
-            ->get();
+                ->where('test_name', '=', $row0->test_name)
+                ->where('pid', '=', $pid)
+                ->orderBy('test_datetime', 'asc')
+                ->get();
         $json = [];
         if ($query1->count()) {
             foreach ($query1 as $row1) {
@@ -7102,8 +7044,7 @@ class ChartController extends Controller {
         return view('graph', $data);
     }
 
-    public function results_list(Request $request, $type)
-    {
+    public function results_list(Request $request, $type) {
         $data['message_action'] = Session::get('message_action');
         Session::forget('message_action');
         $query = DB::table('tests')->where('pid', '=', Session::get('pid'))->where('test_type', '=', $type)->orderBy('test_datetime', 'desc');
@@ -7185,21 +7126,19 @@ class ChartController extends Controller {
         return view('chart', $data);
     }
 
-    public function results_print(Request $request, $id)
-    {
-        ini_set('memory_limit','196M');
+    public function results_print(Request $request, $id) {
+        ini_set('memory_limit', '196M');
         $html = $this->page_results_list($id)->render();
         $user_id = Session::get('user_id');
         $file_path = public_path() . "/temp/" . time() . "_results_list_" . $user_id . ".pdf";
         $this->generate_pdf($html, $file_path);
-        while(!file_exists($file_path)) {
+        while (!file_exists($file_path)) {
             sleep(2);
         }
         return response()->download($file_path);
     }
 
-    public function results_reply(Request $request)
-    {
+    public function results_reply(Request $request) {
         if ($request->isMethod('post')) {
             $pid = Session::get('pid');
             $practice = DB::table('practiceinfo')->where('practice_id', '=', Session::get('practice_id'))->first();
@@ -7256,9 +7195,9 @@ class ChartController extends Controller {
             if ($request->input('action') == 'portal') {
                 $patient = DB::table('demographics')->where('pid', '=', $pid)->first();
                 $row_relate = DB::table('demographics_relate')
-                    ->where('pid', '=', $pid)
-                    ->where('practice_id', '=', Session::get('practice_id'))
-                    ->first();
+                        ->where('pid', '=', $pid)
+                        ->where('practice_id', '=', Session::get('practice_id'))
+                        ->first();
                 $data_message = array(
                     'displayname' => Session::get('displayname'),
                     'email' => $practice->email,
@@ -7319,16 +7258,16 @@ class ChartController extends Controller {
         } else {
             $tests_arr = [];
             $query = DB::table('alerts')
-                ->where('pid', '=', Session::get('pid'))
-                ->where('practice_id', '=', Session::get('practice_id'))
-                ->where('alert_date_complete', '=', '0000-00-00 00:00:00')
-                ->where('alert_reason_not_complete', '=', '')
-                ->where(function($query_array1) {
-                    $query_array1->where('alert', '=', 'Laboratory results pending')
-                    ->orWhere('alert', '=', 'Radiology results pending')
-                    ->orWhere('alert', '=', 'Cardiopulmonary results pending');
-                })
-                ->get();
+                    ->where('pid', '=', Session::get('pid'))
+                    ->where('practice_id', '=', Session::get('practice_id'))
+                    ->where('alert_date_complete', '=', '0000-00-00 00:00:00')
+                    ->where('alert_reason_not_complete', '=', '')
+                    ->where(function($query_array1) {
+                        $query_array1->where('alert', '=', 'Laboratory results pending')
+                        ->orWhere('alert', '=', 'Radiology results pending')
+                        ->orWhere('alert', '=', 'Cardiopulmonary results pending');
+                    })
+                    ->get();
             if ($query->count()) {
                 foreach ($query as $item) {
                     $orders_query2 = DB::table('orders')->where('orders_id', '=', $item->orders_id)->first();
@@ -7393,8 +7332,7 @@ class ChartController extends Controller {
         }
     }
 
-    public function results_view(Request $request, $id)
-    {
+    public function results_view(Request $request, $id) {
         $data['message_action'] = Session::get('message_action');
         Session::forget('message_action');
         $test_arr = $this->array_test_flag();
@@ -7402,10 +7340,10 @@ class ChartController extends Controller {
         $return = '<div class="table-responsive"><table class="table table-striped"><thead><tr><th>Date</th><th>Result</th><th>Unit</th><th>Range</th><th>Flag</th></thead><tbody>';
         // Get old results for comparison table
         $query = DB::table('tests')
-            ->where('test_name', '=', $test->test_name)
-            ->where('pid', '=', Session::get('pid'))
-            ->orderBy('test_datetime', 'desc')
-            ->get();
+                ->where('test_name', '=', $test->test_name)
+                ->where('pid', '=', Session::get('pid'))
+                ->orderBy('test_datetime', 'desc')
+                ->get();
         if ($query->count()) {
             foreach ($query as $row) {
                 $return .= '<tr';
@@ -7488,7 +7426,7 @@ class ChartController extends Controller {
         if (Session::has('eid')) {
             if (Session::get('group_id') == '2') {
                 // Mark conditions list as reviewed by physician
-                $results_encounter = $test->test_name . ': ' .  $test->test_result . ' ' .  $test->test_units . '; Reference: ' . $test->test_reference . '; Flags: ' . $test_arr[$test->test_flags] . '; Performed on: ' . date('Y-m-d', $this->human_to_unix($test->test_datetime));
+                $results_encounter = $test->test_name . ': ' . $test->test_result . ' ' . $test->test_units . '; Reference: ' . $test->test_reference . '; Flags: ' . $test_arr[$test->test_flags] . '; Performed on: ' . date('Y-m-d', $this->human_to_unix($test->test_datetime));
                 $encounter_query = DB::table('other_history')->where('eid', '=', Session::get('eid'))->first();
                 $encounter_data['oh_results'] = $results_encounter;
                 if ($encounter_query) {
@@ -7517,8 +7455,7 @@ class ChartController extends Controller {
         return view('chart', $data);
     }
 
-    public function search_chart(Request $request)
-    {
+    public function search_chart(Request $request) {
         $data['message_action'] = Session::get('message_action');
         Session::forget('message_action');
         $edit = $this->access_level('2');
@@ -7532,131 +7469,131 @@ class ChartController extends Controller {
             Session::forget('search_chart');
         }
         $allergies = DB::table('allergies')
-            ->where('pid', '=', Session::get('pid'))
-            ->where('allergies_date_inactive', '=', '0000-00-00 00:00:00')
-            ->where(function($allergies1) use ($q) {
-                $allergies1->where('allergies_med', 'LIKE', "%$q%")
-                ->orWhere('allergies_reaction', 'LIKE', "%$q%");
-            })
-            ->get();
+                ->where('pid', '=', Session::get('pid'))
+                ->where('allergies_date_inactive', '=', '0000-00-00 00:00:00')
+                ->where(function($allergies1) use ($q) {
+                    $allergies1->where('allergies_med', 'LIKE', "%$q%")
+                    ->orWhere('allergies_reaction', 'LIKE', "%$q%");
+                })
+                ->get();
         $issues = DB::table('issues')
-            ->where('pid', '=', Session::get('pid'))
-            ->where('issue_date_inactive', '=', '0000-00-00 00:00:00')
-            ->where(function($issues1) use ($q) {
-                $issues1->where('issue', 'LIKE', "%$q%")
-                ->orWhere('notes', 'LIKE', "%$q%");
-            })
-            ->get();
+                ->where('pid', '=', Session::get('pid'))
+                ->where('issue_date_inactive', '=', '0000-00-00 00:00:00')
+                ->where(function($issues1) use ($q) {
+                    $issues1->where('issue', 'LIKE', "%$q%")
+                    ->orWhere('notes', 'LIKE', "%$q%");
+                })
+                ->get();
         $rx = DB::table('rx_list')
-            ->where('pid', '=', Session::get('pid'))
-            ->where('rxl_date_inactive', '=', '0000-00-00 00:00:00')
-            ->where('rxl_date_old', '=', '0000-00-00 00:00:00')
-            ->where(function($rx1) use ($q) {
-                $rx1->where('rxl_medication', 'LIKE', "%$q%")
-                ->orWhere('rxl_sig', 'LIKE', "%$q%")
-                ->orWhere('rxl_reason', 'LIKE', "%$q%")
-                ->orWhere('rxl_instructions', 'LIKE', "%$q%");
-            })
-            ->get();
+                ->where('pid', '=', Session::get('pid'))
+                ->where('rxl_date_inactive', '=', '0000-00-00 00:00:00')
+                ->where('rxl_date_old', '=', '0000-00-00 00:00:00')
+                ->where(function($rx1) use ($q) {
+                    $rx1->where('rxl_medication', 'LIKE', "%$q%")
+                    ->orWhere('rxl_sig', 'LIKE', "%$q%")
+                    ->orWhere('rxl_reason', 'LIKE', "%$q%")
+                    ->orWhere('rxl_instructions', 'LIKE', "%$q%");
+                })
+                ->get();
         $sup = DB::table('sup_list')
-            ->where('pid', '=', Session::get('pid'))
-            ->where('sup_date_inactive', '=', '0000-00-00 00:00:00')
-            ->where(function($sup1) use ($q) {
-                $sup1->where('sup_supplement', 'LIKE', "%$q%")
-                ->orWhere('sup_sig', 'LIKE', "%$q%")
-                ->orWhere('sup_reason', 'LIKE', "%$q%")
-                ->orWhere('sup_instructions', 'LIKE', "%$q%");
-            })
-            ->get();
+                ->where('pid', '=', Session::get('pid'))
+                ->where('sup_date_inactive', '=', '0000-00-00 00:00:00')
+                ->where(function($sup1) use ($q) {
+                    $sup1->where('sup_supplement', 'LIKE', "%$q%")
+                    ->orWhere('sup_sig', 'LIKE', "%$q%")
+                    ->orWhere('sup_reason', 'LIKE', "%$q%")
+                    ->orWhere('sup_instructions', 'LIKE', "%$q%");
+                })
+                ->get();
         $imm = DB::table('immunizations')
-            ->where('pid', '=', Session::get('pid'))
-            ->where(function($imm1) use ($q) {
-                $imm1->where('imm_immunization', 'LIKE', "%$q%")
-                ->orWhere('imm_sequence', 'LIKE', "%$q%")
-                ->orWhere('imm_manufacturer', 'LIKE', "%$q%");
-            })
-            ->get();
+                ->where('pid', '=', Session::get('pid'))
+                ->where(function($imm1) use ($q) {
+                    $imm1->where('imm_immunization', 'LIKE', "%$q%")
+                    ->orWhere('imm_sequence', 'LIKE', "%$q%")
+                    ->orWhere('imm_manufacturer', 'LIKE', "%$q%");
+                })
+                ->get();
         $orders = DB::table('orders')
-            ->where('pid', '=', Session::get('pid'))
-            ->where(function($orders1) use ($q) {
-                $orders1->where('orders_labs', 'LIKE', "%$q%")
-                ->orWhere('orders_radiology', 'LIKE', "%$q%")
-                ->orWhere('orders_cp', 'LIKE', "%$q%")
-                ->orWhere('orders_referrals', 'LIKE', "%$q%")
-                ->orWhere('orders_notes', 'LIKE', "%$q%");
-            })
-            ->get();
+                ->where('pid', '=', Session::get('pid'))
+                ->where(function($orders1) use ($q) {
+                    $orders1->where('orders_labs', 'LIKE', "%$q%")
+                    ->orWhere('orders_radiology', 'LIKE', "%$q%")
+                    ->orWhere('orders_cp', 'LIKE', "%$q%")
+                    ->orWhere('orders_referrals', 'LIKE', "%$q%")
+                    ->orWhere('orders_notes', 'LIKE', "%$q%");
+                })
+                ->get();
         $encounters = DB::table('encounters')
-            ->join('assessment', 'assessment.eid', '=', 'encounters.eid')
-            ->join('image', 'image.eid', '=', 'encounters.eid')
-            ->join('pe', 'pe.eid', '=', 'encounters.eid')
-            ->join('plan', 'plan.eid', '=', 'encounters.eid')
-            ->join('procedure', 'procedure.eid', '=', 'encounters.eid')
-            ->join('ros', 'ros.eid', '=', 'encounters.eid')
-            ->join('rx', 'rx.eid', '=', 'encounters.eid')
-            ->join('vitals', 'vitals.eid', '=', 'encounters.eid')
-            ->select('encounters.eid', 'encounters.encounter_DOS', 'encounters.encounter_type', 'encounters.encounter_cc', 'encounters.encounter_provider', 'encounters.encounter_template', 'encounters.encounter_signed')
-            ->where('encounters.pid', '=', Session::get('pid'))
-            ->where('encounters.addendum', '=', 'n')
-            ->where(function($encounters1) use ($q) {
-                $encounters1->where('encounters.encounter_type', 'LIKE', "%$q%")
-                ->orWhere('encounters.encounter_cc', 'LIKE', "%$q%")
-                ->orWhere('assessment.assessment_1', 'LIKE', "%$q%")
-                ->orWhere('assessment.assessment_2', 'LIKE', "%$q%")
-                ->orWhere('assessment.assessment_3', 'LIKE', "%$q%")
-                ->orWhere('assessment.assessment_4', 'LIKE', "%$q%")
-                ->orWhere('assessment.assessment_5', 'LIKE', "%$q%")
-                ->orWhere('assessment.assessment_6', 'LIKE', "%$q%")
-                ->orWhere('assessment.assessment_7', 'LIKE', "%$q%")
-                ->orWhere('assessment.assessment_8', 'LIKE', "%$q%")
-                ->orWhere('assessment.assessment_9', 'LIKE', "%$q%")
-                ->orWhere('assessment.assessment_10', 'LIKE', "%$q%")
-                ->orWhere('assessment.assessment_11', 'LIKE', "%$q%")
-                ->orWhere('assessment.assessment_12', 'LIKE', "%$q%")
-                ->orWhere('assessment.assessment_other', 'LIKE', "%$q%")
-                ->orWhere('assessment.assessment_ddx', 'LIKE', "%$q%")
-                ->orWhere('assessment.assessment_notes', 'LIKE', "%$q%")
-                ->orWhere('image.image_description', 'LIKE', "%$q%")
-                ->orWhere('pe.pe', 'LIKE', "%$q%")
-                ->orWhere('plan.plan', 'LIKE', "%$q%")
-                ->orWhere('plan.goals', 'LIKE', "%$q%")
-                ->orWhere('plan.tp', 'LIKE', "%$q%")
-                ->orWhere('procedure.proc_description', 'LIKE', "%$q%")
-                ->orWhere('ros.ros', 'LIKE', "%$q%")
-                ->orWhere('rx.rx_rx', 'LIKE', "%$q%")
-                ->orWhere('rx.rx_supplements', 'LIKE', "%$q%")
-                ->orWhere('rx.rx_immunizations', 'LIKE', "%$q%")
-                ->orWhere('rx.rx_orders_summary', 'LIKE', "%$q%")
-                ->orWhere('rx.rx_supplements_orders_summary', 'LIKE', "%$q%")
-                ->orWhere('vitals.vitals_other', 'LIKE', "%$q%");
-            })
-            ->get();
+                ->join('assessment', 'assessment.eid', '=', 'encounters.eid')
+                ->join('image', 'image.eid', '=', 'encounters.eid')
+                ->join('pe', 'pe.eid', '=', 'encounters.eid')
+                ->join('plan', 'plan.eid', '=', 'encounters.eid')
+                ->join('procedure', 'procedure.eid', '=', 'encounters.eid')
+                ->join('ros', 'ros.eid', '=', 'encounters.eid')
+                ->join('rx', 'rx.eid', '=', 'encounters.eid')
+                ->join('vitals', 'vitals.eid', '=', 'encounters.eid')
+                ->select('encounters.eid', 'encounters.encounter_DOS', 'encounters.encounter_type', 'encounters.encounter_cc', 'encounters.encounter_provider', 'encounters.encounter_template', 'encounters.encounter_signed')
+                ->where('encounters.pid', '=', Session::get('pid'))
+                ->where('encounters.addendum', '=', 'n')
+                ->where(function($encounters1) use ($q) {
+                    $encounters1->where('encounters.encounter_type', 'LIKE', "%$q%")
+                    ->orWhere('encounters.encounter_cc', 'LIKE', "%$q%")
+                    ->orWhere('assessment.assessment_1', 'LIKE', "%$q%")
+                    ->orWhere('assessment.assessment_2', 'LIKE', "%$q%")
+                    ->orWhere('assessment.assessment_3', 'LIKE', "%$q%")
+                    ->orWhere('assessment.assessment_4', 'LIKE', "%$q%")
+                    ->orWhere('assessment.assessment_5', 'LIKE', "%$q%")
+                    ->orWhere('assessment.assessment_6', 'LIKE', "%$q%")
+                    ->orWhere('assessment.assessment_7', 'LIKE', "%$q%")
+                    ->orWhere('assessment.assessment_8', 'LIKE', "%$q%")
+                    ->orWhere('assessment.assessment_9', 'LIKE', "%$q%")
+                    ->orWhere('assessment.assessment_10', 'LIKE', "%$q%")
+                    ->orWhere('assessment.assessment_11', 'LIKE', "%$q%")
+                    ->orWhere('assessment.assessment_12', 'LIKE', "%$q%")
+                    ->orWhere('assessment.assessment_other', 'LIKE', "%$q%")
+                    ->orWhere('assessment.assessment_ddx', 'LIKE', "%$q%")
+                    ->orWhere('assessment.assessment_notes', 'LIKE', "%$q%")
+                    ->orWhere('image.image_description', 'LIKE', "%$q%")
+                    ->orWhere('pe.pe', 'LIKE', "%$q%")
+                    ->orWhere('plan.plan', 'LIKE', "%$q%")
+                    ->orWhere('plan.goals', 'LIKE', "%$q%")
+                    ->orWhere('plan.tp', 'LIKE', "%$q%")
+                    ->orWhere('procedure.proc_description', 'LIKE', "%$q%")
+                    ->orWhere('ros.ros', 'LIKE', "%$q%")
+                    ->orWhere('rx.rx_rx', 'LIKE', "%$q%")
+                    ->orWhere('rx.rx_supplements', 'LIKE', "%$q%")
+                    ->orWhere('rx.rx_immunizations', 'LIKE', "%$q%")
+                    ->orWhere('rx.rx_orders_summary', 'LIKE', "%$q%")
+                    ->orWhere('rx.rx_supplements_orders_summary', 'LIKE', "%$q%")
+                    ->orWhere('vitals.vitals_other', 'LIKE', "%$q%");
+                })
+                ->get();
         $notes = DB::table('demographics_notes')->where('pid', '=', Session::get('pid'))->where('imm_notes', 'LIKE', "%$q%")->get();
         $notes1 = DB::table('demographics_notes')->where('pid', '=', Session::get('pid'))->where('billing_notes', 'LIKE', "%$q%")->get();
         $documents = DB::table('documents')
-            ->where('pid', '=', Session::get('pid'))
-            ->where(function($documents1) use ($q) {
-                $documents1->where('documents_desc', 'LIKE', "%$q%")
-                ->orWhere('documents_from', 'LIKE', "%$q%");
-            })
-            ->get();
+                ->where('pid', '=', Session::get('pid'))
+                ->where(function($documents1) use ($q) {
+                    $documents1->where('documents_desc', 'LIKE', "%$q%")
+                    ->orWhere('documents_from', 'LIKE', "%$q%");
+                })
+                ->get();
         $tests = DB::table('tests')
-            ->where('pid', '=', Session::get('pid'))
-            ->where(function($tests1) use ($q) {
-                $tests1->where('test_name', 'LIKE', "%$q%")
-                ->orWhere('test_from', 'LIKE', "%$q%");
-            })
-            ->get();
+                ->where('pid', '=', Session::get('pid'))
+                ->where(function($tests1) use ($q) {
+                    $tests1->where('test_name', 'LIKE', "%$q%")
+                    ->orWhere('test_from', 'LIKE', "%$q%");
+                })
+                ->get();
         $alerts = DB::table('alerts')
-            ->where('pid', '=', Session::get('pid'))
-            ->where('practice_id', '=', Session::get('practice_id'))
-            ->where('alert_date_complete', '=', '0000-00-00 00:00:00')
-            ->where('alert_reason_not_complete', '=', '')
-            ->where(function($alerts1) use ($q) {
-                $alerts1->where('alert', 'LIKE', "%$q%")
-                ->orWhere('alert_description', 'LIKE', "%$q%");
-            })
-            ->get();
+                ->where('pid', '=', Session::get('pid'))
+                ->where('practice_id', '=', Session::get('practice_id'))
+                ->where('alert_date_complete', '=', '0000-00-00 00:00:00')
+                ->where('alert_reason_not_complete', '=', '')
+                ->where(function($alerts1) use ($q) {
+                    $alerts1->where('alert', 'LIKE', "%$q%")
+                    ->orWhere('alert_description', 'LIKE', "%$q%");
+                })
+                ->get();
         $t_messages_query = DB::table('t_messages')->where('pid', '=', Session::get('pid'));
         if (Session::get('patient_centric') == 'n') {
             $t_messages_query->where('practice_id', '=', Session::get('practice_id'));
@@ -7665,48 +7602,48 @@ class ChartController extends Controller {
             $t_messages_query->where('t_messages_signed', '=', 'Yes');
         }
         $t_messages = $t_messages_query->where(function($t_messages_query1) use ($q) {
-            $t_messages_query1->where('t_messages_subject', 'LIKE', "%$q%")
-            ->orWhere('t_messages_message', 'LIKE', "%$q%");
-            })->get();
+                    $t_messages_query1->where('t_messages_subject', 'LIKE', "%$q%")
+                            ->orWhere('t_messages_message', 'LIKE', "%$q%");
+                })->get();
         $demographics = DB::table('demographics')
-            ->where('pid', '=', Session::get('pid'))
-            ->where(function($demographics1) use ($q) {
-                $demographics1->where('firstname', 'LIKE', "%$q%")
-                ->orWhere('lastname', 'LIKE', "%$q%")
-                ->orWhere('nickname', 'LIKE', "%$q%")
-                ->orWhere('race', 'LIKE', "%$q%")
-                ->orWhere('ethnicity', 'LIKE', "%$q%")
-                ->orWhere('language', 'LIKE', "%$q%")
-                ->orWhere('employer', 'LIKE', "%$q%");
-            })
-            ->get();
+                ->where('pid', '=', Session::get('pid'))
+                ->where(function($demographics1) use ($q) {
+                    $demographics1->where('firstname', 'LIKE', "%$q%")
+                    ->orWhere('lastname', 'LIKE', "%$q%")
+                    ->orWhere('nickname', 'LIKE', "%$q%")
+                    ->orWhere('race', 'LIKE', "%$q%")
+                    ->orWhere('ethnicity', 'LIKE', "%$q%")
+                    ->orWhere('language', 'LIKE', "%$q%")
+                    ->orWhere('employer', 'LIKE', "%$q%");
+                })
+                ->get();
         $demographics_a = DB::table('demographics')
-            ->where('pid', '=', Session::get('pid'))
-            ->where(function($demographics_a1) use ($q) {
-                $demographics_a1->where('address', 'LIKE', "%$q%")
-                ->orWhere('city', 'LIKE', "%$q%")
-                ->orWhere('email', 'LIKE', "%$q%")
-                ->orWhere('emergency_contact', 'LIKE', "%$q%");
-            })
-            ->get();
+                ->where('pid', '=', Session::get('pid'))
+                ->where(function($demographics_a1) use ($q) {
+                    $demographics_a1->where('address', 'LIKE', "%$q%")
+                    ->orWhere('city', 'LIKE', "%$q%")
+                    ->orWhere('email', 'LIKE', "%$q%")
+                    ->orWhere('emergency_contact', 'LIKE', "%$q%");
+                })
+                ->get();
         $demographics_b = DB::table('demographics')
-            ->where('pid', '=', Session::get('pid'))
-            ->where(function($demographics_b1) use ($q) {
-                $demographics_b1->where('guardian_firstname', 'LIKE', "%$q%")
-                ->orWhere('guardian_lastname', 'LIKE', "%$q%")
-                ->orWhere('guardian_address', 'LIKE', "%$q%")
-                ->orWhere('guardian_city', 'LIKE', "%$q%");
-            })
-            ->get();
+                ->where('pid', '=', Session::get('pid'))
+                ->where(function($demographics_b1) use ($q) {
+                    $demographics_b1->where('guardian_firstname', 'LIKE', "%$q%")
+                    ->orWhere('guardian_lastname', 'LIKE', "%$q%")
+                    ->orWhere('guardian_address', 'LIKE', "%$q%")
+                    ->orWhere('guardian_city', 'LIKE', "%$q%");
+                })
+                ->get();
         $demographics_c = DB::table('demographics')
-            ->where('pid', '=', Session::get('pid'))
-            ->where(function($demographics_c1) use ($q) {
-                $demographics_c1->where('preferred_pharmacy', 'LIKE', "%$q%")
-                ->orWhere('comments', 'LIKE', "%$q%")
-                ->orWhere('other1', 'LIKE', "%$q%")
-                ->orWhere('other2', 'LIKE', "%$q%");
-            })
-            ->get();
+                ->where('pid', '=', Session::get('pid'))
+                ->where(function($demographics_c1) use ($q) {
+                    $demographics_c1->where('preferred_pharmacy', 'LIKE', "%$q%")
+                    ->orWhere('comments', 'LIKE', "%$q%")
+                    ->orWhere('other1', 'LIKE', "%$q%")
+                    ->orWhere('other2', 'LIKE', "%$q%");
+                })
+                ->get();
         $tags = DB::table('tags')->where('tag', 'LIKE', "%$q%")->get();
         $encounters_arr = [];
         $t_messages_arr = [];
@@ -7799,11 +7736,11 @@ class ChartController extends Controller {
                         $arr['label'] = '<b>Medication - </b><strong>' . $rx_row->rxl_medication . '</strong> ' . $rx_row->rxl_dosage . ' ' . $rx_row->rxl_dosage_unit . ', ' . $rx_row->rxl_sig . ', ' . $rx_row->rxl_route . ', ' . $rx_row->rxl_frequency . ' for ' . $rx_row->rxl_reason;
                     }
                     $previous = DB::table('rx_list')
-            			->where('pid', '=', Session::get('pid'))
-            			->where('rxl_medication', '=', $rx_row->rxl_medication)
-            			->select('rxl_date_prescribed', 'prescription')
-                        ->orderBy('rxl_date_prescribed', 'desc')
-            			->first();
+                            ->where('pid', '=', Session::get('pid'))
+                            ->where('rxl_medication', '=', $rx_row->rxl_medication)
+                            ->select('rxl_date_prescribed', 'prescription')
+                            ->orderBy('rxl_date_prescribed', 'desc')
+                            ->first();
                     if ($previous) {
                         if ($previous->rxl_date_prescribed !== null && $previous->rxl_date_prescribed !== '0000-00-00 00:00:00') {
                             $previous_date = new Date($this->human_to_unix($previous->rxl_date_prescribed));
@@ -7855,7 +7792,7 @@ class ChartController extends Controller {
                     $arr['label'] = '<b>Immunization - ' . $imm_row->imm_immunization . '</b> - ' . date('Y-m-d', $this->human_to_unix($imm_row->imm_date));
                     if (isset($imm_row->imm_sequence)) {
                         if (isset($seq_array[$imm_row->imm_sequence])) {
-                            $arr['label'] = '<b>Immunization - ' . $imm_row->imm_immunization . $seq_array[$imm_row->imm_sequence]  . '</b> - ' . date('Y-m-d', $this->human_to_unix($imm_row->imm_date));
+                            $arr['label'] = '<b>Immunization - ' . $imm_row->imm_immunization . $seq_array[$imm_row->imm_sequence] . '</b> - ' . date('Y-m-d', $this->human_to_unix($imm_row->imm_date));
                         }
                     }
                     if ($edit1 == true) {
@@ -8045,14 +7982,13 @@ class ChartController extends Controller {
         return view('chart', $data);
     }
 
-    public function social_history(Request $request)
-    {
+    public function social_history(Request $request) {
         $data['message_action'] = Session::get('message_action');
         Session::forget('message_action');
         $recent_query = DB::table('other_history')
-            ->where('pid', '=', Session::get('pid'))
-            ->where('eid', '!=', '0')
-            ->orderBy('eid', 'desc');
+                ->where('pid', '=', Session::get('pid'))
+                ->where('eid', '!=', '0')
+                ->orderBy('eid', 'desc');
         $recent_oh_sh = $recent_query->whereNotNull('oh_sh')->first();
         $recent_oh_etoh = $recent_query->whereNotNull('oh_etoh')->first();
         $recent_oh_tobacco = $recent_query->whereNotNull('oh_tobacco')->first();
@@ -8166,8 +8102,7 @@ class ChartController extends Controller {
         return view('chart', $data);
     }
 
-    public function supplements_list(Request $request, $type)
-    {
+    public function supplements_list(Request $request, $type) {
         $data['message_action'] = Session::get('message_action');
         Session::forget('message_action');
         $query = DB::table('sup_list')->where('pid', '=', Session::get('pid'))->orderBy('sup_supplement', 'asc');
@@ -8208,7 +8143,7 @@ class ChartController extends Controller {
                 if ($row->sup_sig == '') {
                     $arr['label'] = $row->sup_supplement . ' ' . $row->sup_dosage . ' ' . $row->sup_dosage_unit . ', ' . $row->sup_instructions . ' for ' . $row->sup_reason;
                 } else {
-                    $arr['label'] =$row->sup_supplement . ' ' . $row->sup_dosage . ' ' . $row->sup_dosage_unit . ', ' . $row->sup_sig . ', ' . $row->sup_route . ', ' . $row->sup_frequency . ' for ' . $row->sup_reason;
+                    $arr['label'] = $row->sup_supplement . ' ' . $row->sup_dosage . ' ' . $row->sup_dosage_unit . ', ' . $row->sup_sig . ', ' . $row->sup_route . ', ' . $row->sup_frequency . ' for ' . $row->sup_reason;
                 }
                 if ($edit == true) {
                     $arr['edit'] = route('chart_form', ['sup_list', $row_index, $row->$row_index]);
@@ -8288,8 +8223,7 @@ class ChartController extends Controller {
         return view('chart', $data);
     }
 
-    public function t_messages_list(Request $request)
-    {
+    public function t_messages_list(Request $request) {
         $data['message_action'] = Session::get('message_action');
         Session::forget('message_action');
         $query = DB::table('t_messages')->where('pid', '=', Session::get('pid'))->orderBy('t_messages_dos', 'desc');
@@ -8343,8 +8277,7 @@ class ChartController extends Controller {
         return view('chart', $data);
     }
 
-    public function t_message_view(Request $request, $t_messages_id)
-    {
+    public function t_message_view(Request $request, $t_messages_id) {
         $data['message_action'] = Session::get('message_action');
         Session::forget('message_action');
         $message = DB::table('t_messages')->where('t_messages_id', '=', $t_messages_id)->first();
@@ -8388,15 +8321,14 @@ class ChartController extends Controller {
         $data['panel_dropdown'] = $this->dropdown_build($dropdown_array);
         $data['content'] = $return;
         $data['t_messages_active'] = true;
-        $data['panel_header'] = 'Message - ' .  date('Y-m-d', $this->human_to_unix($message->t_messages_dos));
+        $data['panel_header'] = 'Message - ' . date('Y-m-d', $this->human_to_unix($message->t_messages_dos));
         $data = array_merge($data, $this->sidebar_build('chart'));
         $data['assets_js'] = $this->assets_js('chart');
         $data['assets_css'] = $this->assets_css('chart');
         return view('chart', $data);
     }
 
-    public function treedata(Request $request)
-    {
+    public function treedata(Request $request) {
         $oh = DB::table('other_history')->where('pid', '=', Session::get('pid'))->where('eid', '=', '0')->first();
         $ret_arr = $this->treedata_build([], 'patient', [], [], 0);
         $nodes_arr = $ret_arr[0];
@@ -8429,8 +8361,7 @@ class ChartController extends Controller {
         return $arr;
     }
 
-    public function uma_invite(Request $request)
-    {
+    public function uma_invite(Request $request) {
         if ($request->isMethod('post')) {
             $this->validate($request, [
                 'email' => 'required_without_all:sms',
@@ -8441,10 +8372,12 @@ class ChartController extends Controller {
             $data_message['patient'] = Session::get('displayname');
             if ($request->input('email') !== '') {
                 $email = $request->input('email');
-                $mesg  = $this->send_mail('emails.apiregister', $data_message, 'URGENT: Invitation to access the personal electronic medical record of ' . Session::get('displayname'), $request->input('email'), '1');
+                $mesg = $this->send_mail('emails.apiregister', $data_message, 'URGENT: Invitation to access the personal electronic medical record of '
+                        . Session::get('displayname'), $request->input('email'), '1');
             } else {
                 $email = $request->input('sms');
-                $message = "You've been invited to use" . $data_message['patient'] . "'s personal health record.  Go to " . $data_message['temp_url'] . " to register";
+                $message = "You've been invited to use" . $data_message['patient']
+                        . "'s personal health record.  Go to " . $data_message['temp_url'] . " to register";
                 $url = 'http://textbelt.com/text';
                 $message1 = http_build_query([
                     'number' => $request->input('sms'),
@@ -8455,14 +8388,14 @@ class ChartController extends Controller {
                 curl_setopt($ch, CURLOPT_POST, 1);
                 curl_setopt($ch, CURLOPT_POSTFIELDS, $message1);
                 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-                $output = curl_exec ($ch);
-                curl_close ($ch);
+                $output = curl_exec($ch);
+                curl_close($ch);
             }
             $data = [
                 'email' => $request->input('email'),
                 'name' => $request->input('name'),
                 'invitation_timeout' => time() + 259200
-                // 'resource_set_ids' => $resource_set_ids
+                    // 'resource_set_ids' => $resource_set_ids
             ];
             DB::table('uma_invitation')->insert($data);
             $this->audit('Add');
@@ -8504,8 +8437,7 @@ class ChartController extends Controller {
         }
     }
 
-    public function uma_register(Request $request)
-    {
+    public function uma_register(Request $request) {
         if ($request->isMethod('post')) {
             $this->validate($request, [
                 'email' => 'required|email'
@@ -8517,14 +8449,14 @@ class ChartController extends Controller {
             // webfinger
             $url = 'https://' . $domain[1] . '/.well-known/webfinger';
             $query_string = 'resource=acct:' . $request->input('email') . '&rel=http://openid.net/specs/connect/1.0/issuer';
-            $url .= '?' . $query_string ;
+            $url .= '?' . $query_string;
             $ch = curl_init();
-            curl_setopt($ch,CURLOPT_URL, $url);
-            curl_setopt($ch,CURLOPT_FAILONERROR,1);
-            curl_setopt($ch,CURLOPT_FOLLOWLOCATION,1);
-            curl_setopt($ch,CURLOPT_RETURNTRANSFER,1);
-            curl_setopt($ch,CURLOPT_TIMEOUT, 60);
-            curl_setopt($ch,CURLOPT_CONNECTTIMEOUT ,0);
+            curl_setopt($ch, CURLOPT_URL, $url);
+            curl_setopt($ch, CURLOPT_FAILONERROR, 1);
+            curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 60);
+            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 0);
             $result = curl_exec($ch);
             $result_array = json_decode($result, true);
             curl_close($ch);
@@ -8532,7 +8464,7 @@ class ChartController extends Controller {
                 $as_uri = $result_array['links'][0]['href'];
                 // $client_name = 'mdNOSH';
                 $practice = DB::table('practiceinfo')->where('practice_id', '=', Session::get('practice_id'))->first();
-                $client_name = 'mdNOSH - ' . $practice->practice_name;
+                $client_name = 'mdCare - ' . $practice->practice_name;
                 $url1 = route('uma_auth');
                 $oidc = new OpenIDConnectClient($as_uri);
                 $oidc->setClientName($client_name);
@@ -8564,6 +8496,7 @@ class ChartController extends Controller {
                 return redirect()->back()->withErrors(['tryagain' => 'Try again']);
             }
         } else {
+            $data = [];
             $data = array_merge($data, $this->sidebar_build('chart'));
             $data['assets_js'] = $this->assets_js('chart');
             $data['assets_css'] = $this->assets_css('chart');
@@ -8571,8 +8504,7 @@ class ChartController extends Controller {
         }
     }
 
-    public function uma_register_auth(Request $request)
-    {
+    public function uma_register_auth(Request $request) {
         $url = route('uma_register_auth');
         $open_id_url = Session::get('pnosh_url');
         $client_id = Session::get('pnosh_client_id');
@@ -8605,15 +8537,14 @@ class ChartController extends Controller {
         DB::table('refresh_tokens')->insert($refresh);
         $this->audit('Add');
         $data['panel_header'] = 'Health information exchange consent successful';
-        $data1['content'] = '<p>You may now close this window or <a href="' . Session::get('pnosh_url') .'/home">view your patient-centered health record.</a></p>';
+        $data1['content'] = '<p>You may now close this window or <a href="' . Session::get('pnosh_url') . '/home">view your patient-centered health record.</a></p>';
         $data = array_merge($data, $this->sidebar_build('chart'));
         $data['assets_js'] = $this->assets_js('chart');
         $data['assets_css'] = $this->assets_css('chart');
         return view('chart', $data);
     }
 
-    public function upload_ccda(Request $request)
-    {
+    public function upload_ccda(Request $request) {
         if ($request->isMethod('post')) {
             $pid = Session::get('pid');
             $directory = Session::get('documents_dir') . $pid;
@@ -8656,11 +8587,10 @@ class ChartController extends Controller {
         }
     }
 
-    public function upload_ccda_view(Request $request, $id, $type='issues')
-    {
+    public function upload_ccda_view(Request $request, $id, $type = 'issues') {
         $documents = DB::table('documents')->where('documents_id', '=', $id)->first();
         if ($documents->documents_type == 'ccda') {
-            $data['ccda'] = str_replace("'", '"', preg_replace( "/\r|\n/", "", File::get($documents->documents_url)));
+            $data['ccda'] = str_replace("'", '"', preg_replace("/\r|\n/", "", File::get($documents->documents_url)));
         }
         $data['message_action'] = Session::get('message_action');
         Session::forget('message_action');
@@ -8703,14 +8633,14 @@ class ChartController extends Controller {
         $list_array = [];
         if ($result->count()) {
             if ($type == 'issues') {
-                foreach($result as $row) {
+                foreach ($result as $row) {
                     $arr = [];
                     $arr['label'] = $row->issue;
                     $list_array[] = $arr;
                 }
             }
             if ($type == 'rx_list') {
-                foreach($result as $row) {
+                foreach ($result as $row) {
                     $arr = [];
                     if ($row->rxl_sig == '') {
                         $arr['label'] = $row->rxl_medication . ' ' . $row->rxl_dosage . ' ' . $row->rxl_dosage_unit . ', ' . $row->rxl_instructions . ' for ' . $row->rxl_reason;
@@ -8830,7 +8760,7 @@ class ChartController extends Controller {
                 if (isset($xml->Body->Immunizations)) {
                     foreach ($xml->Body->Immunizations->Immunization as $imm) {
                         if (strpos((string) $imm->Product->ProductName->Text, '#')) {
-                            $items = explode('#',(string) $imm->Product->ProductName->Text);
+                            $items = explode('#', (string) $imm->Product->ProductName->Text);
                             $imm_immunization = rtrim($items[0]);
                             $imm_sequence = $items[1];
                         } else {
@@ -8843,7 +8773,7 @@ class ChartController extends Controller {
                         $arr['danger'] = true;
                         $arr['label_data_arr'] = [
                             'data-nosh-type' => 'immunizations',
-                            'data-nosh-name' =>  $imm_immunization,
+                            'data-nosh-name' => $imm_immunization,
                             'data-nosh-route' => '',
                             'data-nosh-date' => (string) $imm->DateTime->ApproximateDateTime,
                             'data-nosh-sequence' => $imm_sequence
@@ -8888,8 +8818,7 @@ class ChartController extends Controller {
         return view('chart', $data);
     }
 
-    public function upload_ccr(Request $request)
-    {
+    public function upload_ccr(Request $request) {
         if ($request->isMethod('post')) {
             $pid = Session::get('pid');
             $directory = Session::get('documents_dir') . $pid;
@@ -8938,79 +8867,28 @@ class ChartController extends Controller {
         }
     }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    public function ccda($hippa_id)
-    {
+    public function ccda($hippa_id) {
         $pid = Session::get('pid');
         $practice_id = Session::get('practice_id');
-        $file_path = __DIR__.'/../../public/temp/ccda_' . $pid . "_" . time() . ".xml";
+        $file_path = __DIR__ . '/../../public/temp/ccda_' . $pid . "_" . time() . ".xml";
         $ccda = $this->generate_ccda($hippa_id);
         File::put($file_path, $ccda);
         return Response::download($file_path);
     }
 
-
-
-    public function export_demographics($type)
-    {
+    public function export_demographics($type) {
         $practice_id = Session::get('practice_id');
         if ($type == "all") {
             $query = DB::table('demographics')
-                ->join('demographics_relate', 'demographics_relate.pid', '=', 'demographics.pid')
-                ->where('demographics_relate.practice_id', '=', $practice_id)
-                ->get();
+                    ->join('demographics_relate', 'demographics_relate.pid', '=', 'demographics.pid')
+                    ->where('demographics_relate.practice_id', '=', $practice_id)
+                    ->get();
         } else {
             $query = DB::table('demographics')
-                ->join('demographics_relate', 'demographics_relate.pid', '=', 'demographics.pid')
-                ->where('demographics_relate.practice_id', '=', $practice_id)
-                ->where('demographics.active', '=', '1')
-                ->get();
+                    ->join('demographics_relate', 'demographics_relate.pid', '=', 'demographics.pid')
+                    ->where('demographics_relate.practice_id', '=', $practice_id)
+                    ->where('demographics.active', '=', '1')
+                    ->get();
         }
         $i = 0;
         $csv = '';
@@ -9025,8 +8903,9 @@ class ChartController extends Controller {
                 $csv .= "\n" . implode(',', $array_values);
             }
         }
-        $file_path = __DIR__."/../../public/temp/" . time() . "_demographics.txt";
+        $file_path = __DIR__ . "/../../public/temp/" . time() . "_demographics.txt";
         File::put($file_path, $csv);
         return Response::download($file_path);
     }
+
 }

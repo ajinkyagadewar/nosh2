@@ -28,17 +28,15 @@ use SoapBox\Formatter\Formatter;
 use URL;
 use ZipArchive;
 
-class CoreController extends Controller
-{
-    public function __construct()
-    {
+class CoreController extends Controller {
+
+    public function __construct() {
         $this->middleware('checkinstall');
         $this->middleware('auth');
         $this->middleware('postauth');
     }
 
-    public function add_patient(Request $request)
-    {
+    public function add_patient(Request $request) {
         if ($request->isMethod('post')) {
             $practice_id = Session::get('practice_id');
             $data = [
@@ -119,8 +117,7 @@ class CoreController extends Controller
         }
     }
 
-    public function addressbook(Request $request, $type)
-    {
+    public function addressbook(Request $request, $type) {
         $data['message_action'] = Session::get('message_action');
         Session::forget('message_action');
         $return = '';
@@ -198,76 +195,75 @@ class CoreController extends Controller
         return view('core', $data);
     }
 
-    public function api_practice(Request $request)
-	{
+    public function api_practice(Request $request) {
         $practice_id = Session::get('practice_id');
         if ($request->isMethod('post')) {
             if ($request->input('submit') !== 'no_sync') {
-        		$url_check = false;
-        		$url_reason = '';
-        		$api_key = uniqid('nosh', true);
-        		$register_code = uniqid();
-        		$patient_portal = DB::table('practiceinfo')->where('practice_id', '=', '1')->first();
-        		$patient = DB::table('demographics')->first();
-        		$register_data = json_decode(json_encode($patient), true);
-        		$register_data['api_key'] = $api_key;
-        		$register_data['url'] = URL::to('/');
-        		$pos = stripos($request->input('practice_url'), 'care.drjio.com');
-        		if ($pos !== false) {
-        			$url_explode = explode('/', $request->input('practice_url'));
-        			$url = 'https://care.drjio.com/api_check/' . $url_explode[5];
-        			$url1 = 'https://care.drjio.com/api_register';
-        			$register_data['practicehandle'] = $url_explode[5];
-        		} else {
-        			$url = $request->input('practice_url') . '/api_check/0';
-        			$url1 = $request->input('practice_url') . '/api_register';
-        			$register_data['practicehandle'] = '0';
-        		}
-        		$ch = curl_init();
-        		curl_setopt($ch,CURLOPT_URL, $url);
-        		curl_setopt($ch,CURLOPT_FAILONERROR,1);
-        		curl_setopt($ch,CURLOPT_FOLLOWLOCATION,1);
-        		curl_setopt($ch,CURLOPT_RETURNTRANSFER,1);
-        		curl_setopt($ch,CURLOPT_TIMEOUT, 60);
-        		curl_setopt($ch,CURLOPT_CONNECTTIMEOUT ,0);
-        		$result = curl_exec($ch);
-        		if(curl_errno($ch)){
-        			$url_reason = 'Error: ' . curl_error($ch);
-        		} else {
-        			if ($result !== 'No') {
-        				$url_check = true;
-        			} else {
-        				$url_reason = 'mdNOSH is not set up to accept API connections.  Please update the mdNOSH installation.';
-        			}
-        		}
-        		if ($url_check == false) {
-        			$status = 'n';
-        			//$data_message['temp_url'] = rtrim($patient_portal->patient_portal, '/') . '/practiceregister/' . $register_code;
-        			$message = 'Error: Problem with contacting the URL problem for NOSH integration.  Please check if you have NOSH and that the URL provided is correct.';
-        			if ($url_reason != '') {
-        				$message .= '  ' . $url_reason;
-        			}
-        		} else {
-        			$data = [
-        				'practice_api_key' => $api_key,
-        				'active' => 'Y',
-        				'practice_registration_key' => $register_code,
-        				'practice_registration_timeout' => time() + 86400,
-        				'practice_api_url' => $request->input('practice_url')
-        			];
-        			DB::table('practiceinfo')->where('practice_id', '=', $practice_id)->update($data);
+                $url_check = false;
+                $url_reason = '';
+                $api_key = uniqid('nosh', true);
+                $register_code = uniqid();
+                $patient_portal = DB::table('practiceinfo')->where('practice_id', '=', '1')->first();
+                $patient = DB::table('demographics')->first();
+                $register_data = json_decode(json_encode($patient), true);
+                $register_data['api_key'] = $api_key;
+                $register_data['url'] = URL::to('/');
+                $pos = stripos($request->input('practice_url'), 'care.drjio.com');
+                if ($pos !== false) {
+                    $url_explode = explode('/', $request->input('practice_url'));
+                    $url = 'https://care.drjio.com/api_check/' . $url_explode[5];
+                    $url1 = 'https://care.drjio.com/api_register';
+                    $register_data['practicehandle'] = $url_explode[5];
+                } else {
+                    $url = $request->input('practice_url') . '/api_check/0';
+                    $url1 = $request->input('practice_url') . '/api_register';
+                    $register_data['practicehandle'] = '0';
+                }
+                $ch = curl_init();
+                curl_setopt($ch, CURLOPT_URL, $url);
+                curl_setopt($ch, CURLOPT_FAILONERROR, 1);
+                curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
+                curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+                curl_setopt($ch, CURLOPT_TIMEOUT, 60);
+                curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 0);
+                $result = curl_exec($ch);
+                if (curl_errno($ch)) {
+                    $url_reason = 'Error: ' . curl_error($ch);
+                } else {
+                    if ($result !== 'No') {
+                        $url_check = true;
+                    } else {
+                        $url_reason = 'mdNOSH is not set up to accept API connections.  Please update the mdNOSH installation.';
+                    }
+                }
+                if ($url_check == false) {
+                    $status = 'n';
+                    //$data_message['temp_url'] = rtrim($patient_portal->patient_portal, '/') . '/practiceregister/' . $register_code;
+                    $message = 'Error: Problem with contacting the URL problem for NOSH integration.  Please check if you have NOSH and that the URL provided is correct.';
+                    if ($url_reason != '') {
+                        $message .= '  ' . $url_reason;
+                    }
+                } else {
+                    $data = [
+                        'practice_api_key' => $api_key,
+                        'active' => 'Y',
+                        'practice_registration_key' => $register_code,
+                        'practice_registration_timeout' => time() + 86400,
+                        'practice_api_url' => $request->input('practice_url')
+                    ];
+                    DB::table('practiceinfo')->where('practice_id', '=', $practice_id)->update($data);
                     $this->audit('Update');
-        			$data2['api_key'] = $api_key;
-        			DB::table('demographics_relate')->where('practice_id', '=', $practice_id)->where('pid', '=', $patient->pid)->update($data2);
-        			$this->audit('Update');
-        			//$data_message['temp_url'] = rtrim($patient_portal->patient_portal, '/') . '/practiceregisternosh/' . $register_code;
-        			// Send API key to mdNOSH;
-        			$result = $this->api_data_send($url1, $register_data, '', '');
-        			$status = 'y';
-        			$message = 'Practice added with mdNOSH integration.';
-        			$message .= '  Response from server: ' . $result['status'];
-        		}
-    		    //$this->send_mail('emails.apiregister', $data_message, 'DrJio Care System API Registration', $request->input('email'), '1');
+                    $data2['api_key'] = $api_key;
+                    DB::table('demographics_relate')->where('practice_id', '=', $practice_id)->where('pid', '=', $patient->pid)->update($data2);
+                    $this->audit('Update');
+                    //$data_message['temp_url'] = rtrim($patient_portal->patient_portal, '/') . '/practiceregisternosh/' . $register_code;
+                    // Send API key to mdNOSH;
+                    $result = $this->api_data_send($url1, $register_data, '', '');
+                    $status = 'y';
+                    $message = 'Practice added with mdNOSH integration.';
+                    $message .= '  Response from server: ' . $result['status'];
+                }
+                //$this->send_mail('emails.apiregister', $data_message, 'DrJio Care System API Registration', $request->input('email'), '1');
             } else {
                 $data3['practice_api_url'] = 'nosync';
                 DB::table('practiceinfo')->where('practice_id', '=', $practice_id)->update($data);
@@ -309,10 +305,9 @@ class CoreController extends Controller
             $data['assets_css'] = $this->assets_css();
             return view('core', $data);
         }
-	}
+    }
 
-    public function audit_logs(Request $request)
-    {
+    public function audit_logs(Request $request) {
         $query = DB::table('audit')->where('practice_id', '=', Session::get('practice_id'))->orderBy('timestamp', 'desc')->paginate(20);
         if ($query->count()) {
             $list_array = [];
@@ -334,8 +329,7 @@ class CoreController extends Controller
         return view('core', $data);
     }
 
-    public function billing_list(Request $request, $type, $pid)
-    {
+    public function billing_list(Request $request, $type, $pid) {
         if (Session::has('pid')) {
             if (Session::get('pid') !== $pid) {
                 $this->setpatient($pid);
@@ -511,8 +505,7 @@ class CoreController extends Controller
         return view('chart', $data);
     }
 
-    public function core_action(Request $request, $table, $action, $id, $index, $subtype='')
-    {
+    public function core_action(Request $request, $table, $action, $id, $index, $subtype = '') {
         $date_convert_array = [
             'imm_expiration',
             'date_purchase',
@@ -598,10 +591,10 @@ class CoreController extends Controller
         if ($table == 'addressbook') {
             $data['displayname'] = $request->input('facility');
             if ($subtype == 'Referral') {
-                if($request->input('firstname') == '' && $request->input('lastname') == '') {
+                if ($request->input('firstname') == '' && $request->input('lastname') == '') {
                     $data['displayname'] = $request->input('facility');
                 } else {
-                    if($request->input('suffix') == '') {
+                    if ($request->input('suffix') == '') {
                         $data['displayname'] = $request->input('firstname') . ' ' . $request->input('lastname');
                     } else {
                         $data['displayname'] = $request->input('firstname') . ' ' . $request->input('lastname') . ', ' . $request->input('suffix');
@@ -677,7 +670,7 @@ class CoreController extends Controller
                         }
                         DB::table('messaging')->insert($send_data);
                         $this->audit('Add');
-                        $user_row = DB::table('users')->where('id', '=',$mailbox_row)->first();
+                        $user_row = DB::table('users')->where('id', '=', $mailbox_row)->first();
                         if ($user_row->group_id === '100') {
                             $data_message['patient_portal'] = $practice->patient_portal;
                             $this->send_mail('emails.newmessage', $data_message, 'New Message in your Patient Portal', $user_row->email, Session::get('practice_id'));
@@ -750,7 +743,7 @@ class CoreController extends Controller
                 if ($id == '0') {
                     $this->validate($request, [
                         'username' => 'unique:users,username',
-                        // 'email' => 'required|unique:users,email'
+                            // 'email' => 'required|unique:users,email'
                     ]);
                     // For new users, invitation code will be generated and queried upon acceptance of invite
                     $data['password'] = $this->gen_secret();
@@ -760,7 +753,7 @@ class CoreController extends Controller
                     $this->send_mail('auth.emails.generic', $email, 'Invitation to DrJio Care System', $data['email'], Session::get('practice_id'));
                 }
                 $data['displayname'] = $data['firstname'] . " " . $data['lastname'];
-                if ($data['title'] !== ''){
+                if ($data['title'] !== '') {
                     $data['displayname'] = $data['firstname'] . " " . $data['lastname'] . ", " . $data['title'];
                 }
                 if ($subtype == '2') {
@@ -903,8 +896,7 @@ class CoreController extends Controller
         return redirect(Session::get('last_page'));
     }
 
-    public function core_form(Request $request, $table, $index, $id, $subtype='')
-    {
+    public function core_form(Request $request, $table, $index, $id, $subtype = '') {
         if ($id == '0') {
             $result = [];
             $items[] = [
@@ -1035,7 +1027,7 @@ class CoreController extends Controller
                 $data['search_specialty'] = 'specialty';
             }
             if ($id == '0') {
-                $data['panel_header'] = 'New ' . $user_arr[$subtype]. ' User';
+                $data['panel_header'] = 'New ' . $user_arr[$subtype] . ' User';
             } else {
                 $data['panel_header'] = 'Edit ' . $user_arr[$subtype] . ' User';
             }
@@ -1094,8 +1086,7 @@ class CoreController extends Controller
         }
     }
 
-    public function configure_form_delete(Request $request, $type)
-    {
+    public function configure_form_delete(Request $request, $type) {
         $user = DB::table('users')->where('id', '=', Session::get('user_id'))->first();
         $formatter = Formatter::make($user->forms, Formatter::YAML);
         $array = $formatter->toArray();
@@ -1107,8 +1098,7 @@ class CoreController extends Controller
         return redirect()->route('configure_form_list');
     }
 
-    public function configure_form_details(Request $request, $type)
-    {
+    public function configure_form_details(Request $request, $type) {
         $id = Session::get('user_id');
         $user = DB::table('users')->where('id', '=', $id)->first();
         $formatter = Formatter::make($user->forms, Formatter::YAML);
@@ -1159,7 +1149,7 @@ class CoreController extends Controller
                 if (isset($array[$type]['scoring'])) {
                     $data['content'] .= '<div class="alert alert-success"><h5>Scoring Algorithm</h5><ul>';
                     $forms_scoring_arr = [];
-                    foreach ($array[$type]['scoring'] as $score_row_k=>$score_row_v) {
+                    foreach ($array[$type]['scoring'] as $score_row_k => $score_row_v) {
                         $data['content'] .= '<li>' . $score_row_k . ': ' . $score_row_v . '</li>';
                     }
                     $data['content'] .= '</ul></div>';
@@ -1205,14 +1195,14 @@ class CoreController extends Controller
             ];
             $data['content'] .= $this->form_build($form_array);
             $dropdown_array1 = [
-               'items_button_icon' => 'fa-cog'
+                'items_button_icon' => 'fa-cog'
             ];
             $items1 = [];
             $items1[] = [
-               'type' => 'item',
-               'label' => 'Configure Scoring Algorithm',
-               'icon' => 'fa-cog',
-               'url' => route('configure_form_scoring_list', [$type])
+                'type' => 'item',
+                'label' => 'Configure Scoring Algorithm',
+                'icon' => 'fa-cog',
+                'url' => route('configure_form_scoring_list', [$type])
             ];
             $dropdown_array1['items'] = $items1;
             $data['panel_dropdown'] = $this->dropdown_build($dropdown_array1);
@@ -1224,8 +1214,7 @@ class CoreController extends Controller
         }
     }
 
-    public function configure_form_edit(Request $request, $type, $item)
-    {
+    public function configure_form_edit(Request $request, $type, $item) {
         $id = Session::get('user_id');
         $user = DB::table('users')->where('id', '=', $id)->first();
         $formatter = Formatter::make($user->forms, Formatter::YAML);
@@ -1309,8 +1298,7 @@ class CoreController extends Controller
         }
     }
 
-    public function configure_form_list(Request $request)
-    {
+    public function configure_form_list(Request $request) {
         $list_array = [];
         $return = '';
         $user = DB::table('users')->where('id', '=', Session::get('user_id'))->first();
@@ -1337,14 +1325,14 @@ class CoreController extends Controller
             $return .= ' None.';
         }
         $dropdown_array1 = [
-           'items_button_icon' => 'fa-plus'
+            'items_button_icon' => 'fa-plus'
         ];
         $items1 = [];
         $items1[] = [
-           'type' => 'item',
-           'label' => 'Add Form',
-           'icon' => 'fa-plus',
-           'url' => route('configure_form_details', ['0'])
+            'type' => 'item',
+            'label' => 'Add Form',
+            'icon' => 'fa-plus',
+            'url' => route('configure_form_details', ['0'])
         ];
         $dropdown_array1['items'] = $items1;
         $data['panel_dropdown'] = $this->dropdown_build($dropdown_array1);
@@ -1355,8 +1343,7 @@ class CoreController extends Controller
         return view('core', $data);
     }
 
-    public function configure_form_remove(Request $request, $type, $item)
-    {
+    public function configure_form_remove(Request $request, $type, $item) {
         $user = DB::table('users')->where('id', '=', Session::get('user_id'))->first();
         $formatter = Formatter::make($user->forms, Formatter::YAML);
         $array = $formatter->toArray();
@@ -1368,8 +1355,7 @@ class CoreController extends Controller
         return redirect()->route('configure_form_show', [$type]);
     }
 
-    public function configure_form_scoring(Request $request, $type, $item)
-    {
+    public function configure_form_scoring(Request $request, $type, $item) {
         $id = Session::get('user_id');
         $user = DB::table('users')->where('id', '=', $id)->first();
         $formatter = Formatter::make($user->forms, Formatter::YAML);
@@ -1440,8 +1426,7 @@ class CoreController extends Controller
         }
     }
 
-    public function configure_form_scoring_delete(Request $request, $type, $item)
-    {
+    public function configure_form_scoring_delete(Request $request, $type, $item) {
         $id = Session::get('user_id');
         $user = DB::table('users')->where('id', '=', $id)->first();
         $formatter = Formatter::make($user->forms, Formatter::YAML);
@@ -1454,8 +1439,7 @@ class CoreController extends Controller
         return redirect()->route('configure_form_scoring_list', [$type]);
     }
 
-    public function configure_form_scoring_list(Request $request, $type)
-    {
+    public function configure_form_scoring_list(Request $request, $type) {
         $return = '';
         $data['panel_header'] = 'Configure Scoring Algorithm';
         $id = Session::get('user_id');
@@ -1481,14 +1465,14 @@ class CoreController extends Controller
         ];
         $data['panel_dropdown'] = $this->dropdown_build($dropdown_array);
         $dropdown_array1 = [
-           'items_button_icon' => 'fa-plus'
+            'items_button_icon' => 'fa-plus'
         ];
         $items1 = [];
         $items1[] = [
-           'type' => 'item',
-           'label' => '',
-           'icon' => 'fa-plus',
-           'url' => route('configure_form_scoring', [$type, 'new'])
+            'type' => 'item',
+            'label' => '',
+            'icon' => 'fa-plus',
+            'url' => route('configure_form_scoring', [$type, 'new'])
         ];
         $dropdown_array1['items'] = $items1;
         $data['panel_dropdown'] .= '<span class="fa-btn"></span>' . $this->dropdown_build($dropdown_array1);
@@ -1499,8 +1483,7 @@ class CoreController extends Controller
         return view('core', $data);
     }
 
-    public function configure_form_show(Request $request, $type)
-    {
+    public function configure_form_show(Request $request, $type) {
         $user = DB::table('users')->where('id', '=', Session::get('user_id'))->first();
         $formatter = Formatter::make($user->forms, Formatter::YAML);
         $array = $formatter->toArray();
@@ -1519,7 +1502,7 @@ class CoreController extends Controller
                     if (isset($row_v['options'])) {
                         $options_arr = explode(',', $row_v['options']);
                         foreach ($options_arr as $options_item)
-                        $options[$options_item] = $options_item;
+                            $options[$options_item] = $options_item;
                     }
                     if ($row_v['input'] == 'select') {
                         $form_item['select_items'] = $options;
@@ -1564,8 +1547,7 @@ class CoreController extends Controller
         return view('core', $data);
     }
 
-    public function dashboard(Request $request)
-    {
+    public function dashboard(Request $request) {
         $data['title'] = 'DrJio Care System';
         $user_id = Session::get('user_id');
         if (Session::get('group_id') == '100') {
@@ -1593,42 +1575,42 @@ class CoreController extends Controller
             }
             $data['number_appts'] = $this->getNumberAppts($user_id);
             $data['number_t_messages'] = DB::table('t_messages')
-                ->join('demographics', 't_messages.pid', '=', 'demographics.pid')
-                ->where('t_messages.t_messages_from', '=', $from)
-                ->where('t_messages.t_messages_signed', '=', 'No')
-                ->count();
+                    ->join('demographics', 't_messages.pid', '=', 'demographics.pid')
+                    ->where('t_messages.t_messages_from', '=', $from)
+                    ->where('t_messages.t_messages_signed', '=', 'No')
+                    ->count();
             $data['number_encounters'] = DB::table('encounters')
-                ->join('demographics', 'encounters.pid', '=', 'demographics.pid')
-                ->where('encounters.encounter_provider', '=', $displayname)
-                ->where('encounters.encounter_signed', '=', 'No')
-                ->count();
+                    ->join('demographics', 'encounters.pid', '=', 'demographics.pid')
+                    ->where('encounters.encounter_provider', '=', $displayname)
+                    ->where('encounters.encounter_signed', '=', 'No')
+                    ->count();
             $data['number_reminders'] = DB::table('alerts')
-                ->join('demographics', 'alerts.pid', '=', 'demographics.pid')
-                ->where('alerts.alert_provider', '=', $user_id)
-                ->where('alerts.alert_date_complete', '=', '0000-00-00 00:00:00')
-                ->where('alerts.alert_reason_not_complete', '=', '')
-                ->where(function($query_array) {
-                    $query_array->where('alerts.alert', '=', 'Laboratory results pending')
-                    ->orWhere('alerts.alert', '=', 'Radiology results pending')
-                    ->orWhere('alerts.alert', '=', 'Cardiopulmonary results pending')
-                    ->orWhere('alerts.alert', '=', 'Referral pending')
-                    ->orWhere('alerts.alert', '=', 'Laboratory results pending - NEED TO OBTAIN')
-                    ->orWhere('alerts.alert', '=', 'Radiology results pending - NEED TO OBTAIN')
-                    ->orWhere('alerts.alert', '=', 'Cardiopulmonary results pending - NEED TO OBTAIN')
-                    ->orWhere('alerts.alert', '=', 'Reminder')
-                    ->orWhere('alerts.alert', '=', 'REMINDER');
-                })
-                ->count();
+                    ->join('demographics', 'alerts.pid', '=', 'demographics.pid')
+                    ->where('alerts.alert_provider', '=', $user_id)
+                    ->where('alerts.alert_date_complete', '=', '0000-00-00 00:00:00')
+                    ->where('alerts.alert_reason_not_complete', '=', '')
+                    ->where(function($query_array) {
+                        $query_array->where('alerts.alert', '=', 'Laboratory results pending')
+                        ->orWhere('alerts.alert', '=', 'Radiology results pending')
+                        ->orWhere('alerts.alert', '=', 'Cardiopulmonary results pending')
+                        ->orWhere('alerts.alert', '=', 'Referral pending')
+                        ->orWhere('alerts.alert', '=', 'Laboratory results pending - NEED TO OBTAIN')
+                        ->orWhere('alerts.alert', '=', 'Radiology results pending - NEED TO OBTAIN')
+                        ->orWhere('alerts.alert', '=', 'Cardiopulmonary results pending - NEED TO OBTAIN')
+                        ->orWhere('alerts.alert', '=', 'Reminder')
+                        ->orWhere('alerts.alert', '=', 'REMINDER');
+                    })
+                    ->count();
             $data['number_bills'] = DB::table('encounters')->where('bill_submitted', '=', 'No')->where('user_id', '=', $user_id)->count();
             $data['number_tests'] = DB::table('tests')->whereNull('pid')->where('practice_id', '=', $practice_id)->count();
-            if($data['practiceinfo']->mtm_extension == 'y') {
+            if ($data['practiceinfo']->mtm_extension == 'y') {
                 $mtm_users_array = explode(",", $data['practiceinfo']->mtm_alert_users);
                 if (in_array($user_id, $mtm_users_array)) {
                     $data['mtm_alerts'] = DB::table('alerts')->where('alert_date_complete', '=', '0000-00-00 00:00:00')
-                        ->where('alert_reason_not_complete', '=', '')
-                        ->where('alert', '=', 'Medication Therapy Management')
-                        ->where('practice_id', '=', $practice_id)
-                        ->count();
+                            ->where('alert_reason_not_complete', '=', '')
+                            ->where('alert', '=', 'Medication Therapy Management')
+                            ->where('practice_id', '=', $practice_id)
+                            ->count();
                     $data['mtm_alerts_status'] = "y";
                 } else {
                     $data['mtm_alerts_status'] = "n";
@@ -1646,27 +1628,27 @@ class CoreController extends Controller
                 $data['number_faxes'] = DB::table('received')->where('practice_id', '=', $practice_id)->count();
             }
             $data['number_t_messages'] = DB::table('t_messages')
-                ->join('demographics', 't_messages.pid', '=', 'demographics.pid')
-                ->where('t_messages.t_messages_from', '=', $from)
-                ->where('t_messages.t_messages_signed', '=', 'No')
-                ->count();
+                    ->join('demographics', 't_messages.pid', '=', 'demographics.pid')
+                    ->where('t_messages.t_messages_from', '=', $from)
+                    ->where('t_messages.t_messages_signed', '=', 'No')
+                    ->count();
             $data['number_reminders'] = DB::table('alerts')
-                ->join('demographics', 'alerts.pid', '=', 'demographics.pid')
-                ->where('alerts.alert_provider', '=', $user_id)
-                ->where('alerts.alert_date_complete', '=', '0000-00-00 00:00:00')
-                ->where('alerts.alert_reason_not_complete', '=', '')
-                ->where(function($query_array) {
-                    $query_array->where('alerts.alert', '=', 'Laboratory results pending')
-                    ->orWhere('alerts.alert', '=', 'Radiology results pending')
-                    ->orWhere('alerts.alert', '=', 'Cardiopulmonary results pending')
-                    ->orWhere('alerts.alert', '=', 'Referral pending')
-                    ->orWhere('alerts.alert', '=', 'Laboratory results pending - NEED TO OBTAIN')
-                    ->orWhere('alerts.alert', '=', 'Radiology results pending - NEED TO OBTAIN')
-                    ->orWhere('alerts.alert', '=', 'Cardiopulmonary results pending - NEED TO OBTAIN')
-                    ->orWhere('alerts.alert', '=', 'Reminder')
-                    ->orWhere('alerts.alert', '=', 'REMINDER');
-                })
-                ->count();
+                    ->join('demographics', 'alerts.pid', '=', 'demographics.pid')
+                    ->where('alerts.alert_provider', '=', $user_id)
+                    ->where('alerts.alert_date_complete', '=', '0000-00-00 00:00:00')
+                    ->where('alerts.alert_reason_not_complete', '=', '')
+                    ->where(function($query_array) {
+                        $query_array->where('alerts.alert', '=', 'Laboratory results pending')
+                        ->orWhere('alerts.alert', '=', 'Radiology results pending')
+                        ->orWhere('alerts.alert', '=', 'Cardiopulmonary results pending')
+                        ->orWhere('alerts.alert', '=', 'Referral pending')
+                        ->orWhere('alerts.alert', '=', 'Laboratory results pending - NEED TO OBTAIN')
+                        ->orWhere('alerts.alert', '=', 'Radiology results pending - NEED TO OBTAIN')
+                        ->orWhere('alerts.alert', '=', 'Cardiopulmonary results pending - NEED TO OBTAIN')
+                        ->orWhere('alerts.alert', '=', 'Reminder')
+                        ->orWhere('alerts.alert', '=', 'REMINDER');
+                    })
+                    ->count();
             $data['number_bills'] = DB::table('encounters')->where('bill_submitted', '=', 'No')->where('user_id', '=', $user_id)->count();
             $data['number_tests'] = DB::table('tests')->whereNull('pid')->where('practice_id', '=', $practice_id)->count();
             $data['panel_header'] = 'Inventory Alerts';
@@ -1737,8 +1719,8 @@ class CoreController extends Controller
         if ($data['practiceinfo']->weekends == '1') {
             $data['weekends'] = 'true';
         }
-        $data['minTime'] = ltrim($data['practiceinfo']->minTime,"0");
-        $data['maxTime'] = ltrim($data['practiceinfo']->maxTime,"0");
+        $data['minTime'] = ltrim($data['practiceinfo']->minTime, "0");
+        $data['maxTime'] = ltrim($data['practiceinfo']->maxTime, "0");
         if (Session::get('group_id') == '2') {
             $provider = DB::table('providers')->where('id', '=', Session::get('user_id'))->first();
             $data['schedule_increment'] = $provider->schedule_increment;
@@ -1751,7 +1733,6 @@ class CoreController extends Controller
         Session::put('last_page', $request->fullUrl());
         // $data['name'] = 'Test';
         // $data['template_content'] = 'test';
-
         // $data['back'] = '<div class="btn-group"><button type="button" class="btn btn-primary">Action</button><button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><span class="caret"></span><span class="sr-only">Toggle Dropdown</span></button>';
         // $data['back'] .= '<ul class="dropdown-menu"><li><a href="#">Action</a></li><li><a href="#">Another action</a></li><li><a href="#">Something else here</a></li><li role="separator" class="divider"></li><li><a href="#">Separated link</a></li></ul></div>';
         $data['assets_js'] = $this->assets_js();
@@ -1759,13 +1740,12 @@ class CoreController extends Controller
         return view('welcome', $data);
     }
 
-    public function dashboard_encounters(Request $request)
-    {
+    public function dashboard_encounters(Request $request) {
         $query = DB::table('encounters')
-            ->join('demographics', 'encounters.pid', '=', 'demographics.pid')
-            ->where('encounters.user_id', '=', Session::get('user_id'))
-            ->where('encounters.encounter_signed', '=', 'No')
-            ->get();
+                ->join('demographics', 'encounters.pid', '=', 'demographics.pid')
+                ->where('encounters.user_id', '=', Session::get('user_id'))
+                ->where('encounters.encounter_signed', '=', 'No')
+                ->get();
         if ($query->count()) {
             $list_array = [];
             $encounter_type = $this->array_encounter_type();
@@ -1791,30 +1771,29 @@ class CoreController extends Controller
         return view('core', $data);
     }
 
-    public function dashboard_reminders(Request $request)
-    {
+    public function dashboard_reminders(Request $request) {
         $query = DB::table('alerts')
-            ->join('demographics', 'alerts.pid', '=', 'demographics.pid')
-            ->where('alerts.alert_provider', '=', Session::get('user_id'))
-            ->where('alerts.alert_date_complete', '=', '0000-00-00 00:00:00')
-            ->where('alerts.alert_reason_not_complete', '=', '')
-            ->where(function($query_array) {
-                $query_array->where('alerts.alert', '=', 'Laboratory results pending')
-                ->orWhere('alerts.alert', '=', 'Radiology results pending')
-                ->orWhere('alerts.alert', '=', 'Cardiopulmonary results pending')
-                ->orWhere('alerts.alert', '=', 'Referral pending')
-                ->orWhere('alerts.alert', '=', 'Laboratory results pending - NEED TO OBTAIN')
-                ->orWhere('alerts.alert', '=', 'Radiology results pending - NEED TO OBTAIN')
-                ->orWhere('alerts.alert', '=', 'Cardiopulmonary results pending - NEED TO OBTAIN')
-                ->orWhere('alerts.alert', '=', 'Reminder')
-                ->orWhere('alerts.alert', '=', 'REMINDER');
-            })
-            ->get();
+                ->join('demographics', 'alerts.pid', '=', 'demographics.pid')
+                ->where('alerts.alert_provider', '=', Session::get('user_id'))
+                ->where('alerts.alert_date_complete', '=', '0000-00-00 00:00:00')
+                ->where('alerts.alert_reason_not_complete', '=', '')
+                ->where(function($query_array) {
+                    $query_array->where('alerts.alert', '=', 'Laboratory results pending')
+                    ->orWhere('alerts.alert', '=', 'Radiology results pending')
+                    ->orWhere('alerts.alert', '=', 'Cardiopulmonary results pending')
+                    ->orWhere('alerts.alert', '=', 'Referral pending')
+                    ->orWhere('alerts.alert', '=', 'Laboratory results pending - NEED TO OBTAIN')
+                    ->orWhere('alerts.alert', '=', 'Radiology results pending - NEED TO OBTAIN')
+                    ->orWhere('alerts.alert', '=', 'Cardiopulmonary results pending - NEED TO OBTAIN')
+                    ->orWhere('alerts.alert', '=', 'Reminder')
+                    ->orWhere('alerts.alert', '=', 'REMINDER');
+                })
+                ->get();
         if ($query->count()) {
             $list_array = [];
             foreach ($query as $row) {
                 $arr = [];
-                $arr['label'] = $row->alert . ' (Due ' . date('m/d/Y', $this->human_to_unix($row->alert_date_active)) . ') - ' . $row->alert_description . '<br>Patient: '  .$row->firstname . ' ' . $row->lastname . ' (DOB: ' . date('m/d/Y', strtotime($row->DOB)) . ')';
+                $arr['label'] = $row->alert . ' (Due ' . date('m/d/Y', $this->human_to_unix($row->alert_date_active)) . ') - ' . $row->alert_description . '<br>Patient: ' . $row->firstname . ' ' . $row->lastname . ' (DOB: ' . date('m/d/Y', strtotime($row->DOB)) . ')';
                 $arr['view'] = route('superquery_patient', ['chart_form', $row->pid, 'alerts', 'alert_id', $row->alert_id]);
                 $list_array[] = $arr;
             }
@@ -1834,14 +1813,13 @@ class CoreController extends Controller
         return view('core', $data);
     }
 
-    public function dashboard_tests(Request $request)
-    {
+    public function dashboard_tests(Request $request) {
         $data['message_action'] = Session::get('message_action');
         Session::forget('message_action');
         $query = DB::table('tests')
-            ->whereNull('pid')
-            ->where('practice_id', '=', Session::get('practice_id'))
-            ->get();
+                ->whereNull('pid')
+                ->where('practice_id', '=', Session::get('practice_id'))
+                ->get();
         if ($query->count()) {
             $list_array = [];
             foreach ($query as $row) {
@@ -1867,14 +1845,13 @@ class CoreController extends Controller
         return view('core', $data);
     }
 
-    public function dashboard_tests_reconcile(Request $request, $id)
-    {
+    public function dashboard_tests_reconcile(Request $request, $id) {
         $test = DB::table('tests')->where('tests_id', '=', $id)->first();
         $like_test = DB::table('tests')
-            ->whereNull('pid')
-            ->where('practice_id', '=', Session::get('practice_id'))
-            ->where('test_unassigned', '=', $test->test_unassigned)
-            ->get();
+                ->whereNull('pid')
+                ->where('practice_id', '=', Session::get('practice_id'))
+                ->where('test_unassigned', '=', $test->test_unassigned)
+                ->get();
         if ($request->isMethod('post')) {
             $pid = $request->input('pid');
             $results = [];
@@ -1897,7 +1874,7 @@ class CoreController extends Controller
             }
             $patient_row = DB::table('demographics')->where('pid', '=', $pid)->first();
             $dob_message = date("m/d/Y", strtotime($patient_row->DOB));
-            $patient_name =  $patient_row->lastname . ', ' . $patient_row->firstname . ' (DOB: ' . $dob_message . ') (ID: ' . $pid . ')';
+            $patient_name = $patient_row->lastname . ', ' . $patient_row->firstname . ' (DOB: ' . $dob_message . ') (ID: ' . $pid . ')';
             $practice_row = DB::table('practiceinfo')->where('practice_id', '=', Session::get('practice_id'))->first();
             $directory = $practice_row->documents_dir . $pid;
             $file_path = $directory . '/tests_' . time() . '.pdf';
@@ -2017,19 +1994,18 @@ class CoreController extends Controller
         }
     }
 
-    public function dashboard_t_messages(Request $request)
-    {
+    public function dashboard_t_messages(Request $request) {
         $from = Session::get('displayname') . ' (' . Session::get('user_id') . ')';
         $query = DB::table('t_messages')
-            ->join('demographics', 't_messages.pid', '=', 'demographics.pid')
-            ->where('t_messages.t_messages_from', '=', $from)
-            ->where('t_messages.t_messages_signed', '=', 'No')
-            ->get();
+                ->join('demographics', 't_messages.pid', '=', 'demographics.pid')
+                ->where('t_messages.t_messages_from', '=', $from)
+                ->where('t_messages.t_messages_signed', '=', 'No')
+                ->get();
         if ($query->count()) {
             $list_array = [];
             foreach ($query as $row) {
                 $arr = [];
-                $arr['label'] = '<b>' . date('Y-m-d', $this->human_to_unix($row->t_messages_dos)) . '</b> - ' . $row->t_messages_subject . '<br>Patient: '  .$row->firstname . ' ' . $row->lastname . ' (DOB: ' . date('m/d/Y', strtotime($row->DOB)) . ')';
+                $arr['label'] = '<b>' . date('Y-m-d', $this->human_to_unix($row->t_messages_dos)) . '</b> - ' . $row->t_messages_subject . '<br>Patient: ' . $row->firstname . ' ' . $row->lastname . ' (DOB: ' . date('m/d/Y', strtotime($row->DOB)) . ')';
                 $arr['edit'] = route('superquery_patient', ['chart_form', $row->pid, 't_messages', 't_messages_id', $row->t_messages_id]);
                 $list_array[] = $arr;
             }
@@ -2049,11 +2025,10 @@ class CoreController extends Controller
         return view('core', $data);
     }
 
-    public function database_export(Request $request, $track_id='')
-    {
+    public function database_export(Request $request, $track_id = '') {
         if ($track_id !== '') {
             File::put(public_path() . '/temp/' . $track_id, '0');
-            ini_set('memory_limit','196M');
+            ini_set('memory_limit', '196M');
             ini_set('max_execution_time', 300);
             $zip_file_name = time() . '_noshexport_' . Session::get('practice_id') . '.zip';
             $zip_file = public_path() . '/temp/' . $zip_file_name;
@@ -2065,11 +2040,11 @@ class CoreController extends Controller
             if ($connect) {
                 if (mysqli_select_db($connect, $database)) {
                     $sql = "DROP DATABASE " . $database;
-                    mysqli_query($connect,$sql);
+                    mysqli_query($connect, $sql);
                 }
                 $sql = "CREATE DATABASE " . $database;
-                if (mysqli_query($connect,$sql)) {
-                    $command = "mysqldump --no-data -u " . env('DB_USERNAME') . " -p". env('DB_PASSWORD') . " " . env('DB_DATABASE') . " | mysql -u " . env('DB_USERNAME') . " -p". env('DB_PASSWORD') . " " . $database;
+                if (mysqli_query($connect, $sql)) {
+                    $command = "mysqldump --no-data -u " . env('DB_USERNAME') . " -p" . env('DB_PASSWORD') . " " . env('DB_DATABASE') . " | mysql -u " . env('DB_USERNAME') . " -p" . env('DB_PASSWORD') . " " . $database;
                     system($command);
                     Schema::connection('mysql2')->drop('audit');
                     Schema::connection('mysql2')->drop('ci_sessions');
@@ -2110,9 +2085,9 @@ class CoreController extends Controller
                     DB::connection('mysql2')->table('practiceinfo')->insert($practiceinfo_data);
                     if ($practiceinfo->practice_logo != '') {
                         $practice_logo_file = public_path() . '/assets/images/' . $practiceinfo->practice_logo;
-                        $localPath4 = str_replace($documents_dir,'/',$practice_logo_file);
+                        $localPath4 = str_replace($documents_dir, '/', $practice_logo_file);
                         if (file_exists($practice_logo_file)) {
-                            $zip->addFile($practice_logo_file,$localPath4);
+                            $zip->addFile($practice_logo_file, $localPath4);
                         }
                     }
                     $addressbook = DB::table('addressbook')->get();
@@ -2173,9 +2148,9 @@ class CoreController extends Controller
                             $provider_id_arr[] = $providers_row->id;
                             if ($providers_row->signature != '') {
                                 $signature_file = $providers_row->signature;
-                                $localPath5 = str_replace($documents_dir,'/',$signature_file);
+                                $localPath5 = str_replace($documents_dir, '/', $signature_file);
                                 if (file_exists($signature_file)) {
-                                    $zip->addFile($signature_file,$localPath5);
+                                    $zip->addFile($signature_file, $localPath5);
                                 }
                             }
                         }
@@ -2193,9 +2168,9 @@ class CoreController extends Controller
                         foreach ($received as $received_row) {
                             DB::connection('mysql2')->table('received')->insert((array) $received_row);
                             if ($received_row->filePath != '') {
-                                $localPath3 = str_replace($documents_dir,'/',$scans_row->filePath);
+                                $localPath3 = str_replace($documents_dir, '/', $scans_row->filePath);
                                 if (file_exists($received_row->filePath)) {
-                                    $zip->addFile($received_row->filePath,$localPath3);
+                                    $zip->addFile($received_row->filePath, $localPath3);
                                 }
                             }
                         }
@@ -2206,9 +2181,9 @@ class CoreController extends Controller
                         foreach ($scans as $scans_row) {
                             DB::connection('mysql2')->table('scans')->insert((array) $scans_row);
                             if ($scans_row->filePath != '') {
-                                $localPath2 = str_replace($documents_dir,'/',$scans_row->filePath);
+                                $localPath2 = str_replace($documents_dir, '/', $scans_row->filePath);
                                 if (file_exists($scans_row->filePath)) {
-                                    $zip->addFile($scans_row->filePath,$localPath2);
+                                    $zip->addFile($scans_row->filePath, $localPath2);
                                 }
                             }
                         }
@@ -2397,23 +2372,23 @@ class CoreController extends Controller
                             if (file_exists($rootPath)) {
                                 $files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($rootPath), RecursiveIteratorIterator::SELF_FIRST);
                                 foreach ($files as $name => $file) {
-                                    if(in_array(substr($file, strrpos($file, '/')+1), ['.', '..'])) {
+                                    if (in_array(substr($file, strrpos($file, '/') + 1), ['.', '..'])) {
                                         continue;
                                     } else {
                                         if (is_dir($file) === true) {
                                             continue;
                                         } else {
                                             $filePath = $file->getRealPath();
-                                            $localPath = str_replace($documents_dir,'/',$filePath);
+                                            $localPath = str_replace($documents_dir, '/', $filePath);
                                             if ($filePath != '' && file_exists($filePath)) {
-                                                $zip->addFile($filePath,$localPath);
+                                                $zip->addFile($filePath, $localPath);
                                             }
                                         }
                                     }
                                 }
                             }
                             $i++;
-                            $percent = round($i/$pid_count*50) + 20;
+                            $percent = round($i / $pid_count * 50) + 20;
                             File::put(public_path() . '/temp/' . $track_id, $percent);
                         }
                     }
@@ -2445,16 +2420,16 @@ class CoreController extends Controller
                             if (file_exists($rootPath1)) {
                                 $files1 = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($rootPath1), RecursiveIteratorIterator::SELF_FIRST);
                                 foreach ($files1 as $name1 => $file1) {
-                                    if(in_array(substr($file1, strrpos($file1, '/')+1), ['.', '..'])) {
+                                    if (in_array(substr($file1, strrpos($file1, '/') + 1), ['.', '..'])) {
                                         continue;
                                     } else {
                                         if (is_dir($file1) === true) {
                                             continue;
                                         } else {
                                             $filePath1 = $file1->getRealPath();
-                                            $localPath1 = str_replace($documents_dir,'/',$filePath1);
+                                            $localPath1 = str_replace($documents_dir, '/', $filePath1);
                                             if ($filePath1 != '' && file_exists($filePath1)) {
-                                                $zip->addFile($filePath1,$localPath1);
+                                                $zip->addFile($filePath1, $localPath1);
                                             }
                                         }
                                     }
@@ -2487,7 +2462,7 @@ class CoreController extends Controller
                             foreach ($billing as $billing_row) {
                                 DB::connection('mysql2')->table('billing')->insert((array) $billing_row);
                             }
-                            $billing_core2 = DB::table('billing_core')->where('pid', '=', $pid)->where('eid', '=',  $eid)->where('practice_id', '=', Session::get('practice_id'))->get();
+                            $billing_core2 = DB::table('billing_core')->where('pid', '=', $pid)->where('eid', '=', $eid)->where('practice_id', '=', Session::get('practice_id'))->get();
                             foreach ($billing_core2 as $billing_core2_row) {
                                 DB::connection('mysql2')->table('billing_core')->insert((array) $billing_core2_row);
                             }
@@ -2537,13 +2512,13 @@ class CoreController extends Controller
                                 DB::connection('mysql2')->table('vitals')->insert((array) $vitals);
                             }
                             $i++;
-                            $percent1 = round($j/$eid_count*25) + 70;
+                            $percent1 = round($j / $eid_count * 25) + 70;
                             File::put(public_path() . '/temp/' . $track_id, $percent);
                         }
                     }
                     $sqlfilename = time() . '_noshexport.sql';
                     $sqlfile = public_path() . '/temp/' . $sqlfilename;
-                    $command = "mysqldump -u " . env('DB_USERNAME') . " -p". env('DB_PASSWORD') . " " . $database . " > " . $sqlfile;
+                    $command = "mysqldump -u " . env('DB_USERNAME') . " -p" . env('DB_PASSWORD') . " " . $database . " > " . $sqlfile;
                     system($command);
                     if (!file_exists($sqlfile)) {
                         sleep(2);
@@ -2571,28 +2546,27 @@ class CoreController extends Controller
         }
     }
 
-    public function database_import(Request $request)
-    {
-        ini_set('memory_limit','196M');
+    public function database_import(Request $request) {
+        ini_set('memory_limit', '196M');
         ini_set('max_execution_time', 300);
         if ($request->isMethod('post')) {
             $file = $request->input('backup');
-            $command = "mysql -u " . env('DB_USERNAME') . " -p". env('DB_PASSWORD') . " " . env('DB_DATABASE') . " < " . $file;
+            $command = "mysql -u " . env('DB_USERNAME') . " -p" . env('DB_PASSWORD') . " " . env('DB_DATABASE') . " < " . $file;
             system($command);
             $message = "Restoring backup database successful";
             Session::put('message_action', $message);
             return redirect(Session::get('last_page'));
         } else {
             $practice = DB::table('practiceinfo')->where('practice_id', '=', Session::get('practice_id'))->first();
-			$dir = $practice->documents_dir;
-			$files = glob($dir . "*.sql");
-			arsort($files);
+            $dir = $practice->documents_dir;
+            $files = glob($dir . "*.sql");
+            arsort($files);
             $backups_arr = [];
-			foreach ($files as $file) {
-				$explode = explode("_", $file);
-				$time = intval(str_replace(".sql","",$explode[1]));
+            foreach ($files as $file) {
+                $explode = explode("_", $file);
+                $time = intval(str_replace(".sql", "", $explode[1]));
                 $backups_arr[$file] = date("Y-m-d H:i:s", $time);
-			}
+            }
             $items[] = [
                 'name' => 'backup',
                 'label' => 'Select Backup Database to Restore',
@@ -2620,22 +2594,21 @@ class CoreController extends Controller
         }
     }
 
-    public function database_import_cloud(Request $request)
-    {
-        ini_set('memory_limit','196M');
+    public function database_import_cloud(Request $request) {
+        ini_set('memory_limit', '196M');
         ini_set('max_execution_time', 300);
         if ($request->isMethod('post')) {
             $file = $request->file('file_input');
             $directory = public_path() . '/temp';
             $new_name = str_replace('.' . $file->getClientOriginalExtension(), '', $file->getClientOriginalName()) . '_' . time() . '.' . $file->getClientOriginalExtension();
-            $file->move($directory,$file->getClientOriginalName());
+            $file->move($directory, $file->getClientOriginalName());
             $zip = new ZipArchive;
             $open = $zip->open($directory . '/' . $file->getClientOriginalName());
             if ($open === TRUE) {
                 $sqlsearch = glob($directory . '/*_noshexport.sql');
                 if (count($sqlsearch) > 0) {
                     foreach ($sqlsearch as $sqlfile) {
-                        $command = "mysql -u " . env('DB_USERNAME') . " -p". env('DB_PASSWORD') . " " . env('DB_DATABASE') . " < " . $sqlfile;
+                        $command = "mysql -u " . env('DB_USERNAME') . " -p" . env('DB_PASSWORD') . " " . env('DB_DATABASE') . " < " . $sqlfile;
                         system($command);
                         unlink($sqlfile);
                     }
@@ -2666,16 +2639,15 @@ class CoreController extends Controller
         }
     }
 
-    public function database_import_file(Request $request)
-    {
-        ini_set('memory_limit','196M');
+    public function database_import_file(Request $request) {
+        ini_set('memory_limit', '196M');
         ini_set('max_execution_time', 300);
         if ($request->isMethod('post')) {
             $file = $request->file('file_input');
             $directory = public_path() . '/temp';
             $file->move($directory, $file->getClientOriginalName());
             $new_file = $directory . '/' . $file->getClientOriginalName();
-            $command = "mysql -u " . env('DB_USERNAME') . " -p". env('DB_PASSWORD') . " " . env('DB_DATABASE') . " < " . $new_file;
+            $command = "mysql -u " . env('DB_USERNAME') . " -p" . env('DB_PASSWORD') . " " . env('DB_DATABASE') . " < " . $new_file;
             system($command);
             unlink($new_file);
             $message = "Restoring backup database successful";
@@ -2696,11 +2668,10 @@ class CoreController extends Controller
         }
     }
 
-    public function download_ccda_entire(Request $request, $track_id='')
-    {
+    public function download_ccda_entire(Request $request, $track_id = '') {
         if ($track_id !== '') {
             File::put(public_path() . '/temp/' . $track_id, '0');
-            ini_set('memory_limit','196M');
+            ini_set('memory_limit', '196M');
             ini_set('max_execution_time', 300);
             $practice_id = Session::get('practice_id');
             $query = DB::table('demographics_relate')->where('practice_id', '=', $practice_id)->get();
@@ -2720,13 +2691,13 @@ class CoreController extends Controller
                     $file = public_path() . '/temp/' . $filename;
                     $query1 = DB::table('demographics')->where('pid', '=', $row->pid)->first();
                     if ($query1) {
-                        $ccda = $this->generate_ccda('',$row->pid);
+                        $ccda = $this->generate_ccda('', $row->pid);
                         File::put($file, $ccda);
                         $files_array[$i]['file'] = $file;
                         $files_array[$i]['filename'] = $filename;
                         $i++;
                     }
-                    $percent = round($i/$count*100);
+                    $percent = round($i / $count * 100);
                     File::put(public_path() . '/temp/' . $track_id, $percent);
                 }
             }
@@ -2734,7 +2705,7 @@ class CoreController extends Controller
                 $zip->addFile($ccda1['file'], $ccda1['filename']);
             }
             $zip->close();
-            while(!file_exists($zip_file)) {
+            while (!file_exists($zip_file)) {
                 sleep(2);
             }
             Session::forget('download_ccda_entire');
@@ -2752,11 +2723,10 @@ class CoreController extends Controller
         }
     }
 
-    public function download_charts_entire(Request $request, $track_id='')
-    {
+    public function download_charts_entire(Request $request, $track_id = '') {
         if ($track_id !== '') {
             File::put(public_path() . '/temp/' . $track_id, '0');
-            ini_set('memory_limit','196M');
+            ini_set('memory_limit', '196M');
             ini_set('max_execution_time', 300);
             $practice_id = Session::get('practice_id');
             $query = DB::table('demographics_relate')->where('practice_id', '=', $practice_id)->get();
@@ -2777,7 +2747,7 @@ class CoreController extends Controller
                     $files_array[$i]['file'] = $file;
                     $files_array[$i]['filename'] = str_replace(public_path() . '/temp/', '', $file);
                     $i++;
-                    $percent = round($i/$total*100);
+                    $percent = round($i / $total * 100);
                     File::put(public_path() . '/temp/' . $track_id, $percent);
                 }
             }
@@ -2785,7 +2755,7 @@ class CoreController extends Controller
                 $zip->addFile($chart1['file'], $chart1['filename']);
             }
             $zip->close();
-            while(!file_exists($zip_file)) {
+            while (!file_exists($zip_file)) {
                 sleep(2);
             }
             Session::forget('download_charts_entire');
@@ -2803,28 +2773,27 @@ class CoreController extends Controller
         }
     }
 
-    public function download_csv_demographics(Request $request, $track_id='')
-    {
+    public function download_csv_demographics(Request $request, $track_id = '') {
         if ($track_id !== '') {
             File::put(public_path() . '/temp/' . $track_id, '0');
-            ini_set('memory_limit','196M');
+            ini_set('memory_limit', '196M');
             ini_set('max_execution_time', 300);
             $practice_id = Session::get('practice_id');
             $query = DB::table('demographics_relate')->where('practice_id', '=', $practice_id)->get();
             $total = count($query);
-            $i=0;
+            $i = 0;
             $csv = "Last Name;First Name;Gender;Date of Birth;Address;City;State;Zip;Home Phone;Work Phone;Cell Phone";
             if ($query->count()) {
                 foreach ($query as $row) {
                     $row1 = DB::table('demographics')
-                        ->select('lastname', 'firstname', 'sex', 'DOB', 'address', 'city', 'state', 'zip', 'phone_home', 'phone_work', 'phone_cell')
-                        ->where('pid', '=', $row->pid)
-                        ->first();
+                            ->select('lastname', 'firstname', 'sex', 'DOB', 'address', 'city', 'state', 'zip', 'phone_home', 'phone_work', 'phone_cell')
+                            ->where('pid', '=', $row->pid)
+                            ->first();
                     $csv .= "\n";
                     $array = json_decode(json_encode($row1), true);
                     $csv .= implode(";", $array);
                     $i++;
-                    $percent = round($i/$total*100);
+                    $percent = round($i / $total * 100);
                     File::put(public_path() . '/temp/' . $track_id, $percent);
                 }
             } else {
@@ -2851,8 +2820,7 @@ class CoreController extends Controller
         }
     }
 
-    public function download_now(Request $request)
-    {
+    public function download_now(Request $request) {
         $file_path = Session::get('download_now');
         Session::forget('download_now');
         $file_name = str_replace(public_path() . '/temp/', '', $file_path);
@@ -2865,8 +2833,7 @@ class CoreController extends Controller
         return response()->download($file_path, $file_name, $headers);
     }
 
-    public function event_encounter(Request $request, $appt_id)
-    {
+    public function event_encounter(Request $request, $appt_id) {
         $query = DB::table('encounters')->where('appt_id', '=', $appt_id)->first();
         $query1 = DB::table('schedule')->where('appt_id', '=', $appt_id)->first();
         if ($query) {
@@ -2912,8 +2879,7 @@ class CoreController extends Controller
         }
     }
 
-    public function fax_action(Request $request, $action, $id, $pid, $subtype='')
-    {
+    public function fax_action(Request $request, $action, $id, $pid, $subtype = '') {
         ini_set('memory_limit', '196M');
         $fix = [];
         $need_address = false;
@@ -3006,8 +2972,7 @@ class CoreController extends Controller
         }
     }
 
-    public function fax_queue(Request $request, $action, $id, $pid, $subtype='')
-    {
+    public function fax_queue(Request $request, $action, $id, $pid, $subtype = '') {
         ini_set('memory_limit', '196M');
         $arr = [];
         if (Session::has('fax_queue')) {
@@ -3033,7 +2998,6 @@ class CoreController extends Controller
                     if ($item['function'] == 'print_medication') {
                         $group_arr[$item['address_id']]['title'] = 'Prescription/Refill Authorization';
                         $group_arr[$item['address_id']]['message'] = 'Prescription faxed';
-
                     }
                     if ($item['function'] == 'print_orders') {
                         $print_orders = DB::table('orders')->where('orders_id', '=', $item['id'])->first();
@@ -3167,8 +3131,7 @@ class CoreController extends Controller
         }
     }
 
-    public function financial(Request $request, $type='queue')
-    {
+    public function financial(Request $request, $type = 'queue') {
         $data['message_action'] = Session::get('message_action');
         Session::forget('message_action');
         $return = '';
@@ -3209,12 +3172,12 @@ class CoreController extends Controller
         ];
         if ($type == 'queue') {
             $query = DB::table('encounters')
-                ->join('demographics', 'encounters.pid', '=', 'demographics.pid')
-                ->where('encounters.bill_submitted', '!=', 'Done')
-                ->where('encounters.addendum', '=', 'n')
-                ->where('encounters.practice_id', '=', Session::get('practice_id'))
-                ->orderBy('encounters.encounter_DOS', 'desc')
-                ->get();
+                    ->join('demographics', 'encounters.pid', '=', 'demographics.pid')
+                    ->where('encounters.bill_submitted', '!=', 'Done')
+                    ->where('encounters.addendum', '=', 'n')
+                    ->where('encounters.practice_id', '=', Session::get('practice_id'))
+                    ->orderBy('encounters.encounter_DOS', 'desc')
+                    ->get();
             if ($query->count()) {
                 foreach ($query as $row) {
                     $action = '<a href="' . route('financial_queue', ['Pend']) . '" class="btn fa-btn" role="button" data-toggle="tooltip" title="Add to Print Image Queue"><i class="fa fa-plus-square fa-lg"></i></a>';
@@ -3245,18 +3208,18 @@ class CoreController extends Controller
             ];
             $batch = 0;
             $batch_query1 = DB::table('encounters')
-                ->where('bill_submitted', '=', 'Pend')
-                ->where('addendum', '=', 'n')
-                ->where('practice_id', '=', Session::get('practice_id'))
-                ->get();
+                    ->where('bill_submitted', '=', 'Pend')
+                    ->where('addendum', '=', 'n')
+                    ->where('practice_id', '=', Session::get('practice_id'))
+                    ->get();
             if ($batch_query1->count()) {
                 $batch++;
             }
             $batch_query2 = DB::table('encounters')
-                ->where('bill_submitted', '=', 'HCFA')
-                ->where('addendum', '=', 'n')
-                ->where('practice_id', '=', Session::get('practice_id'))
-                ->get();
+                    ->where('bill_submitted', '=', 'HCFA')
+                    ->where('addendum', '=', 'n')
+                    ->where('practice_id', '=', Session::get('practice_id'))
+                    ->get();
             if ($batch_query2->count()) {
                 $batch++;
             }
@@ -3295,12 +3258,12 @@ class CoreController extends Controller
         }
         if ($type == 'processed') {
             $query = DB::table('encounters')
-                ->join('demographics', 'encounters.pid', '=', 'demographics.pid')
-                ->where('encounters.bill_submitted', '=', 'Done')
-                ->where('encounters.addendum', '=', 'n')
-                ->where('encounters.practice_id', '=', Session::get('practice_id'))
-                ->orderBy('encounters.encounter_DOS', 'desc')
-                ->get();
+                    ->join('demographics', 'encounters.pid', '=', 'demographics.pid')
+                    ->where('encounters.bill_submitted', '=', 'Done')
+                    ->where('encounters.addendum', '=', 'n')
+                    ->where('encounters.practice_id', '=', Session::get('practice_id'))
+                    ->orderBy('encounters.encounter_DOS', 'desc')
+                    ->get();
             if ($query->count()) {
                 foreach ($query as $row) {
                     $query1 = DB::table('billing_core')->where('eid', '=', $row->eid)->get();
@@ -3320,7 +3283,7 @@ class CoreController extends Controller
                     $action .= '<a href="' . route('financial_patient', ['billing_make_payment', $row->pid, $row->eid]) . '" class="btn fa-btn" role="button" data-toggle="tooltip" title="Make Payment"><i class="fa fa-usd fa-lg"></i></a>';
                     $action .= '<a href="' . route('financial_resubmit', [$row->eid]) . '" class="btn fa-btn" role="button" data-toggle="tooltip" title="Resubmit Bill"><i class="fa fa-repeat fa-lg"></i></a>';
                     $result[] = [
-                        'date' => date('Y-m-d', $this->human_to_unix($row->encounter_DOS)) ,
+                        'date' => date('Y-m-d', $this->human_to_unix($row->encounter_DOS)),
                         'lastname' => $row->lastname,
                         'firstname' => $row->firstname,
                         'encounter_cc' => $row->encounter_cc,
@@ -3343,9 +3306,9 @@ class CoreController extends Controller
         }
         if ($type == 'outstanding') {
             $query = DB::table('demographics')
-                ->join('demographics_relate', 'demographics.pid', '=', 'demographics_relate.pid')
-                ->where('demographics_relate.practice_id', '=', Session::get('practice_id'))
-                ->get();
+                    ->join('demographics_relate', 'demographics.pid', '=', 'demographics_relate.pid')
+                    ->where('demographics_relate.practice_id', '=', Session::get('practice_id'))
+                    ->get();
             $count = 0;
             $full_array = [];
             if ($query->count()) {
@@ -3434,12 +3397,12 @@ class CoreController extends Controller
         }
         if ($type == 'monthly_report') {
             $query = DB::table('encounters')
-                ->select(DB::raw("DATE_FORMAT(encounter_DOS, '%Y-%m') as month, COUNT(*) as patients_seen"))
-                ->where('addendum', '=', 'n')
-                ->where('practice_id', '=', Session::get('practice_id'))
-                ->groupBy('month')
-                ->orderby('month', 'desc')
-                ->get();
+                    ->select(DB::raw("DATE_FORMAT(encounter_DOS, '%Y-%m') as month, COUNT(*) as patients_seen"))
+                    ->where('addendum', '=', 'n')
+                    ->where('practice_id', '=', Session::get('practice_id'))
+                    ->groupBy('month')
+                    ->orderby('month', 'desc')
+                    ->get();
             if ($query->count()) {
                 foreach ($query as $row_obj) {
                     $row['patients_seen'] = $row_obj->patients_seen;
@@ -3452,12 +3415,12 @@ class CoreController extends Controller
                     $row['dnka'] = 0;
                     $row['lmc'] = 0;
                     $query1a = DB::table('encounters')
-                        ->select('eid')
-                        ->where(DB::raw('YEAR(encounter_DOS)'), '=', $year)
-                        ->where(DB::raw('MONTH(encounter_DOS)'), '=', $month)
-                        ->where('addendum', '=', 'n')
-                        ->where('practice_id', '=', Session::get('practice_id'))
-                        ->get();
+                            ->select('eid')
+                            ->where(DB::raw('YEAR(encounter_DOS)'), '=', $year)
+                            ->where(DB::raw('MONTH(encounter_DOS)'), '=', $month)
+                            ->where('addendum', '=', 'n')
+                            ->where('practice_id', '=', Session::get('practice_id'))
+                            ->get();
                     foreach ($query1a as $row1) {
                         $query2 = DB::table('billing_core')->where('eid', '=', $row1->eid)->get();
                         if ($query2) {
@@ -3474,11 +3437,11 @@ class CoreController extends Controller
                         }
                     }
                     $query1b = DB::table('schedule')
-                        ->join('providers', 'providers.id', '=', 'schedule.provider_id')
-                        ->where(DB::raw("FROM_UNIXTIME(schedule.end, '%Y')"), '=', $year)
-                        ->where(DB::raw("FROM_UNIXTIME(schedule.end, '%m')"), '=', $month)
-                        ->where('providers.practice_id', '=', Session::get('practice_id'))
-                        ->get();
+                            ->join('providers', 'providers.id', '=', 'schedule.provider_id')
+                            ->where(DB::raw("FROM_UNIXTIME(schedule.end, '%Y')"), '=', $year)
+                            ->where(DB::raw("FROM_UNIXTIME(schedule.end, '%m')"), '=', $month)
+                            ->where('providers.practice_id', '=', Session::get('practice_id'))
+                            ->get();
                     foreach ($query1b as $row3) {
                         if ($row3->status == "DNKA") {
                             $row['dnka'] += 1;
@@ -3502,12 +3465,12 @@ class CoreController extends Controller
         }
         if ($type == 'yearly_report') {
             $query = DB::table('encounters')
-                ->select(DB::raw("DATE_FORMAT(encounter_DOS, '%Y') as year, COUNT(*) as patients_seen"))
-                ->where('addendum', '=', 'n')
-                ->where('practice_id', '=', Session::get('practice_id'))
-                ->groupBy('year')
-                ->orderBy('year', 'desc')
-                ->get();
+                    ->select(DB::raw("DATE_FORMAT(encounter_DOS, '%Y') as year, COUNT(*) as patients_seen"))
+                    ->where('addendum', '=', 'n')
+                    ->where('practice_id', '=', Session::get('practice_id'))
+                    ->groupBy('year')
+                    ->orderBy('year', 'desc')
+                    ->get();
             if ($query->count()) {
                 foreach ($query as $row_obj) {
                     $row['patients_seen'] = $row_obj->patients_seen;
@@ -3517,11 +3480,11 @@ class CoreController extends Controller
                     $row['dnka'] = 0;
                     $row['lmc'] = 0;
                     $query1a = DB::table('encounters')
-                        ->select('eid')
-                        ->where(DB::raw('YEAR(encounter_DOS)'), '=', $row['year'])
-                        ->where('addendum', '=', 'n')
-                        ->where('practice_id', '=', Session::get('practice_id'))
-                        ->get();
+                            ->select('eid')
+                            ->where(DB::raw('YEAR(encounter_DOS)'), '=', $row['year'])
+                            ->where('addendum', '=', 'n')
+                            ->where('practice_id', '=', Session::get('practice_id'))
+                            ->get();
                     foreach ($query1a as $row1) {
                         $query2 = DB::table('billing_core')->where('eid', '=', $row1->eid)->get();
                         if ($query2) {
@@ -3538,10 +3501,10 @@ class CoreController extends Controller
                         }
                     }
                     $query1b = DB::table('schedule')
-                        ->join('providers', 'providers.id', '=', 'schedule.provider_id')
-                        ->where(DB::raw("FROM_UNIXTIME(schedule.end, '%Y')"), '=', $row['year'])
-                        ->where('providers.practice_id', '=', Session::get('practice_id'))
-                        ->get();
+                            ->join('providers', 'providers.id', '=', 'schedule.provider_id')
+                            ->where(DB::raw("FROM_UNIXTIME(schedule.end, '%Y')"), '=', $row['year'])
+                            ->where('providers.practice_id', '=', Session::get('practice_id'))
+                            ->get();
                     foreach ($query1b as $row3) {
                         if ($row3->status == "DNKA") {
                             $row['dnka'] += 1;
@@ -3660,19 +3623,18 @@ class CoreController extends Controller
         return view('core', $data);
     }
 
-    public function financial_era(Request $request, $era_id)
-    {
+    public function financial_era(Request $request, $era_id) {
         setlocale(LC_MONETARY, 'en_US.UTF-8');
         $era = DB::table('era')->where('era_id', '=', $era_id)->first();
         $claim = json_decode(unserialize($era->era), true);
         $html = '<div class="table-responsive"><table id="era_grid" class="table table-striped">';
         $html .= '<thead><tr><th style="width:200px">Check Details</th><th style="width:350px">Payer Details</th><th style="width:350px">Payee Details</th></tr></thead><tbody>';
-        $html .= '<tr><td>Check Amount: ' . money_format('%n', $claim['check_amount']) .'<br><br>Check Number: ' . $claim['check_number'] .'<br><br>Check Date: ' . date('m/d/Y', $claim['check_date']) . '<br><br>Production Date: ' . date('m/d/Y', $claim['production_date']) . '</td>';
+        $html .= '<tr><td>Check Amount: ' . money_format('%n', $claim['check_amount']) . '<br><br>Check Number: ' . $claim['check_number'] . '<br><br>Check Date: ' . date('m/d/Y', $claim['check_date']) . '<br><br>Production Date: ' . date('m/d/Y', $claim['production_date']) . '</td>';
         $html .= '<td>Name: ' . $claim['payer_name'] . '<br><br>Tax ID: ' . $claim['payer_tax_id'] . '<br><br>Address: ' . $claim['payer_street'] . '<br>' . $claim['payer_city'] . ', ' . $claim['payer_state'] . ' ' . $claim['payer_zip'] . '</td>';
         $html .= '<td>Name: ' . $claim['payee_name'] . '<br><br>Tax ID: ' . $claim['payee_tax_id'] . '<br><br>Address: ' . $claim['payee_street'] . '<br>' . $claim['payee_city'] . ', ' . $claim['payee_state'] . ' ' . $claim['payee_zip'] . '</td></tr></tbody></table>';
         if (count($claim['claim']) > 0) {
             $i = 0;
-            $html .= '<br><table id="era_grid_' . $i .'" class="table table-striped">';
+            $html .= '<br><table id="era_grid_' . $i . '" class="table table-striped">';
             $html .= '<thead><tr><th style="width:200px">Claim Details</th><th style="width:200px">Patient Details</th><th>Line Item Details</th></tr></thead><tbody>';
             foreach ($claim['claim'] as $row) {
                 if ($row['claim_status_code'] == '1') {
@@ -3698,8 +3660,8 @@ class CoreController extends Controller
                 if ($row['amount_patient'] != '') {
                     $html .= '<br><br>Amount assigned to Patient: ' . money_format('%n', $row['amount_patient']);
                 }
-                $html .='<br><br>Date of Service: ' . date('m/d/Y', $row['dos']) . '<br><br>Claim Status: ' . $claim_status_code . '<br><br>Claim ID: ' . $row['payer_claim_id'] . $claim_forward . '</td>';
-                $html .= '<td>Patient: ' . $row['patient_lastname'] . ', ' . $row['patient_firstname'] . ' ' . $row['patient_middle'] . '<br><br>Insurance: ' . $row['payer_insurance'] . '<br><br>Patient Member ID: ' . $row['patient_member_id'] . '<br><br>Subscriber: ' . $row['subscriber_lastname'] . ', ' . $row['subscriber_firstname'] . ' ' . $row['subscriber_middle'] .'</td>';
+                $html .= '<br><br>Date of Service: ' . date('m/d/Y', $row['dos']) . '<br><br>Claim Status: ' . $claim_status_code . '<br><br>Claim ID: ' . $row['payer_claim_id'] . $claim_forward . '</td>';
+                $html .= '<td>Patient: ' . $row['patient_lastname'] . ', ' . $row['patient_firstname'] . ' ' . $row['patient_middle'] . '<br><br>Insurance: ' . $row['payer_insurance'] . '<br><br>Patient Member ID: ' . $row['patient_member_id'] . '<br><br>Subscriber: ' . $row['subscriber_lastname'] . ', ' . $row['subscriber_firstname'] . ' ' . $row['subscriber_middle'] . '</td>';
                 $html .= '<td><ul>';
                 if (count($row['item']) > 0) {
                     foreach ($row['item'] as $row1) {
@@ -3711,7 +3673,8 @@ class CoreController extends Controller
                         if (count($row1['adjustment']) > 0) {
                             $j = 1;
                             foreach ($row1['adjustment'] as $row2) {
-                                $html .= '<br><br>Adjustment Reason # ' . $j . ': ' . $this->claim_reason_code($row2['reason_cpt']);;
+                                $html .= '<br><br>Adjustment Reason # ' . $j . ': ' . $this->claim_reason_code($row2['reason_cpt']);
+                                ;
                                 $html .= '<br>Adjustment Amount # ' . $j . ': ' . money_format('%n', $row2['amount']);
                                 $j++;
                             }
@@ -3735,8 +3698,7 @@ class CoreController extends Controller
         return view('core', $data);
     }
 
-    public function financial_era_form(Request $request)
-    {
+    public function financial_era_form(Request $request) {
         $arr = Session::get('era');
         if ($request->isMethod('post')) {
             if ($request->input('submit') !== 'ignore') {
@@ -3825,14 +3787,13 @@ class CoreController extends Controller
         }
     }
 
-    public function financial_insurance(Request $request, $id)
-    {
+    public function financial_insurance(Request $request, $id) {
         $result = [];
         $return = '';
         $query = DB::table(DB::raw('billing as t1'))
-            ->leftJoin(DB::raw('insurance as t2'), 't1.insurance_id_1', '=', 't2.insurance_id')
-            ->leftJoin(DB::raw('encounters as t3'), 't1.eid', '=', 't3.eid')
-            ->select(DB::raw("t2.insurance_plan_name as insuranceplan, COUNT(*) as ins_patients_seen"));
+                ->leftJoin(DB::raw('insurance as t2'), 't1.insurance_id_1', '=', 't2.insurance_id')
+                ->leftJoin(DB::raw('encounters as t3'), 't1.eid', '=', 't3.eid')
+                ->select(DB::raw("t2.insurance_plan_name as insuranceplan, COUNT(*) as ins_patients_seen"));
         $id_arr = explode("-", $id);
         if (count($id_arr) > 1) {
             $query->where(DB::raw("YEAR(t3.encounter_DOS)"), '=', $id_arr[0])->where(DB::raw("MONTH(t3.encounter_DOS)"), '=', $id_arr[1]);
@@ -3842,8 +3803,8 @@ class CoreController extends Controller
             $data['panel_header'] = 'Yearly Insurance Data';
         }
         $query->where('t3.addendum', '=', 'n')
-            ->where('t3.practice_id', '=', Session::get('practice_id'))
-            ->groupBy('insuranceplan');
+                ->where('t3.practice_id', '=', Session::get('practice_id'))
+                ->groupBy('insuranceplan');
         $query_result = $query->get();
         if ($query_result->count()) {
             foreach ($query_result as $query_row) {
@@ -3896,8 +3857,7 @@ class CoreController extends Controller
         return view('core', $data);
     }
 
-    public function financial_patient(Request $request, $action, $pid, $eid)
-    {
+    public function financial_patient(Request $request, $action, $pid, $eid) {
         if (Session::has('pid')) {
             if (Session::get('pid') !== $pid) {
                 $this->setpatient($pid);
@@ -3908,8 +3868,7 @@ class CoreController extends Controller
         return redirect()->route($action, [$eid, 'eid']);
     }
 
-    public function financial_query(Request $request)
-    {
+    public function financial_query(Request $request) {
         $result = [];
         $practice_id = Session::get('practice_id');
         $query_text1 = DB::table('billing_core')->where('practice_id', '=', $practice_id);
@@ -3963,7 +3922,7 @@ class CoreController extends Controller
                 $html = $this->page_intro('Financial Query Results', Session::get('practice_id'));
                 $html .= $this->page_financial_results($result);
                 $this->generate_pdf($html, $file_path);
-                while(!file_exists($file_path)) {
+                while (!file_exists($file_path)) {
                     sleep(2);
                 }
                 Session::put('download_now', $file_path);
@@ -4025,8 +3984,7 @@ class CoreController extends Controller
         }
     }
 
-    public function financial_queue(Request $request, $type)
-    {
+    public function financial_queue(Request $request, $type) {
         $data['bill_submitted'] = $type;
         DB::table('encounters')->where('eid', '=', $request->input('eid'))->update($data);
         $this->audit('Update');
@@ -4039,8 +3997,7 @@ class CoreController extends Controller
         return redirect(Session::get('last_page'));
     }
 
-    public function financial_resubmit(Request $request, $eid)
-    {
+    public function financial_resubmit(Request $request, $eid) {
         $row = DB::table('billing')->where('eid', '=', $eid)->first();
         $message = "Error - No bill for this encounter";
         if ($row) {
@@ -4057,8 +4014,7 @@ class CoreController extends Controller
         return redirect(Session::get('last_page'));
     }
 
-    public function financial_upload_era(Request $request)
-    {
+    public function financial_upload_era(Request $request) {
         if ($request->isMethod('post')) {
             $file = $request->file('file_input');
             // $pid = Session::get('pid');
@@ -4171,8 +4127,7 @@ class CoreController extends Controller
         }
     }
 
-    public function generate_hcfa($flatten, $eid)
-    {
+    public function generate_hcfa($flatten, $eid) {
         $file_path = $this->hcfa($eid, $flatten);
         if ($file_path) {
             return response()->download($file_path);
@@ -4182,8 +4137,7 @@ class CoreController extends Controller
         }
     }
 
-    public function messaging(Request $request, $type='inbox')
-    {
+    public function messaging(Request $request, $type = 'inbox') {
         $data['message_action'] = Session::get('message_action');
         Session::forget('message_action');
         $practice = DB::table('practiceinfo')->where('practice_id', '=', Session::get('practice_id'))->first();
@@ -4379,9 +4333,8 @@ class CoreController extends Controller
         return view('core', $data);
     }
 
-    public function messaging_editdoc(Request $request, $id, $type)
-    {
-        ini_set('memory_limit','196M');
+    public function messaging_editdoc(Request $request, $id, $type) {
+        ini_set('memory_limit', '196M');
         $practice = DB::table('practiceinfo')->where('practice_id', '=', Session::get('practice_id'))->first();
         $directory = $practice->documents_dir . Session::get('pid') . "/";
         if ($request->isMethod('post')) {
@@ -4440,7 +4393,7 @@ class CoreController extends Controller
                 $temp_file_path = public_path() . '/temp/' . $name . '_doc.pdf';
                 Session::put('messaging_editdoc', $temp_file_path);
                 copy($file_path, $temp_file_path);
-                while(!file_exists($temp_file_path)) {
+                while (!file_exists($temp_file_path)) {
                     sleep(2);
                 }
                 $arr = [];
@@ -4527,7 +4480,7 @@ class CoreController extends Controller
                 if ($signature->signature !== '') {
                     if (file_exists($signature->signature)) {
                         $name = time() . '_signature.png';
-                        $temp_path = public_path() .'/temp/' . $name;
+                        $temp_path = public_path() . '/temp/' . $name;
                         $data['signature'] = asset('temp/' . $name);
                         copy($signature->signature, $temp_path);
                     }
@@ -4539,8 +4492,7 @@ class CoreController extends Controller
         }
     }
 
-    public function messaging_editdoc_cancel(Request $request, $id, $type)
-    {
+    public function messaging_editdoc_cancel(Request $request, $id, $type) {
         $temp_file_path = Session::get('messaging_editdoc');
         $pages = Session::get('messaging_editdoc_pages');
         foreach ($pages as $page) {
@@ -4561,8 +4513,7 @@ class CoreController extends Controller
         return redirect($origin);
     }
 
-    public function messaging_editdoc_process(Request $request, $id, $type)
-    {
+    public function messaging_editdoc_process(Request $request, $id, $type) {
         if ($request->isMethod('post')) {
             $temp_file_path = Session::get('messaging_editdoc');
             $pages = Session::get('messaging_editdoc_pages');
@@ -4713,8 +4664,7 @@ class CoreController extends Controller
         }
     }
 
-    public function messaging_export(Request $request, $id)
-    {
+    public function messaging_export(Request $request, $id) {
         $query = DB::table('messaging')->where('message_id', '=', $id)->first();
         $message = 'Internal messaging with patient on: ' . date('Y-m-d', $this->human_to_unix($query->date)) . "\n\r" . $query->body;
         $message = str_replace("<br>", "", $message);
@@ -4734,8 +4684,7 @@ class CoreController extends Controller
         return redirect(Session::get('last_page'));
     }
 
-    public function messaging_sendfax(Request $request, $id)
-    {
+    public function messaging_sendfax(Request $request, $id) {
         if ($request->isMethod('post')) {
             $data = [
                 'faxsubject' => $request->input('faxsubject'),
@@ -4906,8 +4855,7 @@ class CoreController extends Controller
         }
     }
 
-    public function messaging_sendfax_upload(Request $request, $job_id)
-    {
+    public function messaging_sendfax_upload(Request $request, $job_id) {
         if ($request->isMethod('post')) {
             $file = $request->file('file_input');
             $directory = Session::get('documents_dir') . 'sentfax/' . $job_id . '/';
@@ -4915,7 +4863,7 @@ class CoreController extends Controller
             $file_original = str_replace('.' . $file->getClientOriginalExtension(), '', $file->getClientOriginalName()) . '_' . time() . '.pdf';
             $file->move($directory, $file_original);
             $file_path = $directory . $file_original;
-            while(!file_exists($file_path)) {
+            while (!file_exists($file_path)) {
                 sleep(2);
             }
             $pdftext = File::get($file_path);
@@ -4945,8 +4893,7 @@ class CoreController extends Controller
         }
     }
 
-    public function messaging_view(Request $request, $id)
-    {
+    public function messaging_view(Request $request, $id) {
         $query = DB::table('messaging')->where('message_id', '=', $id)->first();
         $user = DB::table('users')->where('id', '=', $query->message_from)->first();
         $columns = Schema::getColumnListing('messaging');
@@ -4959,7 +4906,7 @@ class CoreController extends Controller
         }
         $return .= '<div class="row"><div class="col-md-2" style="margin:10px"><b>From</b></div><div class="col-md-8" style="margin:10px">' . $user->displayname . '</div></div>';
         $return .= '<div class="row"><div class="col-md-2" style="margin:10px"><b>Message</b></div><div class="col-md-8" style="margin:10px">' . nl2br($query->body) . '</div></div>';
-        $return .='</div>';
+        $return .= '</div>';
         $dropdown_array = [
             'default_button_text' => '<i class="fa fa-chevron-left fa-fw fa-btn"></i>Back',
             'default_button_text_url' => Session::get('last_page')
@@ -5006,8 +4953,7 @@ class CoreController extends Controller
         return view('core', $data);
     }
 
-    public function messaging_viewdoc(Request $request, $id, $type)
-    {
+    public function messaging_viewdoc(Request $request, $id, $type) {
         if ($type == 'received') {
             $result = DB::table('received')->where('received_id', '=', $id)->first();
             $file_path = $result->filePath;
@@ -5027,7 +4973,7 @@ class CoreController extends Controller
         $data['filepath'] = public_path() . '/temp/' . $name;
         copy($file_path, $data['filepath']);
         Session::put('file_path_temp', $data['filepath']);
-        while(!file_exists($data['filepath'])) {
+        while (!file_exists($data['filepath'])) {
             sleep(2);
         }
         $data['document_url'] = asset('temp/' . $name);
@@ -5061,8 +5007,7 @@ class CoreController extends Controller
         return view('documents', $data);
     }
 
-    public function password_change(Request $request)
-    {
+    public function password_change(Request $request) {
         if ($request->isMethod('post')) {
             $this->validate($request, [
                 'old_password' => 'required',
@@ -5071,7 +5016,7 @@ class CoreController extends Controller
             ]);
             $query = DB::table('users')->where('id', '=', Session::get('user_id'))->first();
             if (Hash::check($request->input('old_password'), $query->password)) {
-                $data['password'] = substr_replace(Hash::make($request->input('password')),"$2a",0,3);
+                $data['password'] = substr_replace(Hash::make($request->input('password')), "$2a", 0, 3);
                 DB::table('users')->where('id', '=', Session::get('user_id'))->update($data);
                 Session::put('message_action', 'Password changed');
                 return redirect(Session::get('last_page'));
@@ -5124,8 +5069,7 @@ class CoreController extends Controller
         }
     }
 
-    public function password_reset(Request $request, $id)
-    {
+    public function password_reset(Request $request, $id) {
         $query = DB::table('users')->where('id', '=', $id)->first();
         $data['password'] = $this->gen_secret();
         DB::table('users')->where('id', '=', $id)->update($data);
@@ -5139,8 +5083,7 @@ class CoreController extends Controller
         return redirect(Session::get('last_page'));
     }
 
-    public function pnosh_provider_redirect(Request $request)
-    {
+    public function pnosh_provider_redirect(Request $request) {
         $this->setpatient('1');
         $query = DB::table('demographics_relate')->where('practice_id', '=', Session::get('practice_id'))->where('pid', '=', '1')->first();
         if (!$query) {
@@ -5171,8 +5114,7 @@ class CoreController extends Controller
         return redirect()->route('patient');
     }
 
-    public function practice_cancel(Request $request)
-    {
+    public function practice_cancel(Request $request) {
         if (Session::get('group_id') != '1') {
             return redirect()->route('dashboard');
         } else {
@@ -5227,8 +5169,7 @@ class CoreController extends Controller
         }
     }
 
-    public function practice_logo_upload(Request $request)
-    {
+    public function practice_logo_upload(Request $request) {
         if ($request->isMethod('post')) {
             $file = $request->file('file_input');
             $directory = public_path() . '/assets/images';
@@ -5242,7 +5183,7 @@ class CoreController extends Controller
             if (imagesx($img) > 350 || imagesy($img) > 100) {
                 $width = imagesx($img);
                 $height = imagesy($img);
-                $scaledDimensions = $this->getDimensions($width,$height,350,100);
+                $scaledDimensions = $this->getDimensions($width, $height, 350, 100);
                 $scaledWidth = $scaledDimensions['scaledWidth'];
                 $scaledHeight = $scaledDimensions['scaledHeight'];
                 $scaledImage = imagecreatetruecolor($scaledWidth, $scaledHeight);
@@ -5265,8 +5206,7 @@ class CoreController extends Controller
         }
     }
 
-    public function prescription_view(Request $request, $id='')
-    {
+    public function prescription_view(Request $request, $id = '') {
         $query = DB::table('rx_list')->where('rxl_id', '=', $id)->first();
         $data['assets_js'] = $this->assets_js();
         $data['assets_css'] = $this->assets_css();
@@ -5280,12 +5220,12 @@ class CoreController extends Controller
                 $med = explode(' ', $query->rxl_medication);
                 $data['rx'] = $this->goodrx_drug_search($med[0]);
                 $data['link'] = $this->goodrx_information($query->rxl_medication, $query->rxl_dosage . $query->rxl_dosage_unit);
-                ini_set('memory_limit','196M');
+                ini_set('memory_limit', '196M');
                 $html = $this->page_medication($id, $query->pid);
                 $name = time() . "_rx.pdf";
                 $file_path = public_path() . "/temp/" . $name;
                 $this->generate_pdf($html, $file_path, 'footerpdf', '', '2', '', 'void');
-                while(!file_exists($file_path)) {
+                while (!file_exists($file_path)) {
                     sleep(2);
                 }
                 $imagick = new Imagick();
@@ -5317,13 +5257,12 @@ class CoreController extends Controller
         }
     }
 
-    public function print_batch($type, $flatten)
-    {
+    public function print_batch($type, $flatten) {
         $query = DB::table('encounters')
-            ->where('bill_submitted', '=', $type)
-            ->where('addendum', '=', 'n')
-            ->where('practice_id', '=', Session::get('practice_id'))
-            ->get();
+                ->where('bill_submitted', '=', $type)
+                ->where('addendum', '=', 'n')
+                ->where('practice_id', '=', Session::get('practice_id'))
+                ->get();
         if ($query->count()) {
             if ($type == 'Pend') {
                 $printimage = '';
@@ -5350,7 +5289,7 @@ class CoreController extends Controller
                     unlink($row1);
                 }
             }
-            while(!file_exists($file_path)) {
+            while (!file_exists($file_path)) {
                 sleep(2);
             }
             return response()->download($file_path);
@@ -5360,19 +5299,17 @@ class CoreController extends Controller
         }
     }
 
-    public function print_chart_admin(Request $request, $id)
-    {
+    public function print_chart_admin(Request $request, $id) {
         $file_path = $this->print_chart('', $id, 'all');
         Session::put('download_now', $file_path);
         return redirect(Session::get('last_page'));
     }
 
-    public function print_chart_request($id, $pid, $download=true)
-    {
+    public function print_chart_request($id, $pid, $download = true) {
         $html = $this->page_hippa_request($id, $pid);
         $file_path = public_path() . "/temp/" . time() . "_recordsrequest_" . Session::get('user_id') . ".pdf";
         $this->generate_pdf($html, $file_path, 'footerpdf', '', '2');
-        while(!file_exists($file_path)) {
+        while (!file_exists($file_path)) {
             sleep(2);
         }
         if ($download == true) {
@@ -5382,51 +5319,47 @@ class CoreController extends Controller
         }
     }
 
-    public function printimage_single($eid)
-    {
+    public function printimage_single($eid) {
         $new_template = $this->printimage($eid);
         $file_path = public_path() . '/temp/' . time() . '_printimage.pdf';
         File::put($file_path, $new_template);
-        while(!file_exists($file_path)) {
+        while (!file_exists($file_path)) {
             sleep(2);
         }
         return response()->download($file_path);
     }
 
-    public function print_invoice1($eid, $insurance_id_1, $insurance_id_2)
-    {
-        ini_set('memory_limit','196M');
+    public function print_invoice1($eid, $insurance_id_1, $insurance_id_2) {
+        ini_set('memory_limit', '196M');
         if ($insurance_id_1 !== '0') {
             $result = $this->billing_save_common($insurance_id_1, $insurance_id_2, $eid);
         }
         $file_path = public_path() . "/temp/" . time() . "_invoice_" . Session::get('user_id') . ".pdf";
         $html = $this->page_invoice1($eid);
         $this->generate_pdf($html, $file_path);
-        while(!file_exists($file_path)) {
+        while (!file_exists($file_path)) {
             sleep(2);
         }
         return response()->download($file_path);
     }
 
-    public function print_invoice2($id, $pid)
-    {
-        ini_set('memory_limit','196M');
+    public function print_invoice2($id, $pid) {
+        ini_set('memory_limit', '196M');
         $file_path = public_path() . "/temp/" . time() . "_invoice_" . Session::get('user_id') . ".pdf";
         $html = $this->page_invoice2($id, $pid);
         $this->generate_pdf($html, $file_path);
-        while(!file_exists($file_path)) {
+        while (!file_exists($file_path)) {
             sleep(2);
         }
         return response()->download($file_path);
     }
 
-    public function print_medication($id, $pid, $download=true)
-    {
-        ini_set('memory_limit','196M');
+    public function print_medication($id, $pid, $download = true) {
+        ini_set('memory_limit', '196M');
         $html = $this->page_medication($id, $pid);
         $file_path = public_path() . "/temp/" . time() . "_rx_" . Session::get('user_id') . ".pdf";
         $this->generate_pdf($html, $file_path, 'footerpdf', '', '2');
-        while(!file_exists($file_path)) {
+        while (!file_exists($file_path)) {
             sleep(2);
         }
         if ($download == true) {
@@ -5436,13 +5369,12 @@ class CoreController extends Controller
         }
     }
 
-    public function print_orders($id, $pid, $download=true)
-    {
-        ini_set('memory_limit','196M');
+    public function print_orders($id, $pid, $download = true) {
+        ini_set('memory_limit', '196M');
         $html = $this->page_orders($id, $pid);
         $file_path = public_path() . "/temp/" . time() . "_orders_" . Session::get('user_id') . ".pdf";
         $this->generate_pdf($html, $file_path);
-        while(!file_exists($file_path)) {
+        while (!file_exists($file_path)) {
             sleep(2);
         }
         if ($download == true) {
@@ -5452,8 +5384,7 @@ class CoreController extends Controller
         }
     }
 
-    public function print_queue(Request $request, $action, $id, $pid, $subtype='')
-    {
+    public function print_queue(Request $request, $action, $id, $pid, $subtype = '') {
         ini_set('memory_limit', '196M');
         $arr = [];
         if (Session::has('print_queue')) {
@@ -5533,11 +5464,10 @@ class CoreController extends Controller
         }
     }
 
-    public function restore_backup(Request $request)
-    {
+    public function restore_backup(Request $request) {
         if ($request->isMethod('post')) {
             $file = $request->input('backup');
-            $command = "mysql -u " . env('DB_USERNAME') . " -p". env('DB_PASSWORD') . " " . env('DB_DATABASE') . " < " . $file;
+            $command = "mysql -u " . env('DB_USERNAME') . " -p" . env('DB_PASSWORD') . " " . env('DB_DATABASE') . " < " . $file;
             system($command);
             Session::put('message_action', 'Backup restored');
             return redirect()->route('dashboard');
@@ -5549,7 +5479,7 @@ class CoreController extends Controller
             arsort($files);
             foreach ($files as $file) {
                 $explode = explode("_", $file);
-                $time = intval(str_replace(".sql","",$explode[1]));
+                $time = intval(str_replace(".sql", "", $explode[1]));
                 $backup_arr[$file] = date("Y-m-d H:i:s", $time);
             }
             $items[] = [
@@ -5574,8 +5504,7 @@ class CoreController extends Controller
         }
     }
 
-    public function schedule(Request $request, $provider_id='')
-    {
+    public function schedule(Request $request, $provider_id = '') {
         if ($provider_id == '') {
             // Check if this is the provider logging in
             $provider_query = DB::table('providers')->where('id', '=', Session::get('user_id'))->first();
@@ -5605,13 +5534,13 @@ class CoreController extends Controller
                 $data['pt_name'] = $patient_query->lastname . ', ' . $patient_query->firstname . ' (DOB: ' . date('m/d/Y', strtotime($patient_query->DOB)) . ') (ID: ' . $patient_query->pid . ')';
             }
             $query = DB::table('calendar')
-                ->where('active', '=', 'y')
-                ->where('practice_id', '=', Session::get('practice_id'))
-                ->where(function($query_array1) use ($provider_id) {
-                    $query_array1->where('provider_id', '=', '0')
-                    ->orWhere('provider_id', '=', $provider_id);
-                })
-                ->get();
+                    ->where('active', '=', 'y')
+                    ->where('practice_id', '=', Session::get('practice_id'))
+                    ->where(function($query_array1) use ($provider_id) {
+                        $query_array1->where('provider_id', '=', '0')
+                        ->orWhere('provider_id', '=', $provider_id);
+                    })
+                    ->get();
             $data['visit_type'] = '';
             if ($query->count()) {
                 foreach ($query as $row) {
@@ -5639,8 +5568,7 @@ class CoreController extends Controller
         return view('schedule', $data);
     }
 
-    public function schedule_provider_exceptions(Request $request, $type)
-    {
+    public function schedule_provider_exceptions(Request $request, $type) {
         $data['message_action'] = Session::get('message_action');
         Session::forget('message_action');
         $practice = DB::table('practiceinfo')->where('practice_id', '=', Session::get('practice_id'))->first();
@@ -5717,8 +5645,7 @@ class CoreController extends Controller
         return view('core', $data);
     }
 
-    public function schedule_visit_types(Request $request, $type)
-    {
+    public function schedule_visit_types(Request $request, $type) {
         $data['message_action'] = Session::get('message_action');
         Session::forget('message_action');
         $practice = DB::table('practiceinfo')->where('practice_id', '=', Session::get('practice_id'))->first();
@@ -5749,8 +5676,8 @@ class CoreController extends Controller
         $dropdown_array['items'] = $items;
         $data['panel_dropdown'] = $this->dropdown_build($dropdown_array);
         $query = DB::table('calendar')
-            ->where('active', '=', $type)
-            ->where('practice_id', '=', Session::get('practice_id'));
+                ->where('active', '=', $type)
+                ->where('practice_id', '=', Session::get('practice_id'));
         $result = $query->get();
         $columns = Schema::getColumnListing('calendar');
         $row_index = $columns[0];
@@ -5771,7 +5698,7 @@ class CoreController extends Controller
                 $arr = [];
                 $arr['label'] = '<span class="fa-btn"><i class="fa fa-square fa-lg" style="color:' . $color_arr[$row->classname] . '"></i> </span><b>' . $row->visit_type . '</b> - ';
                 if ($row->duration !== null) {
-                    $arr['label'] .= 'Duration: ' . $duration_arr[$row->duration]. ',';
+                    $arr['label'] .= 'Duration: ' . $duration_arr[$row->duration] . ',';
                 }
                 if ($row->provider_id !== 0 && $row->provider_id !== null) {
                     $provider = DB::table('users')->where('id', '=', $row->provider_id)->first();
@@ -5823,14 +5750,12 @@ class CoreController extends Controller
         return view('core', $data);
     }
 
-    public function set_patient(Request $request, $pid)
-    {
+    public function set_patient(Request $request, $pid) {
         $this->setpatient($pid);
         return redirect()->route('patient');
     }
 
-    public function setup(Request $request)
-    {
+    public function setup(Request $request) {
         $data['message_action'] = Session::get('message_action');
         Session::forget('message_action');
         $result = DB::table('practiceinfo')->where('practice_id', '=', Session::get('practice_id'))->first();
@@ -5991,8 +5916,7 @@ class CoreController extends Controller
         return view('core', $data);
     }
 
-    public function superquery(Request $request, $type)
-    {
+    public function superquery(Request $request, $type) {
         $user = DB::table('users')->where('id', '=', Session::get('user_id'))->first();
         if ($user->reports == null || $user->reports == '') {
             $array = [];
@@ -6026,7 +5950,7 @@ class CoreController extends Controller
                 $array[$type]['search_active_only'] = $search_active_only;
                 $array[$type]['search_no_insurance_only'] = $search_no_insurance_only;
                 $array[$type]['search_gender'] = $search_gender;
-                 for ($j = 0; $j < count($search_field); $j++) {
+                for ($j = 0; $j < count($search_field); $j++) {
                     $array[$type][$j] = [
                         'search_field' => $search_field[$j],
                         'search_op' => $search_op[$j],
@@ -6047,7 +5971,7 @@ class CoreController extends Controller
                 $array[$type]['search_active_only'] = $search_active_only;
                 $array[$type]['search_no_insurance_only'] = $search_no_insurance_only;
                 $array[$type]['search_gender'] = $search_gender;
-                 for ($j = 0; $j < count($search_field); $j++) {
+                for ($j = 0; $j < count($search_field); $j++) {
                     $array[$type][$j] = [
                         'search_field' => $search_field[$j],
                         'search_op' => $search_op[$j],
@@ -6068,10 +5992,10 @@ class CoreController extends Controller
                 }
             }
             $query_text1 = DB::table('demographics')
-                ->join('demographics_relate', 'demographics.pid', '=', 'demographics_relate.pid')
-                ->select('demographics.pid','demographics.lastname','demographics.firstname','demographics.DOB')
-                ->distinct()
-                ->where('demographics_relate.practice_id', '=', $practice_id);
+                    ->join('demographics_relate', 'demographics.pid', '=', 'demographics_relate.pid')
+                    ->select('demographics.pid', 'demographics.lastname', 'demographics.firstname', 'demographics.DOB')
+                    ->distinct()
+                    ->where('demographics_relate.practice_id', '=', $practice_id);
             for ($i = 0; $i < count($search_field); $i++) {
                 if (isset($search_field[$i])) {
                     if ($search_field[$i] == 'age') {
@@ -6081,9 +6005,9 @@ class CoreController extends Controller
                             $unix_target2 = $ago + 15778463;
                             $target1 = date('Y-m-d 00:00:00', $unix_target1);
                             $target2 = date('Y-m-d 00:00:00', $unix_target2);
-                            if($search_op[$i] == 'equal') {
-                                if($search_join[$i] !== "start") {
-                                    if($search_join[$i] == 'AND') {
+                            if ($search_op[$i] == 'equal') {
+                                if ($search_join[$i] !== "start") {
+                                    if ($search_join[$i] == 'AND') {
                                         $query_array0->whereBetween('demographics.DOB', [$target1, $target2]);
                                     } else {
                                         $query_array0->orWhereBetween('demographics.DOB', [$target1, $target2]);
@@ -6092,9 +6016,9 @@ class CoreController extends Controller
                                     $query_array0->whereBetween('demographics.DOB', [$target1, $target2]);
                                 }
                             }
-                            if($search_op[$i] == 'greater than') {
-                                if($search_join[$i] !== "start") {
-                                    if($search_join[$i] == 'AND') {
+                            if ($search_op[$i] == 'greater than') {
+                                if ($search_join[$i] !== "start") {
+                                    if ($search_join[$i] == 'AND') {
                                         $query_array0->where('demographics.DOB', '<', $target1);
                                     } else {
                                         $query_array0->orWhere('demographics.DOB', '<', $target1);
@@ -6103,9 +6027,9 @@ class CoreController extends Controller
                                     $query_array0->where('demographics.DOB', '<', $target1);
                                 }
                             }
-                            if($search_op[$i] == 'less than') {
-                                if($search_join[$i] !== "start") {
-                                    if($search_join[$i] == 'AND') {
+                            if ($search_op[$i] == 'less than') {
+                                if ($search_join[$i] !== "start") {
+                                    if ($search_join[$i] == 'AND') {
                                         $query_array0->where('demographics.DOB', '>', $target2);
                                     } else {
                                         $query_array0->orWhere('demographics.DOB', '>', $target2);
@@ -6116,51 +6040,51 @@ class CoreController extends Controller
                             }
                         });
                     }
-                    if($search_field[$i] == 'insurance') {
+                    if ($search_field[$i] == 'insurance') {
                         $query_text1->join('insurance', 'insurance.pid', '=', 'demographics.pid');
                         $query_text1->where(function($query_array1) use ($search_op, $search_desc, $search_join, $i) {
-                            if($search_op[$i] == 'equal') {
-                                if($search_join[$i] !== "start") {
-                                    if($search_join[$i] == 'AND') {
+                            if ($search_op[$i] == 'equal') {
+                                if ($search_join[$i] !== "start") {
+                                    if ($search_join[$i] == 'AND') {
                                         $query_array1->where('insurance.insurance_order', '=', 'Primary')
-                                            ->where('insurance.insurance_plan_active', '=', 'Yes')
-                                            ->where('insurance.insurance_plan_name', '=',  $search_desc[$i]);
+                                                ->where('insurance.insurance_plan_active', '=', 'Yes')
+                                                ->where('insurance.insurance_plan_name', '=', $search_desc[$i]);
                                     } else {
                                         $query_array1->where('insurance.insurance_order', '=', 'Primary')
-                                            ->where('insurance.insurance_plan_active', '=', 'Yes')
-                                            ->orWhere('insurance.insurance_plan_name', '=',  $search_desc[$i]);
+                                                ->where('insurance.insurance_plan_active', '=', 'Yes')
+                                                ->orWhere('insurance.insurance_plan_name', '=', $search_desc[$i]);
                                     }
                                 } else {
                                     $query_array1->where('insurance.insurance_order', '=', 'Primary')
-                                        ->where('insurance.insurance_plan_active', '=', 'Yes')
-                                        ->where('insurance.insurance_plan_name', '=',  $search_desc[$i]);
+                                            ->where('insurance.insurance_plan_active', '=', 'Yes')
+                                            ->where('insurance.insurance_plan_name', '=', $search_desc[$i]);
                                 }
                             }
-                            if($search_op[$i] == 'contains') {
-                                if($search_join[$i] !== "start") {
-                                    if($search_join[$i] == 'AND') {
+                            if ($search_op[$i] == 'contains') {
+                                if ($search_join[$i] !== "start") {
+                                    if ($search_join[$i] == 'AND') {
                                         $query_array1->where('insurance.insurance_order', '=', 'Primary')
-                                            ->where('insurance.insurance_plan_active', '=', 'Yes')
-                                            ->where('insurance.insurance_plan_name', 'LIKE', "%$search_desc[$i]%");
+                                                ->where('insurance.insurance_plan_active', '=', 'Yes')
+                                                ->where('insurance.insurance_plan_name', 'LIKE', "%$search_desc[$i]%");
                                     } else {
                                         $query_array1->where('insurance.insurance_order', '=', 'Primary')
-                                            ->where('insurance.insurance_plan_active', '=', 'Yes')
-                                            ->orWhere('insurance.insurance_plan_name', 'LIKE', "%$search_desc[$i]%");
+                                                ->where('insurance.insurance_plan_active', '=', 'Yes')
+                                                ->orWhere('insurance.insurance_plan_name', 'LIKE', "%$search_desc[$i]%");
                                     }
                                 } else {
                                     $query_array1->where('insurance.insurance_order', '=', 'Primary')
-                                        ->where('insurance.insurance_plan_active', '=', 'Yes')
-                                        ->where('insurance.insurance_plan_name', 'LIKE', "%$search_desc[$i]%");
+                                            ->where('insurance.insurance_plan_active', '=', 'Yes')
+                                            ->where('insurance.insurance_plan_name', 'LIKE', "%$search_desc[$i]%");
                                 }
                             }
                         });
                     }
-                    if($search_field[$i] == 'issue') {
+                    if ($search_field[$i] == 'issue') {
                         $query_text1->join('issues', 'issues.pid', '=', 'demographics.pid');
                         $query_text1->where(function($query_array2) use ($search_op, $search_desc, $search_join, $i) {
-                            if($search_op[$i] == 'equal') {
-                                if($search_join[$i] !== "start") {
-                                    if($search_join[$i] == 'AND') {
+                            if ($search_op[$i] == 'equal') {
+                                if ($search_join[$i] !== "start") {
+                                    if ($search_join[$i] == 'AND') {
                                         $query_array2->where('issues.issue', '=', $search_desc[$i]);
                                     } else {
                                         $query_array2->orWhere('issues.issue', '=', $search_desc[$i]);
@@ -6169,9 +6093,9 @@ class CoreController extends Controller
                                     $query_array2->where('issues.issue', '=', $search_desc[$i]);
                                 }
                             }
-                            if($search_op[$i] == 'contains') {
-                                if($search_join[$i] !== "start") {
-                                    if($search_join[$i] == 'AND') {
+                            if ($search_op[$i] == 'contains') {
+                                if ($search_join[$i] !== "start") {
+                                    if ($search_join[$i] == 'AND') {
                                         $query_array2->where('issues.issue', 'LIKE', "%$search_desc[$i]%");
                                     } else {
                                         $query_array2->orWhere('issues.issue', 'LIKE', "%$search_desc[$i]%");
@@ -6180,9 +6104,9 @@ class CoreController extends Controller
                                     $query_array2->where('issues.issue', 'LIKE', "%$search_desc[$i]%");
                                 }
                             }
-                            if($search_op[$i] == 'not equal') {
-                                if($search_join[$i] != "start") {
-                                    if($search_join[$i] == 'AND') {
+                            if ($search_op[$i] == 'not equal') {
+                                if ($search_join[$i] != "start") {
+                                    if ($search_join[$i] == 'AND') {
                                         $query_array2->where('issues.issue', '!=', $search_desc[$i]);
                                     } else {
                                         $query_array2->orWhere('issues.issue', '!=', $search_desc[$i]);
@@ -6194,12 +6118,12 @@ class CoreController extends Controller
                             $query_array2->where('issues.issue_date_inactive', '=', '0000-00-00 00:00:00');
                         });
                     }
-                    if($search_field[$i] == 'billing') {
+                    if ($search_field[$i] == 'billing') {
                         $query_text1->join('billing_core', 'billing_core.pid', '=', 'demographics.pid');
                         $query_text1->where(function($query_array3) use ($search_op, $search_desc, $search_join, $i) {
-                            if($search_op[$i] == 'equal') {
-                                if($search_join[$i] !== "start") {
-                                    if($search_join[$i] == 'AND') {
+                            if ($search_op[$i] == 'equal') {
+                                if ($search_join[$i] !== "start") {
+                                    if ($search_join[$i] == 'AND') {
                                         $query_array3->where('billing_core.cpt', '=', $search_desc[$i]);
                                     } else {
                                         $query_array3->orWhere('billing_core.cpt', '=', $search_desc[$i]);
@@ -6208,9 +6132,9 @@ class CoreController extends Controller
                                     $query_array3->where('billing_core.cpt', '=', $search_desc[$i]);
                                 }
                             }
-                            if($search_op[$i] == 'not equal') {
-                                if($search_join[$i] != "start") {
-                                    if($search_join[$i] == 'AND') {
+                            if ($search_op[$i] == 'not equal') {
+                                if ($search_join[$i] != "start") {
+                                    if ($search_join[$i] == 'AND') {
                                         $query_array3->where('billing_core.cpt', '!=', $search_desc[$i]);
                                     } else {
                                         $query_array3->orWhere('billing_core.cpt', '!=', $search_desc[$i]);
@@ -6221,12 +6145,12 @@ class CoreController extends Controller
                             }
                         });
                     }
-                    if($search_field[$i] == 'rxl_medication') {
+                    if ($search_field[$i] == 'rxl_medication') {
                         $query_text1->join('rx_list', 'rx_list.pid', '=', 'demographics.pid');
                         $query_text1->where(function($query_array4) use ($search_op, $search_desc, $search_join, $i) {
-                            if($search_op[$i] == 'equal') {
-                                if($search_join[$i] !== "start") {
-                                    if($search_join[$i] == 'AND') {
+                            if ($search_op[$i] == 'equal') {
+                                if ($search_join[$i] !== "start") {
+                                    if ($search_join[$i] == 'AND') {
                                         $query_array4->where('rx_list.rxl_medication', '=', $search_desc[$i]);
                                     } else {
                                         $query_array4->orWhere('rx_list.rxl_medication', '=', $search_desc[$i]);
@@ -6235,9 +6159,9 @@ class CoreController extends Controller
                                     $query_array4->where('rx_list.rxl_medication', '=', $search_desc[$i]);
                                 }
                             }
-                            if($search_op[$i] == 'contains') {
-                                if($search_join[$i] !== "start") {
-                                    if($search_join[$i] == 'AND') {
+                            if ($search_op[$i] == 'contains') {
+                                if ($search_join[$i] !== "start") {
+                                    if ($search_join[$i] == 'AND') {
                                         $query_array4->where('rx_list.rxl_medication', 'LIKE', "%$search_desc[$i]%");
                                     } else {
                                         $query_array4->orWhere('rx_list.rxl_medication', 'LIKE', "%$search_desc[$i]%");
@@ -6246,9 +6170,9 @@ class CoreController extends Controller
                                     $query_array4->where('rx_list.rxl_medication', 'LIKE', "%$search_desc[$i]%");
                                 }
                             }
-                            if($search_op[$i] == 'not equal') {
-                                if($search_join[$i] !== "start") {
-                                    if($search_join[$i] == 'AND') {
+                            if ($search_op[$i] == 'not equal') {
+                                if ($search_join[$i] !== "start") {
+                                    if ($search_join[$i] == 'AND') {
                                         $query_array4->where('rx_list.rxl_medication', '!=', $search_desc[$i]);
                                     } else {
                                         $query_array4->orWhere('rx_list.rxl_medication', '!=', $search_desc[$i]);
@@ -6260,12 +6184,12 @@ class CoreController extends Controller
                             $query_array4->where('rx_list.rxl_date_inactive', '=', '0000-00-00 00:00:00')->where('rx_list.rxl_date_old', '=', '0000-00-00 00:00:00');
                         });
                     }
-                    if($search_field[$i] == 'imm_immunization') {
+                    if ($search_field[$i] == 'imm_immunization') {
                         $query_text1->join('immunizations', 'immunizations.pid', '=', 'demographics.pid');
                         $query_text1->where(function($query_array5) use ($search_op, $search_desc, $search_join, $i) {
-                            if($search_op[$i] == 'equal') {
-                                if($search_join[$i] !== "start") {
-                                    if($search_join[$i] == 'AND') {
+                            if ($search_op[$i] == 'equal') {
+                                if ($search_join[$i] !== "start") {
+                                    if ($search_join[$i] == 'AND') {
                                         $query_array5->where('immunizations.imm_immunization', '=', $search_desc[$i]);
                                     } else {
                                         $query_array5->orWhere('immunizations.imm_immunization', '=', $search_desc[$i]);
@@ -6274,9 +6198,9 @@ class CoreController extends Controller
                                     $query_array5->where('immunizations.imm_immunization', '=', $search_desc[$i]);
                                 }
                             }
-                            if($search_op[$i] == 'contains') {
-                                if($search_join[$i] !== "start") {
-                                    if($search_join[$i] == 'AND') {
+                            if ($search_op[$i] == 'contains') {
+                                if ($search_join[$i] !== "start") {
+                                    if ($search_join[$i] == 'AND') {
                                         $query_array5->where('immunizations.imm_immunization', 'LIKE', "%$search_desc[$i]%");
                                     } else {
                                         $query_array5->orWhere('immunizations.imm_immunization', 'LIKE', "%$search_desc[$i]%");
@@ -6285,9 +6209,9 @@ class CoreController extends Controller
                                     $query_array5->where('immunizations.imm_immunization', 'LIKE', "%$search_desc[$i]%");
                                 }
                             }
-                            if($search_op[$i] == 'not equal') {
-                                if($search_join[$i] !== "start") {
-                                    if($search_join[$i] == 'AND') {
+                            if ($search_op[$i] == 'not equal') {
+                                if ($search_join[$i] !== "start") {
+                                    if ($search_join[$i] == 'AND') {
                                         $query_array5->where('immunizations.imm_immunization', '!=', $search_desc[$i]);
                                     } else {
                                         $query_array5->orWhere('immunizations.imm_immunization', '!=', $search_desc[$i]);
@@ -6298,12 +6222,12 @@ class CoreController extends Controller
                             }
                         });
                     }
-                    if($search_field[$i] == 'sup_supplement') {
+                    if ($search_field[$i] == 'sup_supplement') {
                         $query_text1->join('sup_list', 'sup_list.pid', '=', 'demographics.pid');
                         $query_text1->where(function($query_array6) use ($search_op, $search_desc, $search_join, $i) {
-                            if($search_op[$i] == 'equal') {
-                                if($search_join[$i] !== "start") {
-                                    if($search_join[$i] == 'AND') {
+                            if ($search_op[$i] == 'equal') {
+                                if ($search_join[$i] !== "start") {
+                                    if ($search_join[$i] == 'AND') {
                                         $query_array6->where('sup_list.sup_supplement', '=', $search_desc[$i]);
                                     } else {
                                         $query_array6->orWhere('sup_list.sup_supplement', '=', $search_desc[$i]);
@@ -6312,9 +6236,9 @@ class CoreController extends Controller
                                     $query_array6->where('sup_list.sup_supplement', '=', $search_desc[$i]);
                                 }
                             }
-                            if($search_op[$i] == 'contains') {
-                                if($search_join[$i] !== "start") {
-                                    if($search_join[$i] == 'AND') {
+                            if ($search_op[$i] == 'contains') {
+                                if ($search_join[$i] !== "start") {
+                                    if ($search_join[$i] == 'AND') {
                                         $query_array6->where('sup_list.sup_supplement', 'LIKE', "%$search_desc[$i]%");
                                     } else {
                                         $query_array6->orWhere('sup_list.sup_supplement', 'LIKE', "%$search_desc[$i]%");
@@ -6323,9 +6247,9 @@ class CoreController extends Controller
                                     $query_array6->where('sup_list.sup_supplement', 'LIKE', "%$search_desc[$i]%");
                                 }
                             }
-                            if($search_op[$i] == 'not equal') {
-                                if($search_join[$i] !== "start") {
-                                    if($search_join[$i] == 'AND') {
+                            if ($search_op[$i] == 'not equal') {
+                                if ($search_join[$i] !== "start") {
+                                    if ($search_join[$i] == 'AND') {
                                         $query_array6->where('sup_list.sup_supplement', '!=', $search_desc[$i]);
                                     } else {
                                         $query_array6->orWhere('sup_list.sup_supplement', '!=', $search_desc[$i]);
@@ -6337,11 +6261,11 @@ class CoreController extends Controller
                             $query_array6->where('sup_list.sup_date_inactive', '=', '0000-00-00 00:00:00');
                         });
                     }
-                    if($search_field[$i] == 'zip') {
+                    if ($search_field[$i] == 'zip') {
                         $query_text1->where(function($query_array7) use ($search_op, $search_desc, $search_join, $i) {
-                            if($search_op[$i] == 'equal') {
-                                if($search_join[$i] !== "start") {
-                                    if($search_join[$i] == 'AND') {
+                            if ($search_op[$i] == 'equal') {
+                                if ($search_join[$i] !== "start") {
+                                    if ($search_join[$i] == 'AND') {
                                         $query_array7->where('demographics.zip', '=', $search_desc[$i]);
                                     } else {
                                         $query_array7->orWhere('demographics.zip', '=', $search_desc[$i]);
@@ -6350,9 +6274,9 @@ class CoreController extends Controller
                                     $query_array7->where('demographics.zip', '=', $search_desc[$i]);
                                 }
                             }
-                            if($search_op[$i] == 'contains') {
-                                if($search_join[$i] !== "start") {
-                                    if($search_join[$i] == 'AND') {
+                            if ($search_op[$i] == 'contains') {
+                                if ($search_join[$i] !== "start") {
+                                    if ($search_join[$i] == 'AND') {
                                         $query_array7->where('demographics.zip', 'LIKE', "%$search_desc[$i]%");
                                     } else {
                                         $query_array7->orWhere('demographics.zip', 'LIKE', "%$search_desc[$i]%");
@@ -6361,9 +6285,9 @@ class CoreController extends Controller
                                     $query_array7->where('demographics.zip', 'LIKE', "%$search_desc[$i]%");
                                 }
                             }
-                            if($search_op[$i] == 'not equal') {
-                                if($search_join[$i] != "start") {
-                                    if($search_join[$i] == 'AND') {
+                            if ($search_op[$i] == 'not equal') {
+                                if ($search_join[$i] != "start") {
+                                    if ($search_join[$i] == 'AND') {
                                         $query_array7->where('demographics.zip', '!=', $search_desc[$i]);
                                     } else {
                                         $query_array7->orWhere('demographics.zip', '!=', $search_desc[$i]);
@@ -6374,11 +6298,11 @@ class CoreController extends Controller
                             }
                         });
                     }
-                    if($search_field[$i] == 'city') {
+                    if ($search_field[$i] == 'city') {
                         $query_text1->where(function($query_array8) use ($search_op, $search_desc, $search_join, $i) {
-                            if($search_op[$i] == 'equal') {
-                                if($search_join[$i] != "start") {
-                                    if($search_join[$i] == 'AND') {
+                            if ($search_op[$i] == 'equal') {
+                                if ($search_join[$i] != "start") {
+                                    if ($search_join[$i] == 'AND') {
                                         $query_array8->where('demographics.city', '=', $search_desc[$i]);
                                     } else {
                                         $query_array8->orWhere('demographics.city', '=', $search_desc[$i]);
@@ -6387,9 +6311,9 @@ class CoreController extends Controller
                                     $query_array8->where('demographics.city', '=', $search_desc[$i]);
                                 }
                             }
-                            if($search_op[$i] == 'contains') {
-                                if($search_join[$i] !== "start") {
-                                    if($search_join[$i] == 'AND') {
+                            if ($search_op[$i] == 'contains') {
+                                if ($search_join[$i] !== "start") {
+                                    if ($search_join[$i] == 'AND') {
                                         $query_array8->where('demographics.city', 'LIKE', "%$search_desc[$i]%");
                                     } else {
                                         $query_array8->orWhere('demographics.city', 'LIKE', "%$search_desc[$i]%");
@@ -6398,9 +6322,9 @@ class CoreController extends Controller
                                     $query_array8->where('demographics.city', 'LIKE', "%$search_desc[$i]%");
                                 }
                             }
-                            if($search_op[$i] == 'not equal') {
-                                if($search_join[$i] !== "start") {
-                                    if($search_join[$i] == 'AND') {
+                            if ($search_op[$i] == 'not equal') {
+                                if ($search_join[$i] !== "start") {
+                                    if ($search_join[$i] == 'AND') {
                                         $query_array8->where('demographics.city', '!=', $search_desc[$i]);
                                     } else {
                                         $query_array8->orWhere('demographics.city', '!=', $search_desc[$i]);
@@ -6411,12 +6335,12 @@ class CoreController extends Controller
                             }
                         });
                     }
-                    if($search_field[$i] == 'month') {
+                    if ($search_field[$i] == 'month') {
                         $query_text1->where(function($query_array9) use ($search_op, $search_desc, $search_join, $i) {
                             $query_date = date('-m-', strtotime($search_desc[$i]));
-                            if($search_op[$i] == 'equal') {
-                                if($search_join[$i] !== "start") {
-                                    if($search_join[$i] == 'AND') {
+                            if ($search_op[$i] == 'equal') {
+                                if ($search_join[$i] !== "start") {
+                                    if ($search_join[$i] == 'AND') {
                                         $query_array9->where('demographics.DOB', 'LIKE', "%$query_date%");
                                     } else {
                                         $query_array9->orWhere('demographics.DOB', 'LIKE', "%$query_date%");
@@ -6425,9 +6349,9 @@ class CoreController extends Controller
                                     $query_array9->where('demographics.DOB', 'LIKE', "%$query_date%");
                                 }
                             }
-                            if($search_op[$i] == 'not equal') {
-                                if($search_join[$i] !== "start") {
-                                    if($search_join[$i] == 'AND') {
+                            if ($search_op[$i] == 'not equal') {
+                                if ($search_join[$i] !== "start") {
+                                    if ($search_join[$i] == 'AND') {
                                         $query_array9->where('demographics.DOB', 'NOT LIKE', "%$query_date%");
                                     } else {
                                         $query_array9->orWhere('demographics.DOB', 'NOT LIKE', "%$query_date%");
@@ -6439,14 +6363,14 @@ class CoreController extends Controller
                         });
                     }
                     if ($search_field[$i] == 'bp_systolic') {
-                        $query_text1->join('vitals', function($join){
+                        $query_text1->join('vitals', function($join) {
                             $join->on('vitals.pid', '=', 'demographics.pid');
                             $join->whereRaw("vitals.vitals_date = (SELECT MAX(z.vitals_date) FROM vitals as z WHERE z.pid = vitals.pid AND z.bp_systolic != '')");
                         });
                         $query_text1->where(function($query_array10) use ($search_op, $search_desc, $search_join, $i) {
-                            if($search_op[$i] == 'equal') {
-                                if($search_join[$i] !== "start") {
-                                    if($search_join[$i] == 'AND') {
+                            if ($search_op[$i] == 'equal') {
+                                if ($search_join[$i] !== "start") {
+                                    if ($search_join[$i] == 'AND') {
                                         $query_array10->where('vitals.bp_systolic', '=', $search_desc[$i]);
                                     } else {
                                         $query_array10->orWhere('vitals.bp_systolic', '=', $search_desc[$i]);
@@ -6455,9 +6379,9 @@ class CoreController extends Controller
                                     $query_array10->where('vitals.bp_systolic', '=', $search_desc[$i]);
                                 }
                             }
-                            if($search_op[$i] == 'greater than') {
-                                if($search_join[$i] !== "start") {
-                                    if($search_join[$i] == 'AND') {
+                            if ($search_op[$i] == 'greater than') {
+                                if ($search_join[$i] !== "start") {
+                                    if ($search_join[$i] == 'AND') {
                                         $query_array10->where('vitals.bp_systolic', '>', $search_desc[$i]);
                                     } else {
                                         $query_array10->orWhere('vitals.bp_systolic', '>', $search_desc[$i]);
@@ -6466,9 +6390,9 @@ class CoreController extends Controller
                                     $query_array10->where('vitals.bp_systolic', '>', $search_desc[$i]);
                                 }
                             }
-                            if($search_op[$i] == 'less than') {
-                                if($search_join[$i] !== "start") {
-                                    if($search_join[$i] == 'AND') {
+                            if ($search_op[$i] == 'less than') {
+                                if ($search_join[$i] !== "start") {
+                                    if ($search_join[$i] == 'AND') {
                                         $query_array10->where('vitals.bp_systolic', '<', $search_desc[$i]);
                                     } else {
                                         $query_array10->orWhere('vitals.bp_systolic', '<', $search_desc[$i]);
@@ -6480,14 +6404,14 @@ class CoreController extends Controller
                         });
                     }
                     if ($search_field[$i] == 'bp_diastolic') {
-                        $query_text1->join('vitals', function($join){
+                        $query_text1->join('vitals', function($join) {
                             $join->on('vitals.pid', '=', 'demographics.pid');
                             $join->whereRaw("vitals.vitals_date = (SELECT MAX(z.vitals_date) FROM vitals as z WHERE z.pid = vitals.pid AND z.bp_diastolic != '')");
                         });
                         $query_text1->where(function($query_array11) use ($search_op, $search_desc, $search_join, $i) {
-                            if($search_op[$i] == 'equal') {
-                                if($search_join[$i] !== "start") {
-                                    if($search_join[$i] == 'AND') {
+                            if ($search_op[$i] == 'equal') {
+                                if ($search_join[$i] !== "start") {
+                                    if ($search_join[$i] == 'AND') {
                                         $query_array11->where('vitals.bp_diastolic', '=', $search_desc[$i]);
                                     } else {
                                         $query_array11->orWhere('vitals.bp_diastolic', '=', $search_desc[$i]);
@@ -6496,9 +6420,9 @@ class CoreController extends Controller
                                     $query_array11->where('vitals.bp_diastolic', '=', $search_desc[$i]);
                                 }
                             }
-                            if($search_op[$i] == 'greater than') {
-                                if($search_join[$i] !== "start") {
-                                    if($search_join[$i] == 'AND') {
+                            if ($search_op[$i] == 'greater than') {
+                                if ($search_join[$i] !== "start") {
+                                    if ($search_join[$i] == 'AND') {
                                         $query_array11->where('vitals.bp_diastolic', '>', $search_desc[$i]);
                                     } else {
                                         $query_array11->orWhere('vitals.bp_diastolic', '>', $search_desc[$i]);
@@ -6507,9 +6431,9 @@ class CoreController extends Controller
                                     $query_array11->where('vitals.bp_diastolic', '>', $search_desc[$i]);
                                 }
                             }
-                            if($search_op[$i] == 'less than') {
-                                if($search_join[$i] !== "start") {
-                                    if($search_join[$i] == 'AND') {
+                            if ($search_op[$i] == 'less than') {
+                                if ($search_join[$i] !== "start") {
+                                    if ($search_join[$i] == 'AND') {
                                         $query_array11->where('vitals.bp_diastolic', '<', $search_desc[$i]);
                                     } else {
                                         $query_array11->orWhere('vitals.bp_diastolic', '<', $search_desc[$i]);
@@ -6520,12 +6444,12 @@ class CoreController extends Controller
                             }
                         });
                     }
-                    if($search_field[$i] == 'test_name') {
+                    if ($search_field[$i] == 'test_name') {
                         $query_text1->join('tests as tests1', 'tests1.pid', '=', 'demographics.pid');
                         $query_text1->where(function($query_array12) use ($search_op, $search_desc, $search_join, $i) {
-                            if($search_op[$i] == 'equal') {
-                                if($search_join[$i] !== "start") {
-                                    if($search_join[$i] == 'AND') {
+                            if ($search_op[$i] == 'equal') {
+                                if ($search_join[$i] !== "start") {
+                                    if ($search_join[$i] == 'AND') {
                                         $query_array12->where('tests1.test_name', '=', $search_desc[$i]);
                                     } else {
                                         $query_array12->orWhere('tests1.test_name', '=', $search_desc[$i]);
@@ -6534,9 +6458,9 @@ class CoreController extends Controller
                                     $query_array12->where('tests1.test_name', '=', $search_desc[$i]);
                                 }
                             }
-                            if($search_op[$i] == 'contains') {
-                                if($search_join[$i] !== "start") {
-                                    if($search_join[$i] == 'AND') {
+                            if ($search_op[$i] == 'contains') {
+                                if ($search_join[$i] !== "start") {
+                                    if ($search_join[$i] == 'AND') {
                                         $query_array12->where('tests1.test_name', 'LIKE', "%$search_desc[$i]%");
                                     } else {
                                         $query_array12->orWhere('tests1.test_name', 'LIKE', "%$search_desc[$i]%");
@@ -6545,9 +6469,9 @@ class CoreController extends Controller
                                     $query_array12->where('tests1.test_name', 'LIKE', "%$search_desc[$i]%");
                                 }
                             }
-                            if($search_op[$i] == 'not equal') {
-                                if($search_join[$i] !== "start") {
-                                    if($search_join[$i] == 'AND') {
+                            if ($search_op[$i] == 'not equal') {
+                                if ($search_join[$i] !== "start") {
+                                    if ($search_join[$i] == 'AND') {
                                         $query_array12->where('tests1.test_name', '!=', $search_desc[$i]);
                                     } else {
                                         $query_array12->orWhere('tests1.test_name', '!=', $search_desc[$i]);
@@ -6558,12 +6482,12 @@ class CoreController extends Controller
                             }
                         });
                     }
-                    if($search_field[$i] == 'test_code') {
+                    if ($search_field[$i] == 'test_code') {
                         $query_text1->join('tests as tests2', 'tests2.pid', '=', 'demographics.pid');
                         $query_text1->where(function($query_array13) use ($search_op, $search_desc, $search_join, $i) {
-                            if($search_op[$i] == 'equal') {
-                                if($search_join[$i] !== "start") {
-                                    if($search_join[$i] == 'AND') {
+                            if ($search_op[$i] == 'equal') {
+                                if ($search_join[$i] !== "start") {
+                                    if ($search_join[$i] == 'AND') {
                                         $query_array13->where('tests2.test_code', '=', $search_desc[$i]);
                                     } else {
                                         $query_array13->orWhere('tests2.test_code', '=', $search_desc[$i]);
@@ -6572,9 +6496,9 @@ class CoreController extends Controller
                                     $query_array13->where('tests2.test_code', '=', $search_desc[$i]);
                                 }
                             }
-                            if($search_op[$i] == 'contains') {
-                                if($search_join[$i] !== "start") {
-                                    if($search_join[$i] == 'AND') {
+                            if ($search_op[$i] == 'contains') {
+                                if ($search_join[$i] !== "start") {
+                                    if ($search_join[$i] == 'AND') {
                                         $query_array13->where('tests2.test_code', 'LIKE', "%$search_desc[$i]%");
                                     } else {
                                         $query_array13->orWhere('tests2.test_code', 'LIKE', "%$search_desc[$i]%");
@@ -6583,9 +6507,9 @@ class CoreController extends Controller
                                     $query_array13->where('tests2.test_code', 'LIKE', "%$search_desc[$i]%");
                                 }
                             }
-                            if($search_op[$i] == 'not equal') {
-                                if($search_join[$i] !== "start") {
-                                    if($search_join[$i] == 'AND') {
+                            if ($search_op[$i] == 'not equal') {
+                                if ($search_join[$i] !== "start") {
+                                    if ($search_join[$i] == 'AND') {
                                         $query_array13->where('tests2.test_code', '!=', $search_desc[$i]);
                                     } else {
                                         $query_array13->orWhere('tests2.test_code', '!=', $search_desc[$i]);
@@ -6597,14 +6521,14 @@ class CoreController extends Controller
                         });
                     }
                     if ($search_field[$i] == 'test_result') {
-                        $query_text1->join('tests as tests3', function($join){
+                        $query_text1->join('tests as tests3', function($join) {
                             $join->on('tests3.pid', '=', 'demographics.pid');
                             $join->whereRaw("tests3.test_datetime = (SELECT MAX(z.test_datetime) FROM tests as z WHERE z.pid = tests3.pid AND z.test_result != '')");
                         });
                         $query_text1->where(function($query_array14) use ($search_op, $search_desc, $search_join, $i) {
-                            if($search_op[$i] == 'equal') {
-                                if($search_join[$i] !== "start") {
-                                    if($search_join[$i] == 'AND') {
+                            if ($search_op[$i] == 'equal') {
+                                if ($search_join[$i] !== "start") {
+                                    if ($search_join[$i] == 'AND') {
                                         $query_array14->where('tests3.test_result', '=', $search_desc[$i]);
                                     } else {
                                         $query_array14->orWhere('tests3.test_result', '=', $search_desc[$i]);
@@ -6613,9 +6537,9 @@ class CoreController extends Controller
                                     $query_array14->where('tests3.test_result', '=', $search_desc[$i]);
                                 }
                             }
-                            if($search_op[$i] == 'greater than') {
-                                if($search_join[$i] !== "start") {
-                                    if($search_join[$i] == 'AND') {
+                            if ($search_op[$i] == 'greater than') {
+                                if ($search_join[$i] !== "start") {
+                                    if ($search_join[$i] == 'AND') {
                                         $query_array14->where('tests3.test_result', '>', $search_desc[$i]);
                                     } else {
                                         $query_array14->orWhere('tests3.test_result', '>', $search_desc[$i]);
@@ -6624,9 +6548,9 @@ class CoreController extends Controller
                                     $query_array14->where('tests3.test_result', '>', $search_desc[$i]);
                                 }
                             }
-                            if($search_op[$i] == 'less than') {
-                                if($search_join[$i] !== "start") {
-                                    if($search_join[$i] == 'AND') {
+                            if ($search_op[$i] == 'less than') {
+                                if ($search_join[$i] !== "start") {
+                                    if ($search_join[$i] == 'AND') {
                                         $query_array14->where('tests3.test_result', '<', $search_desc[$i]);
                                     } else {
                                         $query_array14->orWhere('tests3.test_result', '<', $search_desc[$i]);
@@ -6639,13 +6563,13 @@ class CoreController extends Controller
                     }
                 }
             }
-            if($search_active_only == "Yes") {
+            if ($search_active_only == "Yes") {
                 $query_text1->where('demographics.active', '=', '1');
             }
-            if($search_no_insurance_only == "Yes") {
+            if ($search_no_insurance_only == "Yes") {
                 $query_text1->leftJoin('insurance as insurance1', 'insurance1.pid', '=', 'demographics.pid')->whereNull('insurance1.pid');
             }
-            if($search_gender == "m" || $search_gender == "f" || $search_gender == "u") {
+            if ($search_gender == "m" || $search_gender == "f" || $search_gender == "u") {
                 $query_text1->where('demographics.sex', '=', $search_gender);
             }
             $result = $query_text1->get();
@@ -6744,8 +6668,7 @@ class CoreController extends Controller
         return view('core', $data);
     }
 
-    public function superquery_delete(Request $request, $type)
-    {
+    public function superquery_delete(Request $request, $type) {
         $user = DB::table('users')->where('id', '=', Session::get('user_id'))->first();
         $yaml = $user->reports;
         $formatter = Formatter::make($yaml, Formatter::YAML);
@@ -6758,8 +6681,7 @@ class CoreController extends Controller
         return redirect(Session::get('last_page'));
     }
 
-    public function superquery_hedis(Request $request, $type)
-    {
+    public function superquery_hedis(Request $request, $type) {
         $html = '';
         $type_arr = [
             'all' => ['All', 'fa-calendar'],
@@ -6846,7 +6768,7 @@ class CoreController extends Controller
                     $arr[$demographic->pid] = $this->hedis_audit($type, 'office', $demographic->pid);
                     $total_count++;
                 }
-                $measures = ['aba','wcc','cis','ima','hpv','lsc','bcs','ccs','col','chl','gso','cwp','uri','aab','spr','pce','asm','amr','cmc','pbh','cbp','cdc','art','omw','lbp','amm','add'];
+                $measures = ['aba', 'wcc', 'cis', 'ima', 'hpv', 'lsc', 'bcs', 'ccs', 'col', 'chl', 'gso', 'cwp', 'uri', 'aab', 'spr', 'pce', 'asm', 'amr', 'cmc', 'pbh', 'cbp', 'cdc', 'art', 'omw', 'lbp', 'amm', 'add'];
                 $counter = [];
                 foreach ($measures as $measure) {
                     $counter[$measure]['count'] = 0;
@@ -6872,31 +6794,33 @@ class CoreController extends Controller
                 }
                 foreach ($arr as $pid => $audit) {
                     $patient = DB::table('demographics')->where('pid', '=', $pid)->first();
-                    $dob = date('m/d/Y', strtotime($patient->DOB));
-                    $name = $patient->lastname . ', ' . $patient->firstname . ' (DOB: ' . $dob . ') (ID: ' . $patient->pid . ')';
-                    $rectify = '<a href="' . route('superquery_patient', ['care_opportunities', $pid, 'hedis']) . '" class="btn fa-btn" role="button" data-toggle="tooltip" title="Open Chart"><i class="fa fa-arrow-right fa-lg"></i> ' . $name . '</a>';
-                    foreach ($audit as $item => $row) {
-                        $counter[$item]['count']++;
-                        if ($item != 'cwp' && $item != 'uri' && $item != 'aab' && $item != 'pce' && $item != 'lbp') {
-                            if($row['goal'] == 'y') {
-                                $counter[$item]['goal']++;
+                    if ($patient) {
+                        $dob = date('m/d/Y', strtotime($patient->DOB));
+                        $name = $patient->lastname . ', ' . $patient->firstname . ' (DOB: ' . $dob . ') (ID: ' . $patient->pid . ')';
+                        $rectify = '<a href="' . route('superquery_patient', ['care_opportunities', $pid, 'hedis']) . '" class="btn fa-btn" role="button" data-toggle="tooltip" title="Open Chart"><i class="fa fa-arrow-right fa-lg"></i> ' . $name . '</a>';
+                        foreach ($audit as $item => $row) {
+                            $counter[$item]['count'] ++;
+                            if ($item != 'cwp' && $item != 'uri' && $item != 'aab' && $item != 'pce' && $item != 'lbp') {
+                                if ($row['goal'] == 'y') {
+                                    $counter[$item]['goal'] ++;
+                                } else {
+                                    $counter[$item]['rectify'] .= $rectify;
+                                }
                             } else {
-                                $counter[$item]['rectify'] .= $rectify;
-                            }
-                        } else {
-                            if ($item == 'cwp') {
-                                $counter[$item]['test'] += $row['test'];
-                                $counter[$item]['abx'] += $row['abx'];
-                                $counter[$item]['abx_no_test'] += $row['abx_no_test'];
-                            }
-                            if ($item == 'uri' || $item == 'aab') {
-                                $counter[$item]['abx'] += $row['abx'];
-                            }
-                            if ($item == 'pce') {
-                                $counter[$item]['tx'] += $row['tx'];
-                            }
-                            if ($item == 'lbp') {
-                                $counter[$item]['no_rad'] += $row['no_rad'];
+                                if ($item == 'cwp') {
+                                    $counter[$item]['test'] += $row['test'];
+                                    $counter[$item]['abx'] += $row['abx'];
+                                    $counter[$item]['abx_no_test'] += $row['abx_no_test'];
+                                }
+                                if ($item == 'uri' || $item == 'aab') {
+                                    $counter[$item]['abx'] += $row['abx'];
+                                }
+                                if ($item == 'pce') {
+                                    $counter[$item]['tx'] += $row['tx'];
+                                }
+                                if ($item == 'lbp') {
+                                    $counter[$item]['no_rad'] += $row['no_rad'];
+                                }
                             }
                         }
                     }
@@ -6904,16 +6828,16 @@ class CoreController extends Controller
                 foreach ($measures as $measure1) {
                     if ($measure1 != 'cwp' && $measure1 != 'uri' && $measure1 != 'aab' && $measure1 != 'pce' && $measure1 != 'lbp') {
                         if ($counter[$measure1]['count'] != 0) {
-                            $counter[$measure1]['percent_goal'] = round($counter[$measure1]['goal']/$counter[$measure1]['count']*100);
+                            $counter[$measure1]['percent_goal'] = round($counter[$measure1]['goal'] / $counter[$measure1]['count'] * 100);
                         } else {
                             $counter[$measure1]['percent_goal'] = 0;
                         }
                     } else {
                         if ($measure1 == 'cwp') {
                             if ($counter[$measure1]['count'] != 0) {
-                                $counter[$measure1]['percent_test'] = round($counter[$measure1]['test']/$counter[$measure1]['count']*100);
-                                $counter[$measure1]['percent_abx'] = round($counter[$measure1]['abx']/$counter[$measure1]['count']*100);
-                                $counter[$measure1]['percent_abx_no_test'] = round($counter[$measure1]['abx_no_test']/$counter[$measure1]['count']*100);
+                                $counter[$measure1]['percent_test'] = round($counter[$measure1]['test'] / $counter[$measure1]['count'] * 100);
+                                $counter[$measure1]['percent_abx'] = round($counter[$measure1]['abx'] / $counter[$measure1]['count'] * 100);
+                                $counter[$measure1]['percent_abx_no_test'] = round($counter[$measure1]['abx_no_test'] / $counter[$measure1]['count'] * 100);
                             } else {
                                 $counter[$measure1]['percent_test'] = 0;
                                 $counter[$measure1]['percent_abx'] = 0;
@@ -6922,21 +6846,21 @@ class CoreController extends Controller
                         }
                         if ($measure1 == 'uri' || $measure1 == 'aab') {
                             if ($counter[$measure1]['count'] != 0) {
-                                $counter[$measure1]['percent_abx'] = round($counter[$measure1]['abx']/$counter[$measure1]['count']*100);
+                                $counter[$measure1]['percent_abx'] = round($counter[$measure1]['abx'] / $counter[$measure1]['count'] * 100);
                             } else {
                                 $counter[$measure1]['percent_abx'] = 0;
                             }
                         }
                         if ($measure1 == 'pce') {
                             if ($counter[$measure1]['count'] != 0) {
-                                $counter[$measure1]['percent_tx'] = round($counter[$measure1]['tx']/$counter[$measure1]['count']*100);
+                                $counter[$measure1]['percent_tx'] = round($counter[$measure1]['tx'] / $counter[$measure1]['count'] * 100);
                             } else {
                                 $counter[$measure1]['percent_tx'] = 0;
                             }
                         }
                         if ($measure1 == 'lbp') {
                             if ($counter[$measure1]['count'] != 0) {
-                                $counter[$measure1]['percent_no_rad'] = round($counter[$measure1]['no_rad']/$counter[$measure1]['count']*100);
+                                $counter[$measure1]['percent_no_rad'] = round($counter[$measure1]['no_rad'] / $counter[$measure1]['count'] * 100);
                             } else {
                                 $counter[$measure1]['percent_no_rad'] = 0;
                             }
@@ -6944,69 +6868,69 @@ class CoreController extends Controller
                     }
                 }
                 // ABA
-                $html .= '<tr><td>Adult BMI Assessment</td><td>Percentage of members 18-74 who had their BMI and weight documented at an outpatient visit</td><td>' . $counter['aba']['percent_goal'] .'%</td><td>' . $counter['aba']['rectify'] .'</td></tr>';
+                $html .= '<tr><td>Adult BMI Assessment</td><td>Percentage of members 18-74 who had their BMI and weight documented at an outpatient visit</td><td>' . $counter['aba']['percent_goal'] . '%</td><td>' . $counter['aba']['rectify'] . '</td></tr>';
                 // WCC
-                $html .= '<tr><td>Weight Assessment and Counseling for Nutrition and Physical Activity for Children and Adolescents</td><td>Percentage of members 3-17 who had an outpatient visit with a PCP or OB/GYN which included evidence of BMI documentation with corresponding height&weight, counseling for nutrition and/or counseling for physical activity</td><td>' . $counter['wcc']['percent_goal'] .'%</td><td>' . $counter['wcc']['rectify'] .'</td></tr>';
+                $html .= '<tr><td>Weight Assessment and Counseling for Nutrition and Physical Activity for Children and Adolescents</td><td>Percentage of members 3-17 who had an outpatient visit with a PCP or OB/GYN which included evidence of BMI documentation with corresponding height&weight, counseling for nutrition and/or counseling for physical activity</td><td>' . $counter['wcc']['percent_goal'] . '%</td><td>' . $counter['wcc']['rectify'] . '</td></tr>';
                 // CIS
-                $html .= '<tr><td>Childhood Immunization Status</td><td>Percentage of children two years of age with appropriate childhood immunizations</td><td>' . $counter['cis']['percent_goal'] .'%</td><td>' . $counter['cis']['rectify'] .'</td></tr>';
+                $html .= '<tr><td>Childhood Immunization Status</td><td>Percentage of children two years of age with appropriate childhood immunizations</td><td>' . $counter['cis']['percent_goal'] . '%</td><td>' . $counter['cis']['rectify'] . '</td></tr>';
                 // IMA
-                $html .= '<tr><td>Immunizations for Adolescents</td><td>Percentage of adolescents 13 years of age with appropriate immunizations</td><td>' . $counter['ima']['percent_goal'] .'%</td><td>' . $counter['ima']['rectify'] .'</td></tr>';
+                $html .= '<tr><td>Immunizations for Adolescents</td><td>Percentage of adolescents 13 years of age with appropriate immunizations</td><td>' . $counter['ima']['percent_goal'] . '%</td><td>' . $counter['ima']['rectify'] . '</td></tr>';
                 // HPV
-                $html .= '<tr><td>Human Papillomavirus Vaccine for Female Adolescents</td><td>Percentage of female adolescents 13 years of age who had three doses of HPV vaccine between 9th and 13th birthdays</td><td>' . $counter['hpv']['percent_goal'] .'%</td><td>' . $counter['hpv']['rectify'] .'</td></tr>';
+                $html .= '<tr><td>Human Papillomavirus Vaccine for Female Adolescents</td><td>Percentage of female adolescents 13 years of age who had three doses of HPV vaccine between 9th and 13th birthdays</td><td>' . $counter['hpv']['percent_goal'] . '%</td><td>' . $counter['hpv']['rectify'] . '</td></tr>';
                 // LSC
-                $html .= '<tr><td>Lead Screening in Children</td><td>Percentage of children 2 years of age screened for lead poisoning</td><td>' . $counter['lsc']['percent_goal'] .'%</td><td>' . $counter['lsc']['rectify'] .'</td></tr>';
+                $html .= '<tr><td>Lead Screening in Children</td><td>Percentage of children 2 years of age screened for lead poisoning</td><td>' . $counter['lsc']['percent_goal'] . '%</td><td>' . $counter['lsc']['rectify'] . '</td></tr>';
                 // BCS
-                $html .= '<tr><td>Breast Cancer Screening</td><td>Percentage of women 40-69 years of age who had a mammogram</td><td>' . $counter['bcs']['percent_goal'] .'%</td><td>' . $counter['bcs']['rectify'] .'</td></tr>';
+                $html .= '<tr><td>Breast Cancer Screening</td><td>Percentage of women 40-69 years of age who had a mammogram</td><td>' . $counter['bcs']['percent_goal'] . '%</td><td>' . $counter['bcs']['rectify'] . '</td></tr>';
                 // CCS
-                $html .= '<tr><td>Cervical Cancer Screening</td><td>Percentage of women 21-64 years of age who had a Pap test</td><td>' . $counter['ccs']['percent_goal'] .'%</td><td>' . $counter['ccs']['rectify'] .'</td></tr>';
+                $html .= '<tr><td>Cervical Cancer Screening</td><td>Percentage of women 21-64 years of age who had a Pap test</td><td>' . $counter['ccs']['percent_goal'] . '%</td><td>' . $counter['ccs']['rectify'] . '</td></tr>';
                 // COL
-                $html .= '<tr><td>Colorectal Cancer Screening</td><td>Percentage of members 50-75 years of age who had appropriate screening for colorectal cancer</td><td>' . $counter['col']['percent_goal'] .'%</td><td>' . $counter['col']['rectify'] .'</td></tr>';
+                $html .= '<tr><td>Colorectal Cancer Screening</td><td>Percentage of members 50-75 years of age who had appropriate screening for colorectal cancer</td><td>' . $counter['col']['percent_goal'] . '%</td><td>' . $counter['col']['rectify'] . '</td></tr>';
                 // CHL
-                $html .= '<tr><td>Chlamydia Screening in Women</td><td>Sexually active women 16-24 with annual chlamydia screening</td><td>' . $counter['chl']['percent_goal'] .'%</td><td>' . $counter['chl']['rectify'] .'</td></tr>';
+                $html .= '<tr><td>Chlamydia Screening in Women</td><td>Sexually active women 16-24 with annual chlamydia screening</td><td>' . $counter['chl']['percent_goal'] . '%</td><td>' . $counter['chl']['rectify'] . '</td></tr>';
                 // GSO
-                $html .= '<tr><td>Glaucoma Screening Older Adults</td><td>Sexually active women 1Percentage of members 65 or older who received a glaucoma eye exam (no prior history)</td><td>' . $counter['gso']['percent_goal'] .'%</td><td>' . $counter['gso']['rectify'] .'</td></tr>';
+                $html .= '<tr><td>Glaucoma Screening Older Adults</td><td>Sexually active women 1Percentage of members 65 or older who received a glaucoma eye exam (no prior history)</td><td>' . $counter['gso']['percent_goal'] . '%</td><td>' . $counter['gso']['rectify'] . '</td></tr>';
                 // CWP
                 $html .= '<tr><td>Appropriate Testing for Children With Pharyngitis</td><td>Percentage of children ages 2-18 diagnosed with pharyngitis, prescribed an antibiotic and tested for strep</td><td>';
                 $html .= '<ul><li>Percentage tested: ' . $counter['cwp']['percent_test'] . '%</li>';
                 $html .= '<li>Percentage treated with antibiotics: ' . $counter['cwp']['percent_abx'] . '%</li>';
                 $html .= '<li>Percentage treated with antibiotics without testing: ' . $counter['cwp']['percent_abx_no_test'] . '%</li></ul>';
-                $html .= '</td><td>' . $counter['cwp']['rectify'] .'</td></tr>';
+                $html .= '</td><td>' . $counter['cwp']['rectify'] . '</td></tr>';
                 // URI
                 $html .= '<tr><td>Appropriate Treatment for Children With Upper Respiratory Infection</td><td>Percentage of children 3 months-18 years diagnosed with ONLY upper respiratory infection diagnosis and NOT dispensed an antibiotic</td><td>';
                 $html .= '<ul><li>Percentage treated with antibiotics: ' . $counter['uri']['percent_abx'] . '%</li></ul>';
-                $html .= '</td><td>' . $counter['uri']['rectify'] .'</td></tr>';
+                $html .= '</td><td>' . $counter['uri']['rectify'] . '</td></tr>';
                 // AAB
                 $html .= '<tr><td>Avoidance of Antibiotic Treatment for Adults with Acute Bronchitis</td><td>Percentage of adults 18-64 years diagnosed with acute bronchitis who were NOT dispensed an antibiotic</td><td>';
                 $html .= '<ul><li>Percentage treated with antibiotics: ' . $counter['aab']['percent_abx'] . '%</li></ul>';
-                $html .= '</td><td>' . $counter['aab']['rectify'] .'</td></tr>';
+                $html .= '</td><td>' . $counter['aab']['rectify'] . '</td></tr>';
                 // SPR
-                $html .= '<tr><td>Use of Spirometry Testing in the Assessment and Diagnosis of COPD</td><td>Percentage of members age 40 and older w/ COPD and spirometry testing</td><td>' . $counter['spr']['percent_goal'] .'%</td><td>' . $counter['spr']['rectify'] .'</td></tr>';
+                $html .= '<tr><td>Use of Spirometry Testing in the Assessment and Diagnosis of COPD</td><td>Percentage of members age 40 and older w/ COPD and spirometry testing</td><td>' . $counter['spr']['percent_goal'] . '%</td><td>' . $counter['spr']['rectify'] . '</td></tr>';
                 // PCE
                 $html .= '<tr><td>Pharmacotherapy Management of COPD Exacerbation</td><td>Members dispensed systemic corticosteroid & bronchodilator after COPD exacerbation</td><td>';
                 $html .= '<ul><li>Percentage treated for COPD exacerbations: ' . $counter['pce']['percent_tx'] . '%</li></ul>';
-                $html .= '</td><td>' . $counter['pce']['rectify'] .'</td></tr>';
+                $html .= '</td><td>' . $counter['pce']['rectify'] . '</td></tr>';
                 // ASM and AMR
-                $html .= '<tr><td>Use of Appropriate Medications for People with Asthma</td><td>Percentage of members 5-56 years with asthma and appropriately prescribed medications</td><td>' . $counter['asm']['percent_goal'] .'%</td><td>' . $counter['asm']['rectify'] .'</td></tr>';
-                $html .= '<tr><td>Asthma Medication Ratio</td><td>Percentage of members 5-64 years with asthma who had a ratio of controller medications to total asthma medications of .5 or greater</td><td>' . $counter['amr']['percent_goal'] .'%</td><td>' . $counter['amr']['rectify'] .'</td></tr>';
+                $html .= '<tr><td>Use of Appropriate Medications for People with Asthma</td><td>Percentage of members 5-56 years with asthma and appropriately prescribed medications</td><td>' . $counter['asm']['percent_goal'] . '%</td><td>' . $counter['asm']['rectify'] . '</td></tr>';
+                $html .= '<tr><td>Asthma Medication Ratio</td><td>Percentage of members 5-64 years with asthma who had a ratio of controller medications to total asthma medications of .5 or greater</td><td>' . $counter['amr']['percent_goal'] . '%</td><td>' . $counter['amr']['rectify'] . '</td></tr>';
                 // CMC and PBH
-                $html .= '<tr><td>Cholesterol Management for Patients With Cardiovascular Conditions</td><td>Percentage of members 18-75 who were discharged alive for acute myocardial infarction, coronary artery bypass graft or percutaneous coronary interventions, or who had a diagnosis of ischemic vascular diasease who had LDL-C screenings</td><td>' . $counter['cmc']['percent_goal'] .'%</td><td>' . $counter['cmc']['rectify'] .'</td></tr>';
-                $html .= '<tr><td>Persistence of Beta-Blocker Treatment After a Heart Attack</td><td>Percentage of members 18 years or older, discharged with a diagnosis of acute myocardial infarction and received a beta-blocker treatment for 6 months</td><td>' . $counter['pbh']['percent_goal'] .'%</td><td>' . $counter['pbh']['rectify'] .'</td></tr>';
+                $html .= '<tr><td>Cholesterol Management for Patients With Cardiovascular Conditions</td><td>Percentage of members 18-75 who were discharged alive for acute myocardial infarction, coronary artery bypass graft or percutaneous coronary interventions, or who had a diagnosis of ischemic vascular diasease who had LDL-C screenings</td><td>' . $counter['cmc']['percent_goal'] . '%</td><td>' . $counter['cmc']['rectify'] . '</td></tr>';
+                $html .= '<tr><td>Persistence of Beta-Blocker Treatment After a Heart Attack</td><td>Percentage of members 18 years or older, discharged with a diagnosis of acute myocardial infarction and received a beta-blocker treatment for 6 months</td><td>' . $counter['pbh']['percent_goal'] . '%</td><td>' . $counter['pbh']['rectify'] . '</td></tr>';
                 // CBP
-                $html .= '<tr><td>Controlling High Blood Pressure</td><td>Percentage of members 18-85 with a diagnosis of hypertension and whose blood pressure was controlled</td><td>' . $counter['cbp']['percent_goal'] .'%</td><td>' . $counter['cbp']['rectify'] .'</td></tr>';
+                $html .= '<tr><td>Controlling High Blood Pressure</td><td>Percentage of members 18-85 with a diagnosis of hypertension and whose blood pressure was controlled</td><td>' . $counter['cbp']['percent_goal'] . '%</td><td>' . $counter['cbp']['rectify'] . '</td></tr>';
                 // CDC
-                $html .= '<tr><td>Comprehensive Diabetes Care</td><td>The percentage of members 18-75 years of age with diabetes (type 1 or type 2) who had each of the following: 1) HbA1c, 2) LDL Screening, 3) Nephropathy Screening, 4) Retinal Eye Exam, 5) Blood Pressure control.</td><td>' . $counter['cdc']['percent_goal'] .'%</td><td>' . $counter['cdc']['rectify'] .'</td></tr>';
+                $html .= '<tr><td>Comprehensive Diabetes Care</td><td>The percentage of members 18-75 years of age with diabetes (type 1 or type 2) who had each of the following: 1) HbA1c, 2) LDL Screening, 3) Nephropathy Screening, 4) Retinal Eye Exam, 5) Blood Pressure control.</td><td>' . $counter['cdc']['percent_goal'] . '%</td><td>' . $counter['cdc']['rectify'] . '</td></tr>';
                 // ART
-                $html .= '<tr><td>Disease Modifying Anti-Rheumatic Drug Therapy for Rheumatoid Arthritis</td><td>Percentage of members w/ RA dispensed a DMARD</td><td>' . $counter['art']['percent_goal'] .'%</td><td>' . $counter['art']['rectify'] .'</td></tr>';
+                $html .= '<tr><td>Disease Modifying Anti-Rheumatic Drug Therapy for Rheumatoid Arthritis</td><td>Percentage of members w/ RA dispensed a DMARD</td><td>' . $counter['art']['percent_goal'] . '%</td><td>' . $counter['art']['rectify'] . '</td></tr>';
                 // OMW
-                $html .= '<tr><td>Osteoporosis Management in Women Who Had Fracture</td><td>Percentage of women 67 years or older who suffered a fracture and then a DEXA scan or osteoporosis medication within 6 months of incident</td><td>' . $counter['omw']['percent_goal'] .'%</td><td>' . $counter['omw']['rectify'] .'</td></tr>';
+                $html .= '<tr><td>Osteoporosis Management in Women Who Had Fracture</td><td>Percentage of women 67 years or older who suffered a fracture and then a DEXA scan or osteoporosis medication within 6 months of incident</td><td>' . $counter['omw']['percent_goal'] . '%</td><td>' . $counter['omw']['rectify'] . '</td></tr>';
                 // LBP
                 $html .= '<tr><td>Osteoporosis Management in Women Who Had Fracture</td><td>Percentage of members with a primary diagnosis of low back pain who did not have an imaging study within 28 days of diagnosis</td><td>';
                 $html .= '<ul><li>Percentage of instances where no imaging study was performed for a diagnosis of low back pain: ' . $counter['lbp']['percent_no_rad'] . '%</li></ul>';
-                $html .= '</td><td>' . $counter['lbp']['rectify'] .'</td></tr>';
+                $html .= '</td><td>' . $counter['lbp']['rectify'] . '</td></tr>';
                 // AMM
-                $html .= '<tr><td>Antidepressant Medication Management</td><td>Percentage of members 18 years or older diagnosed with depression and treated with antidepressant meds</td><td>' . $counter['amm']['percent_goal'] .'%</td><td>' . $counter['amm']['rectify'] .'</td></tr>';
+                $html .= '<tr><td>Antidepressant Medication Management</td><td>Percentage of members 18 years or older diagnosed with depression and treated with antidepressant meds</td><td>' . $counter['amm']['percent_goal'] . '%</td><td>' . $counter['amm']['rectify'] . '</td></tr>';
                 // ADD
-                $html .= '<tr><td>Follow-Up Care for Children Prescribed ADHD Medication</td><td>Percentage of children 6-12 with newly diagnosed ADHD who received the appropriate follow-up treatment and medication</td><td>' . $counter['add']['percent_goal'] .'%</td><td>' . $counter['add']['rectify'] .'</td></tr>';
+                $html .= '<tr><td>Follow-Up Care for Children Prescribed ADHD Medication</td><td>Percentage of children 6-12 with newly diagnosed ADHD who received the appropriate follow-up treatment and medication</td><td>' . $counter['add']['percent_goal'] . '%</td><td>' . $counter['add']['rectify'] . '</td></tr>';
                 $html .= '</tbody></table>';
             } else {
                 $html .= 'No results.';
@@ -7023,8 +6947,7 @@ class CoreController extends Controller
         return view('core', $data);
     }
 
-    public function superquery_list(Request $request)
-    {
+    public function superquery_list(Request $request) {
         $data['message_action'] = Session::get('message_action');
         Session::forget('message_action');
         $return = '<div class="alert alert-success">';
@@ -7061,14 +6984,14 @@ class CoreController extends Controller
         }
         $return .= $this->result_build($list_array, 'forms_list');
         $dropdown_array1 = [
-           'items_button_icon' => 'fa-plus'
+            'items_button_icon' => 'fa-plus'
         ];
         $items1 = [];
         $items1[] = [
-           'type' => 'item',
-           'label' => 'Add Report',
-           'icon' => 'fa-plus',
-           'url' => route('superquery', ['0'])
+            'type' => 'item',
+            'label' => 'Add Report',
+            'icon' => 'fa-plus',
+            'url' => route('superquery', ['0'])
         ];
         $dropdown_array1['items'] = $items1;
         $data['panel_dropdown'] = $this->dropdown_build($dropdown_array1);
@@ -7079,8 +7002,7 @@ class CoreController extends Controller
         return view('core', $data);
     }
 
-    public function superquery_patient(Request $request, $action, $pid, $id='', $id1='', $id2='', $id3='')
-    {
+    public function superquery_patient(Request $request, $action, $pid, $id = '', $id1 = '', $id2 = '', $id3 = '') {
         if (Session::has('pid')) {
             if (Session::get('pid') !== $pid) {
                 $this->setpatient($pid);
@@ -7105,8 +7027,7 @@ class CoreController extends Controller
         }
     }
 
-    public function superquery_tag(Request $request)
-    {
+    public function superquery_tag(Request $request) {
         $html = '';
         $tags_arr = $this->array_tags();
         $data['search_patient1'] = 'pid';
@@ -7345,8 +7266,7 @@ class CoreController extends Controller
         return view('core', $data);
     }
 
-    public function supplements(Request $request, $type='inventory')
-    {
+    public function supplements(Request $request, $type = 'inventory') {
         $data['message_action'] = Session::get('message_action');
         Session::forget('message_action');
         $type_arr = [
@@ -7373,10 +7293,10 @@ class CoreController extends Controller
         $return = '';
         if ($type == 'inventory') {
             $query = DB::table('supplement_inventory')
-                ->where('quantity1', '>', '0')
-                ->where('practice_id', '=', Session::get('practice_id'))
-                ->orderBy('sup_description', 'asc')
-                ->get();
+                    ->where('quantity1', '>', '0')
+                    ->where('practice_id', '=', Session::get('practice_id'))
+                    ->orderBy('sup_description', 'asc')
+                    ->get();
             $columns = Schema::getColumnListing('supplement_inventory');
             $row_index = $columns[0];
             if ($query->count()) {
@@ -7407,10 +7327,10 @@ class CoreController extends Controller
         }
         if ($type == 'old_inventory') {
             $query = DB::table('supplement_inventory')
-                ->where('quantity1', '<=', '0')
-                ->where('practice_id', '=', Session::get('practice_id'))
-                ->orderBy('sup_description', 'asc')
-                ->get();
+                    ->where('quantity1', '<=', '0')
+                    ->where('practice_id', '=', Session::get('practice_id'))
+                    ->orderBy('sup_description', 'asc')
+                    ->get();
             $columns = Schema::getColumnListing('supplement_inventory');
             $row_index = $columns[0];
             if ($query->count()) {
@@ -7452,8 +7372,7 @@ class CoreController extends Controller
         return view('core', $data);
     }
 
-    public function supplements_sales_tax(Request $request)
-    {
+    public function supplements_sales_tax(Request $request) {
         $this->validate($request, [
             'sales_tax' => 'numeric'
         ]);
@@ -7463,8 +7382,7 @@ class CoreController extends Controller
         return redirect(Session::get('last_page'));
     }
 
-    public function uma_aat(Request $request)
-    {
+    public function uma_aat(Request $request) {
         // Check if call comes from rqp_claims redirect
         if (Session::has('uma_aat') && Session::has('uma_permission_ticket')) {
             if (isset($_REQUEST["authorization_state"])) {
@@ -7489,7 +7407,7 @@ class CoreController extends Controller
             }
         }
         // Get AAT
-        $url_array = array('/oidc','/fhir/oidc');
+        $url_array = array('/oidc', '/fhir/oidc');
         $as_uri = Session::get('uma_uri');
         $client_id = Session::get('uma_client_id');
         $client_secret = Session::get('uma_client_secret');
@@ -7498,7 +7416,7 @@ class CoreController extends Controller
         Session::put('uma_aat', $oidc->getAccessToken());
         // Get permission ticket
         $urlinit = $as_uri . '/fhir/' . Session::get('type') . '?subject:Patient=1';
-        $result = $this->fhir_request($urlinit,true);
+        $result = $this->fhir_request($urlinit, true);
         if (isset($result['error'])) {
             // error - return something
             return $result;
@@ -7513,8 +7431,7 @@ class CoreController extends Controller
         $oidc->rqp_claims($permission_ticket);
     }
 
-    public function uma_add_patient(Request $request, $type='')
-    {
+    public function uma_add_patient(Request $request, $type = '') {
         $message = 'Error - Adding patient canceled';
         if ($type == '') {
             $data = Session::get('uma_add_patient');
@@ -7544,8 +7461,7 @@ class CoreController extends Controller
         return redirect()->route('uma_list');
     }
 
-    public function uma_api(Request $request)
-    {
+    public function uma_api(Request $request) {
         $as_uri = Session::get('uma_uri');
         if (!Session::has('rpt')) {
             // Send permission ticket + AAT to Authorization Server to get RPT
@@ -7590,7 +7506,7 @@ class CoreController extends Controller
         }
         // Contact pNOSH again, now with RPT
         $urlinit = $as_uri . '/fhir/' . Session::get('type') . '?subject:Patient=1';
-        $result3 = $this->fhir_request($urlinit,false,$rpt);
+        $result3 = $this->fhir_request($urlinit, false, $rpt);
         if (isset($result3['ticket'])) {
             // New permission ticket issued, expire rpt session
             Session::forget('rpt');
@@ -7668,7 +7584,7 @@ class CoreController extends Controller
                         $data['content'] .= '<li class="list-group-item">' . $entry['resource']['text']['div'];
                         // Preview medication list
                         $urlinit1 = $as_uri . '/fhir/MedicationStatement?subject:Patient=1';
-                        $result4 = $this->fhir_request($urlinit1,false,$rpt);
+                        $result4 = $this->fhir_request($urlinit1, false, $rpt);
                         if (isset($result4['total'])) {
                             if ($result4['total'] != '0') {
                                 $data['content'] .= '<strong>Medications</strong><ul>';
@@ -7679,7 +7595,7 @@ class CoreController extends Controller
                             }
                         }
                         $data['content'] .= '</li>';
-                    } else  {
+                    } else {
                         $data['content'] .= '<li class="list-group-item">' . $entry['resource']['text']['div'] . '</li>';
                     }
                 }
@@ -7691,8 +7607,7 @@ class CoreController extends Controller
         return view('core', $data);
     }
 
-    public function uma_list(Request $request)
-    {
+    public function uma_list(Request $request) {
         if ($request->isMethod('post')) {
             $this->validate($request, [
                 'url' => 'required|url'
@@ -7708,7 +7623,7 @@ class CoreController extends Controller
             $data = curl_exec($ch);
             $httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
             curl_close($ch);
-            if($httpcode>=200 && $httpcode<302){
+            if ($httpcode >= 200 && $httpcode < 302) {
                 $url_arr = parse_url($request->input('url'));
                 $as_uri = $url_arr['scheme'] . '://' . $url_arr['host'];
             } else {
@@ -7775,8 +7690,7 @@ class CoreController extends Controller
         }
     }
 
-    public function uma_resources(Request $request, $id)
-    {
+    public function uma_resources(Request $request, $id) {
         $patient = DB::table('demographics')->where('id', '=', $id)->first();
         $data['panel_header'] = $patient->firstname . ' ' . $patient->lastname . "'s Patient Summary";
         $data['content'] = 'No resources available yet.';
@@ -7806,8 +7720,7 @@ class CoreController extends Controller
         return view('core', $data);
     }
 
-    public function uma_resource_view(Request $request, $type)
-    {
+    public function uma_resource_view(Request $request, $type) {
         if (Session::has('uma_add_patient')) {
             $data = Session::get('uma_add_patient');
             Session::put('uma_uri', $data['hieofone_as_url']);
@@ -7828,8 +7741,7 @@ class CoreController extends Controller
         }
     }
 
-    public function users(Request $request, $type='2', $active='1')
-    {
+    public function users(Request $request, $type = '2', $active = '1') {
         if (Session::get('group_id') !== 1) {
             Session::put('message_action', 'Error - You are not allowed to manage users');
             return redirect()->route('dashboard');
@@ -7877,22 +7789,22 @@ class CoreController extends Controller
         $data['panel_dropdown'] = $this->dropdown_build($dropdown_array);
         if ($type == '2') {
             $query = DB::table('users')
-                ->join('providers', 'providers.id', '=', 'users.id')
-                ->where('users.group_id', '=', $type)
-                ->where('users.active', '=', $active)
-                ->where('users.practice_id', '=', Session::get('practice_id'));
+                    ->join('providers', 'providers.id', '=', 'users.id')
+                    ->where('users.group_id', '=', $type)
+                    ->where('users.active', '=', $active)
+                    ->where('users.practice_id', '=', Session::get('practice_id'));
         } elseif ($type == '100') {
             $query = DB::table('users')
-                ->leftJoin('demographics_relate', 'users.id', '=', 'demographics_relate.id')
-                ->select('users.*', 'demographics_relate.pid')
-                ->where('users.group_id', '=', $type)
-                ->where('users.active', '=', $active)
-                ->where('users.practice_id', '=', Session::get('practice_id'));
+                    ->leftJoin('demographics_relate', 'users.id', '=', 'demographics_relate.id')
+                    ->select('users.*', 'demographics_relate.pid')
+                    ->where('users.group_id', '=', $type)
+                    ->where('users.active', '=', $active)
+                    ->where('users.practice_id', '=', Session::get('practice_id'));
         } else {
             $query = DB::table('users')
-                ->where('group_id', '=', $type)
-                ->where('active', '=', $active)
-                ->where('practice_id', '=', Session::get('practice_id'));
+                    ->where('group_id', '=', $type)
+                    ->where('active', '=', $active)
+                    ->where('practice_id', '=', Session::get('practice_id'));
         }
         $result = $query->get();
         $columns = Schema::getColumnListing('users');
@@ -7917,7 +7829,7 @@ class CoreController extends Controller
                 }
                 $list_array[] = $arr;
             }
-            $return .= $this->result_build($list_array, $type . '_'. $active . '_list');
+            $return .= $this->result_build($list_array, $type . '_' . $active . '_list');
         } else {
             $return .= ' None.';
         }
@@ -7961,8 +7873,7 @@ class CoreController extends Controller
         return view('core', $data);
     }
 
-    public function user_signature(Request $request)
-    {
+    public function user_signature(Request $request) {
         $signature = DB::table('providers')->where('id', '=', Session::get('user_id'))->first();
         if ($request->isMethod('post')) {
             $id = Session::get('user_id');
@@ -7992,7 +7903,7 @@ class CoreController extends Controller
                 if ($signature->signature !== '') {
                     if (file_exists($signature->signature)) {
                         $name = time() . '_signature.png';
-                        $temp_path = public_path() .'/temp/' . $name;
+                        $temp_path = public_path() . '/temp/' . $name;
                         $url = asset('temp/' . $name);
                         copy($signature->signature, $temp_path);
                         $return .= '<div class="row"><div class="col-md-3 col-md-offset-4"><h5>Current Signature</h5>';
@@ -8010,7 +7921,7 @@ class CoreController extends Controller
                 'placeholder' => 'First Last',
                 'default_value' => null
             ];
-            $intro = '<div class="row"><div class="col-md-3 col-md-offset-4"><p class="drawItDesc">'. $status . '</p><ul class="sigNav"><li class="drawIt"><a href="#draw-it">Draw It</a></li><li class="clearButton"><a href="#clear">Clear</a></li></ul>';
+            $intro = '<div class="row"><div class="col-md-3 col-md-offset-4"><p class="drawItDesc">' . $status . '</p><ul class="sigNav"><li class="drawIt"><a href="#draw-it">Draw It</a></li><li class="clearButton"><a href="#clear">Clear</a></li></ul>';
             $intro .= '<div class="sig sigWrapper"><div class="typed"></div><canvas class="pad" width="198" height="55"></canvas><input type="hidden" name="output" class="output"></div></div></div><br>';
             $form_array = [
                 'form_id' => 'signature_form',
@@ -8028,8 +7939,7 @@ class CoreController extends Controller
         }
     }
 
-    public function vaccines(Request $request, $type='inventory')
-    {
+    public function vaccines(Request $request, $type = 'inventory') {
         $data['message_action'] = Session::get('message_action');
         Session::forget('message_action');
         $type_arr = [
@@ -8056,10 +7966,10 @@ class CoreController extends Controller
         $return = '';
         if ($type == 'inventory') {
             $query = DB::table('vaccine_inventory')
-                ->where('quantity', '>', '0')
-                ->where('practice_id', '=', Session::get('practice_id'))
-                ->orderBy('imm_immunization', 'asc')
-                ->get();
+                    ->where('quantity', '>', '0')
+                    ->where('practice_id', '=', Session::get('practice_id'))
+                    ->orderBy('imm_immunization', 'asc')
+                    ->get();
             $columns = Schema::getColumnListing('vaccine_inventory');
             $row_index = $columns[0];
             if ($query->count()) {
@@ -8090,10 +8000,10 @@ class CoreController extends Controller
         }
         if ($type == 'old_inventory') {
             $query = DB::table('vaccine_inventory')
-                ->where('quantity', '<=', '0')
-                ->where('practice_id', '=', Session::get('practice_id'))
-                ->orderBy('imm_immunization', 'asc')
-                ->get();
+                    ->where('quantity', '<=', '0')
+                    ->where('practice_id', '=', Session::get('practice_id'))
+                    ->orderBy('imm_immunization', 'asc')
+                    ->get();
             $columns = Schema::getColumnListing('vaccine_inventory');
             $row_index = $columns[0];
             if ($query->count()) {
@@ -8117,7 +8027,7 @@ class CoreController extends Controller
             if ($query->count()) {
                 foreach ($query as $row) {
                     $result[] = [
-                        'date' => date('Y-m-d', $this->human_to_unix($row-> date)),
+                        'date' => date('Y-m-d', $this->human_to_unix($row->date)),
                         'temp' => $row->temp,
                         'action' => $row->action,
                         'delete' => $action = '<a href="' . route('core_action', ['table' => 'vaccine_temp', 'action' => 'delete', 'index' => $row_index, 'id' => $row->$row_index]) . '" class="btn fa-btn nosh-delete" role="button" data-toggle="tooltip" title="Delete Temperature Entry"><i class="fa fa-trash fa-lg"></i></a>',
@@ -8176,4 +8086,5 @@ class CoreController extends Controller
         $data['assets_css'] = $this->assets_css();
         return view('core', $data);
     }
+
 }

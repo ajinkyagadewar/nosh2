@@ -34,17 +34,16 @@ use Google_Client;
 
 class InstallController extends Controller {
 
-    public function backup()
-    {
+    public function backup() {
         $row2 = DB::table('practiceinfo')->first();
         $dir = $row2->documents_dir;
         $file = $dir . "noshbackup_" . time() . ".sql";
-        $command = "mysqldump -u " . env('DB_USERNAME') . " -p". env('DB_PASSWORD') . " " . env('DB_DATABASE') . " > " . $file;
+        $command = "mysqldump -u " . env('DB_USERNAME') . " -p" . env('DB_PASSWORD') . " " . env('DB_DATABASE') . " > " . $file;
         system($command);
         $files = glob($dir . "*.sql");
         foreach ($files as $file_row) {
             $explode = explode("_", $file_row);
-            $time = intval(str_replace(".sql","",$explode[1]));
+            $time = intval(str_replace(".sql", "", $explode[1]));
             $month = time() - 604800;
             if ($time < $month) {
                 unlink($file_row);
@@ -55,8 +54,7 @@ class InstallController extends Controller {
         $this->healthwise_compile();
     }
 
-    public function google_start(Request $request)
-    {
+    public function google_start(Request $request) {
         $query = DB::table('practiceinfo')->first();
         if ($request->isMethod('post')) {
             $file = $request->file('file_input');
@@ -69,11 +67,11 @@ class InstallController extends Controller {
             if (file_exists($config_file)) {
                 unlink($config_file);
             }
-            $directory = base_path().'/public/';
+            $directory = base_path() . '/public/';
             $new_name = ".google";
             $file->move($directory, $new_name);
             Session::put('message_action', 'Google JSON file uploaded successfully');
-            if (! $query) {
+            if (!$query) {
                 if (file_exists(base_path() . '/.patientcentric')) {
                     return redirect()->route('install', ['patient']);
                 } else {
@@ -95,18 +93,17 @@ class InstallController extends Controller {
                 $data['panel_dropdown'] = $this->dropdown_build($dropdown_array);
                 $text = "<p>A Google OAuth2 Client ID file is already installed.  Uploading a new file will overwrite the existing file!</p>";
             }
-            $data['content'] = '<div class="alert alert-success">' . $text 
-                    . '<ul><li>Please refer Google developers area ' 
+            $data['content'] = '<div class="alert alert-success">' . $text
+                    . '<ul><li>Please refer Google developers area '
                     . HTML::link('https://console.developers.google.com', 'this link.'
-                            , ['target'=>'_blank']) . ' Please refer to it carefully.</li><li>Once you have you JSON file, upload it here.</li></ul></div>';
+                            , ['target' => '_blank']) . ' Please refer to it carefully.</li><li>Once you have you JSON file, upload it here.</li></ul></div>';
             $data['assets_js'] = $this->assets_js('document_upload');
             $data['assets_css'] = $this->assets_css('document_upload');
             return view('document_upload', $data);
         }
     }
 
-    public function install(Request $request, $type)
-    {
+    public function install(Request $request, $type) {
         $query = DB::table('practiceinfo')->first();
         if ($query) {
             return redirect()->route('dashboard');
@@ -124,7 +121,7 @@ class InstallController extends Controller {
             ]);
             $smtp_user = $request->input('smtp_user');
             $username = $request->input('username');
-            $password = substr_replace(Hash::make($request->input('password')),"$2a",0,3);
+            $password = substr_replace(Hash::make($request->input('password')), "$2a", 0, 3);
             $email = $request->input('email');
             if ($type == 'practice') {
                 $practice_name = $request->input('practice_name');
@@ -134,7 +131,7 @@ class InstallController extends Controller {
                 $fax = $request->input('fax');
                 $patient_centric = 'n';
             } else {
-                $practice_name = "NOSH for Patient: " . $request->input('firstname') . ' ' . $request->input('lastname');
+                $practice_name = "Care for Patient: " . $request->input('firstname') . ' ' . $request->input('lastname');
                 $street_address1 = $request->input('address');
                 $street_address2 = '';
                 $phone = '';
@@ -220,7 +217,7 @@ class InstallController extends Controller {
                     'displayname' => $displayname,
                     'email' => $request->input('email'),
                     'group_id' => '100',
-                    'active'=> '1',
+                    'active' => '1',
                     'practice_id' => '1',
                     'password' => $this->gen_uuid()
                 ];
@@ -455,8 +452,7 @@ class InstallController extends Controller {
         }
     }
 
-public function install_fix(Request $request)
-    {
+    public function install_fix(Request $request) {
         if ($request->isMethod('post')) {
             $this->validate($request, [
                 'db_password' => 'min:4',
@@ -470,10 +466,10 @@ public function install_fix(Request $request)
                 $path = base_path() . '/.env';
                 if (file_exists($path)) {
                     file_put_contents($path, str_replace(
-                        'DB_USERNAME=' . env('DB_USERNAME'), 'DB_USERNAME='. $db_username, file_get_contents($path)
+                                    'DB_USERNAME=' . env('DB_USERNAME'), 'DB_USERNAME=' . $db_username, file_get_contents($path)
                     ));
                     file_put_contents($path, str_replace(
-                        'DB_PASSWORD=' . env('DB_PASSWORD'), 'DB_PASSWORD='. $db_password, file_get_contents($path)
+                                    'DB_PASSWORD=' . env('DB_PASSWORD'), 'DB_PASSWORD=' . $db_password, file_get_contents($path)
                     ));
                 }
                 Session::put('message_action', 'Fixed database connection');
@@ -518,8 +514,7 @@ public function install_fix(Request $request)
         }
     }
 
-    public function prescription_pharmacy_view(Request $request, $id, $ret='')
-    {
+    public function prescription_pharmacy_view(Request $request, $id, $ret = '') {
         $data['hash'] = '';
         $data['ajax'] = route('dashboard');
         $data['ajax1'] = route('dashboard');
@@ -533,12 +528,12 @@ public function install_fix(Request $request)
         if ($query) {
             if ($query->id !== null && $query->id !== '') {
                 if ($query->rxl_date_old == '0000-00-00 00:00:00') {
-                    ini_set('memory_limit','196M');
+                    ini_set('memory_limit', '196M');
                     $html = $this->page_medication($id, $query->pid);
                     $name = time() . "_rx.pdf";
                     $file_path = public_path() . "/temp/" . $name;
                     $this->generate_pdf($html, $file_path, 'footerpdf', '', '2', '', 'void');
-                    while(!file_exists($file_path)) {
+                    while (!file_exists($file_path)) {
                         sleep(2);
                     }
                     $imagick = new Imagick();
@@ -623,22 +618,21 @@ public function install_fix(Request $request)
         return view('uport1', $data);
     }
 
-    public function set_version(Request $request)
-    {
+    public function set_version(Request $request) {
         $result = $this->github_all();
         File::put(base_path() . '/.version', $result[0]['sha']);
         return redirect()->route('dashboard');
     }
 
-    public function uma_patient_centric(Request $request)
-    {
+    public function uma_patient_centric(Request $request) {
         $query = DB::table('practiceinfo')->where('practice_id', '=', '1')->first();
-        $open_id_url = str_replace('/nosh', '', URL::to('/'));
+        $open_id_url = str_replace('/nosh', '', 'https://hie.drjio.com');
+
         if ($query->patient_centric == 'y') {
             if ($query->uma_client_id == '') {
                 // Register as resource server
                 $patient = DB::table('demographics')->where('pid', '=', '1')->first();
-                $client_name = 'Patient NOSH for ' .  $patient->firstname . ' ' . $patient->lastname . ', DOB: ' . date('Y-m-d', strtotime($patient->DOB));
+                $client_name = 'Patient Care for ' . $patient->firstname . ' ' . $patient->lastname . ', DOB: ' . date('Y-m-d', strtotime($patient->DOB));
                 $url = route('uma_auth');
                 $oidc = new OpenIDConnectClient($open_id_url);
                 $oidc->setClientName($client_name);
@@ -657,8 +651,8 @@ public function install_fix(Request $request)
                 $oidc->addGrantType('implicit');
                 $oidc->addGrantType('jwt-bearer');
                 $oidc->addGrantType('refresh_token');
-                $oidc->register(true,true);
-                $data['uma_client_id']  = $oidc->getClientID();
+                $oidc->register(true, true);
+                $data['uma_client_id'] = $oidc->getClientID();
                 $data['uma_client_secret'] = $oidc->getClientSecret();
                 DB::table('practiceinfo')->where('practice_id', '=', '1')->update($data);
                 $this->audit('Update');
@@ -676,8 +670,8 @@ public function install_fix(Request $request)
                     $oidc->addScope('profile');
                     $oidc->addScope('offline_access');
                     $oidc->addScope('uma_protection');
-                    $oidc->authenticate(true,'user1');
-                    $user_data['uid']  = $oidc->requestUserInfo('sub');
+                    $oidc->authenticate(true, 'user1');
+                    $user_data['uid'] = $oidc->requestUserInfo('sub');
                     DB::table('users')->where('id', '=', '2')->update($user_data);
                     $access_token = $oidc->getAccessToken();
                     if ($oidc->getRefreshToken() != '') {
@@ -687,6 +681,7 @@ public function install_fix(Request $request)
                     }
                     // Register resource sets
                     $uma = DB::table('uma')->first();
+
                     if (!$uma) {
                         $resource_set_array[] = [
                             'name' => 'Patient',
@@ -792,8 +787,7 @@ public function install_fix(Request $request)
         return redirect()->route('dashboard');
     }
 
-    public function update()
-    {
+    public function update() {
         $practice = DB::table('practiceinfo')->first();
         if ($practice->version < "2.0.0") {
             $this->update200();
@@ -801,8 +795,7 @@ public function install_fix(Request $request)
         return redirect()->route('dashboard');
     }
 
-    public function update_env()
-    {
+    public function update_env() {
         $base_arr = explode('/', base_path());
         end($base_arr);
         $key = key($base_arr);
@@ -819,13 +812,13 @@ public function install_fix(Request $request)
                 $path = base_path() . '/.env';
                 if (file_exists($path)) {
                     file_put_contents($path, str_replace(
-                        'DB_DATABASE=' . env('DB_DATABASE'), 'DB_DATABASE='. $config['mysql_database'], file_get_contents($path)
+                                    'DB_DATABASE=' . env('DB_DATABASE'), 'DB_DATABASE=' . $config['mysql_database'], file_get_contents($path)
                     ));
                     file_put_contents($path, str_replace(
-                        'DB_USERNAME=' . env('DB_USERNAME'), 'DB_USERNAME='. $config['mysql_username'], file_get_contents($path)
+                                    'DB_USERNAME=' . env('DB_USERNAME'), 'DB_USERNAME=' . $config['mysql_username'], file_get_contents($path)
                     ));
                     file_put_contents($path, str_replace(
-                        'DB_PASSWORD=' . env('DB_PASSWORD'), 'DB_PASSWORD='. $config['mysql_password'], file_get_contents($path)
+                                    'DB_PASSWORD=' . env('DB_PASSWORD'), 'DB_PASSWORD=' . $config['mysql_password'], file_get_contents($path)
                     ));
                 }
                 Session::put('message_action', 'Fixed database connection');
@@ -833,14 +826,12 @@ public function install_fix(Request $request)
             } else {
                 return 'Your installation went horribly wrong (missing .env file).  Start from the beginning.';
             }
-
         } else {
             return 'Your installation went horribly wrong (missing .env file).  Start from the beginning.';
         }
     }
 
-    public function update_system(Request $request)
-    {
+    public function update_system(Request $request) {
         $current_version = File::get(base_path() . '/.version');
         $result = $this->github_all();
         $composer = false;
@@ -886,7 +877,7 @@ public function install_fix(Request $request)
                     }
                 }
             }
-            define('STDIN',fopen("php://stdin","r"));
+            define('STDIN', fopen("php://stdin", "r"));
             Artisan::call('migrate', array('--force' => true));
             File::put(base_path() . '/.version', $result[0]['sha']);
             if ($composer == true) {
@@ -901,7 +892,8 @@ public function install_fix(Request $request)
         }
     }
 
-    public function test1(Request $request)
-    {
+    public function test1(Request $request) {
+        
     }
+
 }

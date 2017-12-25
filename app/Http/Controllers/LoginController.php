@@ -27,11 +27,9 @@ use GuzzleHttp;
 class LoginController extends Controller {
 
     /**
-    * Authentication of users
-    */
-
-    public function accept_invitation(Request $request, $id)
-    {
+     * Authentication of users
+     */
+    public function accept_invitation(Request $request, $id) {
         $query = DB::table('users')->where('password', '=', $id)->first();
         if ($query) {
             if ($request->isMethod('post')) {
@@ -47,7 +45,7 @@ class LoginController extends Controller {
                     $data['password'] = sha1($username);
                 } else {
                     $data['username'] = $request->input('username');
-                    $data['password'] = substr_replace(Hash::make($request->input('password')),"$2a",0,3);
+                    $data['password'] = substr_replace(Hash::make($request->input('password')), "$2a", 0, 3);
                     $data['secret_question'] = $request->input('secret_question');
                     $data['secret_answer'] = $request->input('secret_answer');
                 }
@@ -70,54 +68,51 @@ class LoginController extends Controller {
         }
     }
 
-    public function api_check(Request $request, $practicehandle)
-    {
+    public function api_check(Request $request, $practicehandle) {
         if ($practicehandle == '0') {
-                $query = DB::table('practiceinfo')->where('practice_id', '=', '1')->first();
+            $query = DB::table('practiceinfo')->where('practice_id', '=', '1')->first();
         } else {
-                $query = DB::table('practiceinfo')->where('practicehandle', '=', $practicehandle)->first();
+            $query = DB::table('practiceinfo')->where('practicehandle', '=', $practicehandle)->first();
         }
         $result = 'No';
         if ($query) {
-                if (Schema::hasColumn('practiceinfo', 'practice_api_key')) {
-                        $result = 'Yes';
-                }
+            if (Schema::hasColumn('practiceinfo', 'practice_api_key')) {
+                $result = 'Yes';
+            }
         }
         return $result;
     }
 
-    public function api_login(Request $request)
-    {
-	$data = $request->all();
-	$practice = DB::table('practiceinfo')->where('npi', '=', $data['npi'])->where('practice_api_key', '=', $data['api_key'])->first();
+    public function api_login(Request $request) {
+        $data = $request->all();
+        $practice = DB::table('practiceinfo')->where('npi', '=', $data['npi'])->where('practice_api_key', '=', $data['api_key'])->first();
         $statusCode = 200;
         if ($practice) {
             $password = Hash::make(time());
             $data1 = [
                 'username' => $practice->practice_api_key,
                 'password' => $password,
-		'group_id' => '99',
-		'practice_id' => $practice->practice_id
+                'group_id' => '99',
+                'practice_id' => $practice->practice_id
             ];
             DB::table('users')->insert($data1);
             $this->audit('Add');
             $response = [
                 'error' => false,
                 'message' => 'Login successful',
-		'username' => $practice->practice_api_key,
-		'password' => $password
+                'username' => $practice->practice_api_key,
+                'password' => $password
             ];
-	} else {
+        } else {
             $response = [
                 'error' => true,
                 'message' => 'Login incorrect!'
             ];
-	}
+        }
         return response()->json($response, $statusCode);
     }
 
-    public function api_logout(Request $request)
-    {
+    public function api_logout(Request $request) {
         $data = $request->all();
         $practice = DB::table('practiceinfo')->where('npi', '=', $data['npi'])->where('practice_api_key', '=', $data['api_key'])->first();
         $statusCode = 200;
@@ -125,68 +120,250 @@ class LoginController extends Controller {
             DB::table('users')->where('group_id', '=', '99')->where('practice_id', '=', $practice->practice_id)->delete();
             $this->audit('Delete');
             $response = [
-                    'error' => false,
-                    'message' => 'Logout successful'
+                'error' => false,
+                'message' => 'Logout successful'
             ];
         } else {
             $response = [
-                    'error' => true,
-                    'message' => 'Login incorrect!'
+                'error' => true,
+                'message' => 'Login incorrect!'
             ];
         }
         return response()->json($response, $statusCode);
     }
 
-    public function api_register(Request $request)
-    {
+    public function api_register(Request $request) {
         $data = $request->all();
         if ($data['practicehandle'] == '0') {
-                $query = DB::table('practiceinfo')->where('practice_id', '=', '1')->first();
+            $query = DB::table('practiceinfo')->where('practice_id', '=', '1')->first();
         } else {
-                $query = DB::table('practiceinfo')->where('practicehandle', '=', $data['practicehandle'])->first();
+            $query = DB::table('practiceinfo')->where('practicehandle', '=', $data['practicehandle'])->first();
         }
         unset($data['practicehandle']);
         $practice_id = $query->practice_id;
         $patient_data = [
-                'api_key' => $data['api_key'],
-                'url' => $data['url']
+            'api_key' => $data['api_key'],
+            'url' => $data['url']
         ];
         unset($data['api_key']);
         unset($data['url']);
         $patient_query = DB::table('demographics')->where('lastname', '=', $data['lastname'])->where('firstname', '=', $data['firstname'])->where('DOB', '=', $data['DOB'])->where('sex', '=', $data['sex'])->first();
         if ($patient_query) {
-                // Patient exists
-                $pid = $patient_query->pid;
-                $return['status'] = 'Patient already exists, updated API Key and URL';
+            // Patient exists
+            $pid = $patient_query->pid;
+            $return['status'] = 'Patient already exists, updated API Key and URL';
         } else {
-                // If patient doesn't exist, create a new one
-                $pid = DB::table('demographics')->insertGetId($data);
-                $this->audit('Add');
-                $data1 = [
-                        'billing_notes' => '',
-                        'imm_notes' => '',
-                        'pid' => $pid,
-                        'practice_id' => $practice_id
-                ];
-                DB::table('demographics_notes')->insert($data1);
-                $this->audit('Add');
-                $data2 = [
-                        'pid' => $pid,
-                        'practice_id' => $practice_id
-                ];
-                DB::table('demographics_relate')->insert($data2);
-                $this->audit('Add');
-                $directory = $query->documents_dir . $pid;
-                mkdir($directory, 0775);
-                $return['status'] = 'Patient newly created in the chart.';
+            // If patient doesn't exist, create a new one
+            $pid = DB::table('demographics')->insertGetId($data);
+            $this->audit('Add');
+            $data1 = [
+                'billing_notes' => '',
+                'imm_notes' => '',
+                'pid' => $pid,
+                'practice_id' => $practice_id
+            ];
+            DB::table('demographics_notes')->insert($data1);
+            $this->audit('Add');
+            $data2 = [
+                'pid' => $pid,
+                'practice_id' => $practice_id
+            ];
+            DB::table('demographics_relate')->insert($data2);
+            $this->audit('Add');
+            $directory = $query->documents_dir . $pid;
+            mkdir($directory, 0775);
+            $return['status'] = 'Patient newly created in the chart.';
         }
         DB::table('demographics_relate')->where('pid', '=', $pid)->where('practice_id', '=', $practice_id)->update($patient_data);
         $this->audit('Update');
         return $return;
     }
 
-    public function as_sync(Request $request)
-    {
+    public function bypass_register(Request $request) {
+
+        $query = DB::table('practiceinfo')->where('practice_id', '=', '1')->first();
+
+        $practice_id = $query->practice_id;
+
+        $data = [
+            'firstname' => $request->input('firstname'),
+            'lastname' => $request->input('lastname'),
+            'email' => $request->input('email'),
+            'active' => '0',
+            'sex' => $request->input('sex'),
+            'nickname' => $request->input('firstname') . " " . $request->input('lastname'),
+            'DOB' => $request->input('dob'),
+        ];
+
+        $patient_query = DB::table('demographics')->where('lastname', '=', $data['lastname'])->where('firstname', '=', $data['firstname'])->where('DOB', '=', $data['DOB'])->where('sex', '=', $data['sex'])->first();
+        if ($patient_query) {
+            // Patient exists
+            $pid = $patient_query->pid;
+            $return['status'] = 'Patient already exists, updated API Key and URL';
+        } else {
+            // If patient doesn't exist, create a new one
+            $pid = DB::table('demographics')->insertGetId($data);
+            $this->audit('Add');
+            $data1 = [
+                'billing_notes' => '',
+                'imm_notes' => '',
+                'pid' => $pid,
+                'practice_id' => $practice_id
+            ];
+            DB::table('demographics_notes')->insert($data1);
+            $this->audit('Add');
+            $data2 = [
+                'pid' => $pid,
+                'practice_id' => $practice_id
+            ];
+            DB::table('demographics_relate')->insert($data2);
+            $this->audit('Add');
+            $directory = $query->documents_dir . $pid;
+            mkdir($directory, 0775);
+            $return['pid'] = $pid;
+            $return['practice_id'] = $practice_id;
+            $return['status'] = 'Patient newly created in the chart.';
+        }
+
+        $this->audit('Update');
+
+        # Add user
+        $this->validate($request, [
+            'username' => 'unique:users,username',
+            'password' => 'min:4',
+            'confirm_password' => 'min:4|same:password',
+            'secret_question' => 'required',
+            'secret_answer' => 'required'
+        ]);
+
+        $data_user = [
+            'username' => $request->input('username1'),
+            'password' => substr_replace(Hash::make($request->input('password1')), "$2a", 0, 3),
+            'firstname' => $request->input('firstname'),
+            'lastname' => $request->input('lastname'),
+            'email' => $request->input('email'),
+            'group_id' => '100',
+            'active' => '0',
+            'displayname' => $request->input('firstname') . " " . $request->input('lastname'),
+            'practice_id' => $practice_id,
+            'secret_question' => $request->input('secret_question'),
+            'secret_answer' => $request->input('secret_answer'),
+            'created_at' => date('Y-m-d H:i:s')
+        ];
+
+
+        $arr['id'] = DB::table('users')->insertGetId($data_user);
+        $this->audit('Add');
+        $data_demographics = [
+            'id' => $arr['id'],
+            'pid' => $pid,
+            'practice_id' => $practice_id
+        ];
+
+        $data_id = [
+            'id' => $arr['id']
+        ];
+
+        DB::table('demographics')->where('pid', '=', $pid)->update($data_id);
+        $this->audit('Add');
+        DB::table('demographics_relate')->insertGetId($data_demographics);
+        $this->audit('Add');
+        Session::put('message_action', 'Your account has been validated.  '
+                . 'Please login with your email and password');
+//        return redirect()->route('login');
+
+        return $return;
+    }
+
+    public function validate_user(Request $request) {
+        if (Auth::guest()) {
+            if ($request->isMethod('post')) {
+                $registration_code = $request->input('registration_code');
+                $email = $request->input('email');
+
+                $result = DB::table('demographics')->where('registration_code', '=', $registration_code)
+                        ->where('email', '=', $email)
+                        ->first();
+
+                if ($result) {
+                    if ($result->active == 1) {
+                        Session::put('message_action', 'Seems you are already validated.');
+                        return redirect()->route('login');
+                    } else {
+                        $data = [
+                            'active' => '1'
+                        ];
+                        DB::table('demographics')->where('email', '=', $email)->update($data);
+                        DB::table('users')->where('email', '=', $email)->update($data);
+                        $this->audit('Update');
+                        $users_data = DB::table('users')->where('email', '=', $email)->first();
+
+                        # try to directly login
+                        $username = $users_data->username;
+                        $password = $users_data->password;
+                        $practice_id = $users_data->practice_id;
+                        $credentials = [
+                            "username" => $username,
+                            "password" => $password,
+                            "active" => '1'
+                        ];
+
+                        $credentials['practice_id'] = $practice_id;
+                        $user = DB::table('users')->where('username', '=', $username)->where('active', '=', '1')
+                                        ->where('practice_id', '=', $practice_id)->first();
+
+                        if (Auth::attempt($credentials)) {
+                            // Authentication successful
+                            $practice = DB::table('practiceinfo')->where('practice_id', '=', $user->practice_id)->first();
+                            Session::put('user_id', $user->id);
+                            Session::put('group_id', $user->group_id);
+                            Session::put('practice_id', $user->practice_id);
+                            Session::put('version', $practice->version);
+                            Session::put('practice_active', $practice->active);
+                            Session::put('displayname', $user->displayname);
+                            Session::put('documents_dir', $practice->documents_dir);
+                            Session::put('rcopia', $practice->rcopia_extension);
+                            Session::put('mtm_extension', $practice->mtm_extension);
+                            Session::put('patient_centric', $practice->patient_centric);
+                            setcookie("login_attempts", 0, time() + 900, '/');
+                            if ($user->group_id == '1') {
+                                Session::forget('pid');
+                                Session::forget('eid');
+                            }
+                            if ($practice->patient_centric == 'n') {
+                                return redirect()->intended('/');
+                            } else {
+                                if ($user->group_id != '100' && $user->group_id != '1') {
+                                    $pid = DB::table('demographics')->first();
+                                    $this->setpatient($pid->pid);
+                                    return redirect()->intended('/');
+                                } else {
+                                    $url_hieofoneas = str_replace('/nosh', '/resources/' . $practice->uma_client_id, 'https://hie.drjio.com');
+                                    Session::put('url_hieofoneas', $url_hieofoneas);
+                                    return redirect()->intended('/');
+                                }
+                            }
+                        }
+
+                        return redirect()->route('dashboard');
+                    }
+                } else {
+                    Session::put('message_action', 'Your registration code is invalid. Please try again.');
+                    $data['assets_js'] = $this->assets_js('login');
+                    $data['assets_css'] = $this->assets_css('login');
+                    return view('auth.validate', $data);
+                }
+            } else {
+                $data['assets_js'] = $this->assets_js('login');
+                $data['assets_css'] = $this->assets_css('login');
+                return view('auth.validate', $data);
+            }
+        } else {
+            return redirect()->intended('/');
+        }
+    }
+
+    public function as_sync(Request $request) {
         $message = '';
         $query = DB::table('practiceinfo')->where('practice_id', '=', '1')->first();
         if ($query) {
@@ -205,8 +382,7 @@ class LoginController extends Controller {
         return $message;
     }
 
-    public function google_auth(Request $request)
-    {
+    public function google_auth(Request $request) {
         $file = File::get(base_path() . '/public/.google');
         $file_arr = json_decode($file, true);
         $client_id = $file_arr['web']['client_id'];
@@ -239,7 +415,7 @@ class LoginController extends Controller {
             Session::put('mtm_extension', $practice->mtm_extension);
             Session::put('patient_centric', $practice->patient_centric);
             Session::put('oidc_auth_access_token', $access_token);
-            setcookie("login_attempts", 0, time()+900, '/');
+            setcookie("login_attempts", 0, time() + 900, '/');
             return redirect()->intended('/');
         } else {
             // If patient-centric, confirm if user request is registered to pNOSH first
@@ -289,8 +465,7 @@ class LoginController extends Controller {
         }
     }
 
-    public function googleoauth(Request $request)
-    {
+    public function googleoauth(Request $request) {
         $url = route('googleoauth');
         $file = File::get(base_path() . "/public/.google");
         $file_arr = json_decode($file, true);
@@ -314,8 +489,7 @@ class LoginController extends Controller {
         }
     }
 
-    public function login(Request $request, $type='all')
-    {
+    public function login(Request $request, $type = 'all') {
         if (Auth::guest()) {
             if ($request->isMethod('post')) {
                 $default_practice = DB::table('practiceinfo')->where('practice_id', '=', '1')->first();
@@ -358,7 +532,7 @@ class LoginController extends Controller {
                     Session::put('rcopia', $practice->rcopia_extension);
                     Session::put('mtm_extension', $practice->mtm_extension);
                     Session::put('patient_centric', $practice->patient_centric);
-                    setcookie("login_attempts", 0, time()+900, '/');
+                    setcookie("login_attempts", 0, time() + 900, '/');
                     if ($user->group_id == '1') {
                         Session::forget('pid');
                         Session::forget('eid');
@@ -383,7 +557,7 @@ class LoginController extends Controller {
                     } else {
                         $attempts = 1;
                     }
-                    setcookie("login_attempts", $attempts, time()+900, '/');
+                    setcookie("login_attempts", $attempts, time() + 900, '/');
                     return redirect()->back()->withErrors(['tryagain' => 'Try again']);
                 }
             } else {
@@ -396,7 +570,7 @@ class LoginController extends Controller {
                     $practice_id = Session::get('practice_id');
                     if ($practice_id == FALSE) {
                         $data['practice_id'] = '1';
-                    } else  {
+                    } else {
                         $data['practice_id'] = $practice_id;
                     }
                     $data['patient_centric'] = $practice1->patient_centric;
@@ -404,14 +578,15 @@ class LoginController extends Controller {
                         if ($type == 'provider') {
                             $data['pnosh_provider'] = 'y';
                         } else {
-                            $data['pnosh_provider'] = 'n';
+                            $data['pnosh_provider'] = 'y';
                             $data['login_form'] = 'n';
                         }
                     } else {
                         $data['login_form'] = 'y';
+                        $data['pnosh_provider'] = 'n';
                     }
                     $data['demo'] = 'n';
-                    if (route('dashboard') == 'https://care.drjio.com') {
+                    if (route('dashboard') == 'https://care.drjio.com/') {
                         $data['demo'] = 'y';
                     }
                     if ($data['patient_centric'] == 'n') {
@@ -429,11 +604,11 @@ class LoginController extends Controller {
                             }
                         }
                     }
-                    if ((array_key_exists('login_attempts', $_COOKIE)) && ($_COOKIE['login_attempts'] >= 5)){
+                    if ((array_key_exists('login_attempts', $_COOKIE)) && ($_COOKIE['login_attempts'] >= 5)) {
                         $data['attempts'] = "You have reached the number of limits to login.  Wait 15 minutes then try again.";
                     } else {
                         if (!array_key_exists('login_attempts', $_COOKIE)) {
-                            setcookie("login_attempts", 0, time()+900, '/');
+                            setcookie("login_attempts", 0, time() + 900, '/');
                         }
                     }
                     $data['message_action'] = Session::get('message_action');
@@ -460,8 +635,7 @@ class LoginController extends Controller {
         }
     }
 
-    public function login_uport(Request $request)
-    {
+    public function login_uport(Request $request) {
         if ($request->has('uport')) {
             $user = DB::table('users')->where('email', '=', $request->input('email'))->first();
             if ($user) {
@@ -480,8 +654,8 @@ class LoginController extends Controller {
                 Session::put('patient_centric', $practice->patient_centric);
                 Session::put('uport_id', $request->input('uport'));
                 Session::save();
-                setcookie("login_attempts", 0, time()+900, '/');
-                $return['url'] =  route('dashboard');
+                setcookie("login_attempts", 0, time() + 900, '/');
+                $return['url'] = route('dashboard');
                 $return['message'] = 'OK';
             } else {
                 $return['message'] = 'You are not authorized to access DrJio Care';
@@ -492,10 +666,10 @@ class LoginController extends Controller {
         return $return;
     }
 
-    public function logout()
-    {
+    public function logout() {
         if (Session::has('uma_auth_access_token')) {
-            $open_id_url = str_replace('/nosh', '', URL::to('/'));
+            #$open_id_url = str_replace('/nosh', '', URL::to('/'));
+            $open_id_url = 'https://hie.drjio.com';
             $practice = DB::table('practiceinfo')->where('practice_id', '=', '1')->first();
             $client_id = $practice->uma_client_id;
             $client_secret = $practice->uma_client_secret;
@@ -512,7 +686,7 @@ class LoginController extends Controller {
             return redirect($open_id_url);
         }
         if (Session::has('oidc_auth_access_token')) {
-            $open_id_url = 'http://noshchartingsystem.com/oidc';
+            $open_id_url = 'https://hie.drjio.com';
             $practice = DB::table('practiceinfo')->where('practice_id', '=', '1')->first();
             $client_id = $practice->uma_client_id;
             $client_secret = $practice->uma_client_secret;
@@ -537,20 +711,20 @@ class LoginController extends Controller {
         return redirect()->route('login');
     }
 
-    public function oidc(Request $request)
-    {
-        $open_id_url = 'https://hie.drjio.com/';
+    public function oidc(Request $request) {
+        $open_id_url = 'https://hie.drjio.com';
         $practice = DB::table('practiceinfo')->where('practice_id', '=', '1')->first();
-        if (route('dashboard') == 'https://care.drjio.com/') {
+
+        if (route('dashboard') == 'https://care.drjio.com') {
             if ($practice->openidconnect_client_id == '') {
                 if ($practice->patient_centric == 'y') {
                     $patient = DB::table('demographics')->first();
                     $dob = date('m/d/Y', strtotime($patient->DOB));
-                    $client_name = 'PatientNOSH for ' . $patient->firstname . ' ' . $patient->lastname . ' (DOB: ' . $dob . ')';
+                    $client_name = 'PatientCare for ' . $patient->firstname . ' ' . $patient->lastname . ' (DOB: ' . $dob . ')';
                 } else {
-                    $client_name = 'PracticeNOSH for ' . $practice->practice_name;
+                    $client_name = 'PracticeCare for ' . $practice->practice_name;
                 }
-                $open_id_url = 'https://hie.drjio.com/';
+                $open_id_url = 'https://hie.drjio.com';
                 $url = route('oidc');
                 $oidc = new OpenIDConnectClient($open_id_url);
                 $oidc->setClientName($client_name);
@@ -607,7 +781,7 @@ class LoginController extends Controller {
             Session::put('mtm_extension', $practice1->mtm_extension);
             Session::put('patient_centric', $practice1->patient_centric);
             Session::put('oidc_auth_access_token', $access_token);
-            setcookie("login_attempts", 0, time()+900, '/');
+            setcookie("login_attempts", 0, time() + 900, '/');
             return redirect()->intended('/');
         } else {
             // If patient-centric, confirm if user request is registered to pNOSH first
@@ -671,7 +845,7 @@ class LoginController extends Controller {
                         if ($practice_arr['type'] == 'Practice') {
                             $practicename = $practice_arr['practice_name'];
                         } else {
-                            $practicename = $practice_arr['first_name'] . ' ' . $practice_arr['last_name'] . ', ' . 
+                            $practicename = $practice_arr['first_name'] . ' ' . $practice_arr['last_name'] . ', ' .
                                     $practice_arr['title'];
                         }
                         $street_address1 = $practice_arr['address'];
@@ -721,9 +895,9 @@ class LoginController extends Controller {
                     'displayname' => $oidc->requestUserInfo('name'),
                     'email' => $email,
                     'group_id' => '2',
-                    'active'=> '1',
+                    'active' => '1',
                     'practice_id' => $practice_id,
-                    'secret_question' => 'Use mdNOSH Gateway to reset your password!',
+                    'secret_question' => 'Use mdCare Gateway to reset your password!',
                     'uid' => $oidc->requestUserInfo('sub')
                 ];
                 $id = DB::table('users')->insertGetId($data);
@@ -749,7 +923,7 @@ class LoginController extends Controller {
                 Session::put('mtm_extension', $practice2->mtm_extension);
                 Session::put('patient_centric', $practice2->patient_centric);
                 Session::put('oidc_auth_access_token', $access_token);
-                setcookie("login_attempts", 0, time()+900, '/');
+                setcookie("login_attempts", 0, time() + 900, '/');
                 return redirect()->intended('/');
             } else {
                 // No registered mdNOSH user for this NOSH instance - punt back to login page.
@@ -758,14 +932,12 @@ class LoginController extends Controller {
         }
     }
 
-    public function oidc_check_patient_centric(Request $request)
-    {
+    public function oidc_check_patient_centric(Request $request) {
         $query = DB::table('practiceinfo')->where('practice_id', '=', '1')->first();
         return $query->patient_centric;
     }
 
-    public function oidc_logout(Request $request)
-    {
+    public function oidc_logout(Request $request) {
         $open_id_url = 'https://hie.drjio.com';
         $practice = DB::table('practiceinfo')->where('practice_id', '=', '1')->first();
         $client_id = $practice->uma_client_id;
@@ -779,8 +951,7 @@ class LoginController extends Controller {
         return redirect()->intended('logout');
     }
 
-    public function oidc_register_client(Request $request)
-    {
+    public function oidc_register_client(Request $request) {
         $practice = DB::table('practiceinfo')->where('practice_id', '=', '1')->first();
         if ($practice->patient_centric == 'y') {
             $patient = DB::table('demographics')->first();
@@ -795,6 +966,7 @@ class LoginController extends Controller {
         $oidc->setClientName($client_name);
         $oidc->setRedirectURL($url);
         $oidc->register();
+
         $client_id = $oidc->getClientID();
         $client_secret = $oidc->getClientSecret();
         $data = [
@@ -806,9 +978,8 @@ class LoginController extends Controller {
         return redirect()->route('dashboard');
     }
 
-    public function oidc_api()
-    {
-        $open_id_url = 'http://oidc.drjio.com:8080/openid-connect-server-webapp/';
+    public function oidc_api() {
+        $open_id_url = 'https://hie.drjio.com';
         $practice = DB::table('practiceinfo')->where('practice_id', '=', '1')->first();
         $client_id = $practice->openidconnect_client_id;
         $client_secret = $practice->openidconnect_client_secret;
@@ -820,7 +991,7 @@ class LoginController extends Controller {
         $lastname = $oidc->requestUserInfo('family_name');
         $email = $oidc->requestUserInfo('email');
         $npi = $oidc->requestUserInfo('npi');
-        $access_token = substr($oidc->getAccessToken(),0,255);
+        $access_token = substr($oidc->getAccessToken(), 0, 255);
         if ($npi != '') {
             $provider = DB::table('providers')->where('npi', '=', $npi)->first();
             if ($provider) {
@@ -858,8 +1029,7 @@ class LoginController extends Controller {
         return Response::json($response, $statusCode);
     }
 
-    public function password_email(Request $request)
-    {
+    public function password_email(Request $request) {
         if ($request->isMethod('post')) {
             $this->validate($request, [
                 'email' => 'required',
@@ -887,44 +1057,42 @@ class LoginController extends Controller {
         }
     }
 
-    public function password_reset_response(Request $request, $id)
-    {
+    public function password_reset_response(Request $request, $id) {
         $query = DB::table('users')->where('password', '=', $id)->first();
         if ($query) {
             // $expires = strtotime($query->updated_at) + 7200;
             // if ($expires > time()) {
-                if ($request->isMethod('post')) {
-                    $this->validate($request, [
-                        'password' => 'min:4',
-                        'confirm_password' => 'min:4|same:password',
-                        'secret_answer' => 'required'
-                    ]);
-                    if ($query->secret_answer == $request->input('secret_answer')) {
-                        $data['password'] = substr_replace(Hash::make($request->input('password')),"$2a",0,3);
-                        DB::table('users')->where('id', '=', $query->id)->update($data);
-                        $this->audit('Update');
-                        Session::put('message_action', 'Pasword updated.  Please log in');
-                        return redirect()->route('login');
-                    } else {
-                        return 'Your response is incorrect.';
-                    }
+            if ($request->isMethod('post')) {
+                $this->validate($request, [
+                    'password' => 'min:4',
+                    'confirm_password' => 'min:4|same:password',
+                    'secret_answer' => 'required'
+                ]);
+                if ($query->secret_answer == $request->input('secret_answer')) {
+                    $data['password'] = substr_replace(Hash::make($request->input('password')), "$2a", 0, 3);
+                    DB::table('users')->where('id', '=', $query->id)->update($data);
+                    $this->audit('Update');
+                    Session::put('message_action', 'Pasword updated.  Please log in');
+                    return redirect()->route('login');
                 } else {
-                    $data['code'] = $id;
-                    $data['secret_question'] = $query->secret_question;
-                    $data['assets_js'] = $this->assets_js();
-                    $data['assets_css'] = $this->assets_css();
-                    return view('changepassword', $data);
+                    return 'Your response is incorrect.';
                 }
+            } else {
+                $data['code'] = $id;
+                $data['secret_question'] = $query->secret_question;
+                $data['assets_js'] = $this->assets_js();
+                $data['assets_css'] = $this->assets_css();
+                return view('changepassword', $data);
+            }
             // } else {
-                // return 'Your code expired.  Contact your administrator to have your password reset again.';
+            // return 'Your code expired.  Contact your administrator to have your password reset again.';
             // }
         } else {
             return 'Your code is invalid.';
         }
     }
 
-    public function practice_choose(Request $request)
-    {
+    public function practice_choose(Request $request) {
         if ($request->isMethod('post')) {
             $this->validate($request, [
                 'practice_npi_select' => 'required'
@@ -966,7 +1134,7 @@ class LoginController extends Controller {
                 'displayname' => Session::get('displayname'),
                 'email' => Session::get('email'),
                 'group_id' => '2',
-                'active'=> '1',
+                'active' => '1',
                 'practice_id' => $practice_id,
                 'uid' => Session::get('uid'),
                 'secret_question' => 'Use mdNOSH to reset your password!',
@@ -999,7 +1167,7 @@ class LoginController extends Controller {
             Session::put('rcopia', $practice1->rcopia_extension);
             Session::put('mtm_extension', $practice1->mtm_extension);
             Session::put('patient_centric', $practice1->patient_centric);
-            setcookie("login_attempts", 0, time()+900, '/');
+            setcookie("login_attempts", 0, time() + 900, '/');
             Session::forget('practice_npi_array');
             Session::forget('practice_choose');
             Session::forget('username');
@@ -1075,20 +1243,18 @@ class LoginController extends Controller {
         }
     }
 
-    public function practice_logo_login(Request $request)
-    {
+    public function practice_logo_login(Request $request) {
         $practice = DB::table('practiceinfo')->where('practice_id', '=', $request->input('practice_id'))->first();
         $html = '<i class="fa fa-child fa-5x" aria-hidden="true" style="margin:20px;text-align: center;"></i>';
         if ($practice->practice_logo !== '' && $practice->practice_logo !== null) {
-            if (file_exists(public_path() . '/'. $practice->practice_logo)) {
+            if (file_exists(public_path() . '/' . $practice->practice_logo)) {
                 $html = HTML::image($practice->practice_logo, 'Practice Logo', array('border' => '0'));
             }
         }
         return $html;
     }
 
-    public function register_user(Request $request)
-    {
+    public function register_user(Request $request) {
         if (Auth::guest()) {
             if ($request->isMethod('post')) {
                 $default_practice = DB::table('practiceinfo')->where('practice_id', '=', '1')->first();
@@ -1109,10 +1275,10 @@ class LoginController extends Controller {
                     $registration_code = $request->input('registration_code');
                     if ($registration_code != '') {
                         $result = DB::table('demographics')->where('registration_code', '=', $registration_code)
-                            ->where('firstname', '=', $request->input('firstname'))
-                            ->where('lastname', '=', $request->input('lastname'))
-                            ->where('DOB', '=', date('Y-m-d H:i:s', $this->human_to_unix($request->input('dob'))))
-                            ->first();
+                                ->where('firstname', '=', $request->input('firstname'))
+                                ->where('lastname', '=', $request->input('lastname'))
+                                ->where('DOB', '=', date('Y-m-d H:i:s', $this->human_to_unix($request->input('dob'))))
+                                ->first();
                         if ($result) {
                             $displayname = $request->input('firstname') . " " . $request->input('lastname');
                             $demographics_relate = DB::table('demographics_relate')->where('pid', '=', $result->pid)->get();
@@ -1122,7 +1288,7 @@ class LoginController extends Controller {
                                 if ($demographics_relate_row->id == '' || $demographics_relate_row->id == '0' || is_null($demographics_relate_row->id)) {
                                     $data1 = [
                                         'username' => $request->input('username1'),
-                                        'password' => substr_replace(Hash::make($request->input('password1')),"$2a",0,3),
+                                        'password' => substr_replace(Hash::make($request->input('password1')), "$2a", 0, 3),
                                         'firstname' => $request->input('firstname'),
                                         'lastname' => $request->input('lastname'),
                                         'email' => $request->input('email'),
@@ -1159,10 +1325,13 @@ class LoginController extends Controller {
                             } else {
                                 $attempts = 1;
                             }
-                            setcookie("login_attempts", $attempts, time()+900, '/');
+                            setcookie("login_attempts", $attempts, time() + 900, '/');
                             return redirect()->back()->withErrors(['tryagain' => 'Try again']);
                         }
                     } else {
+
+                        $demographics_data = $this->bypass_register($request);
+
                         $row3 = DB::table('practiceinfo')->where('practice_id', '=', '1')->first();
                         $displayname = Session::get('displayname');
                         $data_message2 = [
@@ -1177,7 +1346,29 @@ class LoginController extends Controller {
                         $view_data1['content'] = "<div>Your registration information has been sent to the administrator "
                                 . "and you will receive your registration code within 48-72 hours by e-mail after "
                                 . "confirmation of your idenity.<br>Thank you!</div>";
-                        return view('welcome', $view_data1);
+
+                        # Send Registration Code
+                        $characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+                        $token = '';
+                        for ($i = 0; $i < 6; $i++) {
+                            $token .= $characters[mt_rand(0, strlen($characters) - 1)];
+                        }
+                        $data['registration_code'] = $token;
+                        DB::table('demographics')->where('pid', '=', $demographics_data['pid'])->update($data);
+                        $this->audit('Update');
+                        $result = DB::table('demographics')->where('pid', '=', $demographics_data['pid'])->first();
+                        if ($result->email != '') {
+                            $practice = DB::table('practiceinfo')->where('practice_id', '=', $demographics_data['practice_id'])->first();
+                            $data1 = [
+                                'practicename' => $practice->practice_name,
+                                'url' => route('validate'),
+                                'token' => $token
+                            ];
+                            $this->send_mail('emails.loginregistrationcode', $data1, 'Patient Portal Registration Code', $result->email, $demographics_data['practice_id']);
+                        }
+                        $data['assets_js'] = $this->assets_js('login');
+                        $data['assets_css'] = $this->assets_css('login');
+                        return view('auth.validate', $data);
                     }
                 } else {
                     if (array_key_exists('login_attempts', $_COOKIE)) {
@@ -1185,32 +1376,31 @@ class LoginController extends Controller {
                     } else {
                         $attempts = 1;
                     }
-                    setcookie("login_attempts", $attempts, time()+900, '/');
+                    setcookie("login_attempts", $attempts, time() + 900, '/');
                     return redirect()->back()->withErrors(['tryagain' => 'Try again']);
                 }
             } else {
                 return redirect()->route('login');
             }
         } else {
+
             return redirect()->route('/');
         }
     }
 
-    public function remote_logout(Request $request)
-	{
-		Auth::logout();
-		Session::flush();
-		return redirect($request->input('redirect_uri'));
-	}
+    public function remote_logout(Request $request) {
+        Auth::logout();
+        Session::flush();
+        return redirect($request->input('redirect_uri'));
+    }
 
-    public function reset_demo(Request $request)
-    {
+    public function reset_demo(Request $request) {
         if (route('dashboard') == 'https://care.drjio.com') {
             $practice = DB::table('practiceinfo')->first();
             $file = '/noshdocuments/demo.sql';
             $file1 = '/noshdocuments/demo_oidc.sql';
-            $command = "mysql -u " . env('DB_USERNAME') . " -p". env('DB_PASSWORD') . " nosh < " . $file;
-            $command1 = "mysql -u " . env('DB_USERNAME') . " -p". env('DB_PASSWORD') . " oidc < " . $file1;
+            $command = "mysql -u " . env('DB_USERNAME') . " -p" . env('DB_PASSWORD') . " nosh < " . $file;
+            $command1 = "mysql -u " . env('DB_USERNAME') . " -p" . env('DB_PASSWORD') . " oidc < " . $file1;
             system($command);
             system($command1);
             Auth::logout();
@@ -1222,19 +1412,18 @@ class LoginController extends Controller {
         }
     }
 
-    public function smart_on_fhir_list(Request $request)
-    {
+    public function smart_on_fhir_list(Request $request) {
         $connected = DB::table('refresh_tokens')->where('practice_id', '=', '1')->get();
         $practice = DB::table('practiceinfo')->where('practice_id', '=', '1')->first();
         $connected_arr = [];
         $url = 'https://open.epic.com/MyApps/EndpointsJson';
         $ch = curl_init();
-        curl_setopt($ch,CURLOPT_URL, $url);
-        curl_setopt($ch,CURLOPT_FAILONERROR,1);
-        curl_setopt($ch,CURLOPT_FOLLOWLOCATION,1);
-        curl_setopt($ch,CURLOPT_RETURNTRANSFER,1);
-        curl_setopt($ch,CURLOPT_TIMEOUT, 60);
-        curl_setopt($ch,CURLOPT_CONNECTTIMEOUT ,0);
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_FAILONERROR, 1);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 60);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 0);
         $result = curl_exec($ch);
         $result_array = json_decode($result, true);
         if ($connected->count()) {
@@ -1257,8 +1446,7 @@ class LoginController extends Controller {
         return $connected_arr;
     }
 
-    public function start($practicehandle=null)
-    {
+    public function start($practicehandle = null) {
         if ($practicehandle !== null) {
             $practice = DB::table('practiceinfo')->where('practicehandle', '=', $practicehandle)->first();
             if ($practice) {
@@ -1268,8 +1456,7 @@ class LoginController extends Controller {
         return redirect()->route('login');
     }
 
-    public function transactions(Request $request)
-    {
+    public function transactions(Request $request) {
         $query = DB::table('rx_list')->whereNotNull('transaction')->orderBy('rxl_date_prescribed', 'desc');
         $result = $query->get();
         $return = [];
@@ -1286,7 +1473,7 @@ class LoginController extends Controller {
                     ];
                 }
                 if (isset($provider[$row->id])) {
-                    $provider[$row->id]++;
+                    $provider[$row->id] ++;
                 } else {
                     $provider[$row->id] = 1;
                 }
@@ -1305,13 +1492,13 @@ class LoginController extends Controller {
         return $return;
     }
 
-
     // Patient-centric, UMA login
-    public function uma_auth()
-    {
+    public function uma_auth() {
+
+
         #$open_id_url = str_replace('/nosh', '', URL::to('/'));
-        $open_id_url = "https://hie.drjio.com/";
-        
+        $open_id_url = "https://hie.drjio.com";
+
         $practice = DB::table('practiceinfo')->where('practice_id', '=', '1')->first();
         $client_id = $practice->uma_client_id;
         $client_secret = $practice->uma_client_secret;
@@ -1329,7 +1516,8 @@ class LoginController extends Controller {
             $oidc->addScope('email');
             $oidc->addScope('profile');
         }
-        $oidc->authenticate(true);
+        $oidc->authenticate(true,'user1');
+        
         $firstname = $oidc->requestUserInfo('given_name');
         $lastname = $oidc->requestUserInfo('family_name');
         $email = $oidc->requestUserInfo('email');
@@ -1365,55 +1553,12 @@ class LoginController extends Controller {
             Session::put('patient_centric', $practice1->patient_centric);
             Session::put('uma_auth_access_token', $access_token);
             Session::put('uport_id', $uport_id);
-            $url_hieofoneas = str_replace('/nosh', '/resources/' . $practice1->uma_client_id, URL::to('/'));
+            $url_hieofoneas = str_replace('', '/resources/' . $practice1->uma_client_id, 'https://hie.drjio.com');
             Session::put('url_hieofoneas', $url_hieofoneas);
-            setcookie("login_attempts", 0, time()+900, '/');
+            setcookie("login_attempts", 0, time() + 900, '/');
             return redirect()->intended('/');
         } else {
             $practice_npi = $npi;
-            // $practice_id = false;
-            // if ($practice_npi != '') {
-            //     $practice_query = DB::table('practiceinfo')->where('npi', '=', $practice_npi)->first();
-            //     if ($practice_query) {
-            //         $practice_id = $practice_query->practice_id;
-            //     }
-            //     if ($practice_id == false) {
-            //         $practice_arr = $this->npi_lookup($practice_npi);
-            //         if (isset($practice_arr['type'])) {
-            //             if ($practice_arr['type'] == 'Practice') {
-            //                 $practicename = $practice_arr['practice_name'];
-            //             } else {
-            //                 $practicename = $practice_arr['first_name'] . ' ' . $practice_arr['last_name'] . ', ' . $practice_arr['title'];
-            //             }
-            //             $street_address1 = $practice_arr['address'];
-            //             $city = $practice_arr['city'];
-            //             $state = $practice_arr['state'];
-            //             $zip = $practice_arr['zip'];
-            //             $practice_data = [
-            //                 'npi' => $practice_npi,
-            //                 'practice_name' => $practicename,
-            //                 'street_address1' => $street_address1,
-            //                 'city' => $city,
-            //                 'state' => $state,
-            //                 'zip' => $zip,
-            //                 'documents_dir' => $practice->documents_dir,
-            //                 'version' => $practice->version,
-            //                 'active' => 'Y',
-            //                 'fax_type' => '',
-            //                 'vivacare' => '',
-            //                 'patient_centric' => 'yp',
-            //                 'smtp_user' => $practice->smtp_user,
-            //                 'smtp_pass' => $practice->smtp_pass
-            //             ];
-            //             $practice_id = DB::table('practiceinfo')->insertGetId($practice_data);
-            //             $this->audit('Add');
-            //         } else {
-            //             return redirect()->route('uma_invitation_request');
-            //         }
-            //     }
-            // } else {
-            //     return redirect()->route('uma_invitation_request');
-            // }
 
             // Temporary Hayward Demo code
             $practice_data = [
@@ -1442,7 +1587,7 @@ class LoginController extends Controller {
                 'displayname' => $oidc->requestUserInfo('name'),
                 'email' => $email,
                 'group_id' => '2',
-                'active'=> '1',
+                'active' => '1',
                 'practice_id' => $practice_id,
                 'secret_question' => 'Use HIEofOne to reset your password!',
                 'uid' => $oidc->requestUserInfo('sub')
@@ -1471,23 +1616,21 @@ class LoginController extends Controller {
             Session::put('patient_centric', $practice2->patient_centric);
             Session::put('uma_auth_access_token', $access_token);
             Session::put('uport_id', $uport_id);
-            setcookie("login_attempts", 0, time()+900, '/');
+            setcookie("login_attempts", 0, time() + 900, '/');
             return redirect()->intended('/');
         }
     }
 
-    public function uma_invitation_request()
-	{
-		$practice = DB::table('practiceinfo')->where('practice_id', '=', '1')->first();
-		$data['email'] = $practice->email . '?Subject=Invitation%20Request';
+    public function uma_invitation_request() {
+        $practice = DB::table('practiceinfo')->where('practice_id', '=', '1')->first();
+        $data['email'] = $practice->email . '?Subject=Invitation%20Request';
         $data['assets_js'] = $this->assets_js();
         $data['assets_css'] = $this->assets_css();
         return view('uma_invitation_request', $data);
-	}
+    }
 
-    public function uma_logout(Request $request)
-    {
-        $open_id_url = str_replace('/nosh', '', URL::to('/'));
+    public function uma_logout(Request $request) {
+        $open_id_url = 'https://hie.drjio.com';
         $practice = DB::table('practiceinfo')->where('practice_id', '=', '1')->first();
         $client_id = $practice->uma_client_id;
         $client_secret = $practice->uma_client_secret;
@@ -1499,4 +1642,5 @@ class LoginController extends Controller {
         Session::forget('uma_auth_access_token');
         return redirect()->intended('logout');
     }
+
 }

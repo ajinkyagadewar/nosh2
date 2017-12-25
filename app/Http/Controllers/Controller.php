@@ -494,7 +494,9 @@ class Controller extends BaseController {
     }
 
     protected function array_assessment_billing($eid) {
+
         $data = DB::table('assessment')->where('eid', '=', $eid)->first();
+
         $return = [];
         // $return[''] = 'Choose Assessment';
         if ($data) {
@@ -4185,15 +4187,17 @@ class Controller extends BaseController {
     }
 
     protected function form_billing_core($result, $table, $id, $subtype) {
+
         if ($id == '0') {
             if (Session::has('eid')) {
                 $encounter = DB::table('encounters')->where('eid', '=', Session::get('eid'))->first();
                 $eid = Session::get('eid');
             }
             if (Session::has('eid_billing')) {
-                $encounter = DB::table('encounters')->where('eid', '=', Session::get('eid_billing'))->first();
-                $eid = Session::get('eid_billing');
+                $encounter = DB::table('encounters')->where('eid', '=', Session::get('eid'))->first();
+                $eid = Session::get('eid');
             }
+
             $default_date = date('Y-m-d', $this->human_to_unix($encounter->encounter_DOS));
             $cpt = [
                 'cpt' => null,
@@ -4270,7 +4274,7 @@ class Controller extends BaseController {
             'name' => 'icd_pointer[]',
             'label' => 'Diagnosis Pointer',
             'type' => 'select',
-            'select_items' => $this->array_assessment_billing($cpt['eid']),
+            'select_items' => $this->array_assessment_billing($eid),
             'required' => true,
             'multiple' => true,
             'selectpicker' => true,
@@ -4280,7 +4284,7 @@ class Controller extends BaseController {
             'name' => 'eid',
             'type' => 'hidden',
             'required' => true,
-            'default_value' => $cpt['eid']
+            'default_value' => $eid
         ];
         $items[] = [
             'name' => 'practice_id',
@@ -4441,15 +4445,15 @@ class Controller extends BaseController {
                 'select_items' => $this->array_gender(),
                 'default_value' => $identity_arr['sex']
             ];
-            $items[] = [
-                'name' => 'patient_id',
-                'label' => 'Patient ID',
-                'type' => 'text',
-                'default_value' => $identity_arr['patient_id']
-            ];
+//            $items[] = [
+//                'name' => 'patient_id',
+//                'label' => 'Patient ID',
+//                'type' => 'text',
+//                'default_value' => $identity_arr['patient_id']
+//            ];
             $items[] = [
                 'name' => 'ss',
-                'label' => 'SSN',
+                'label' => 'UID',
                 'type' => 'text',
                 'default_value' => $identity_arr['ss']
             ];
@@ -4499,7 +4503,7 @@ class Controller extends BaseController {
             ];
             $items[] = [
                 'name' => 'caregiver',
-                'label' => 'Careiver(s)',
+                'label' => 'Caregiver(s)',
                 'type' => 'text',
                 'default_value' => $identity_arr['caregiver']
             ];
@@ -10355,181 +10359,187 @@ class Controller extends BaseController {
         $html = '';
         $return = [];
         $demographics = DB::table('demographics')->where('pid', '=', $pid)->first();
-        $dob = $this->human_to_unix($demographics->DOB);
-        // ABA
-        if ($dob <= $this->age_calc(18, 'year') && $dob >= $this->age_calc(74, 'year')) {
-            $return['aba'] = $this->hedis_aba($pid);
-        }
-        // WCC
-        if ($dob <= $this->age_calc(3, 'year') && $dob >= $this->age_calc(18, 'year')) {
-            $return['wcc'] = $this->hedis_wcc($pid);
-        }
-        // CIS
-        if ($dob >= $this->age_calc(3, 'year')) {
-            $return['cis'] = $this->hedis_cis($pid);
-        }
-        // IMA
-        if ($dob <= $this->age_calc(13, 'year') && $dob >= $this->age_calc(18, 'year')) {
-            $return['ima'] = $this->hedis_ima($pid);
-        }
-        // HPV
-        if ($dob <= $this->age_calc(9, 'year') && $dob >= $this->age_calc(13, 'year') && $demographics->sex == 'f') {
-            $return['hpv'] = $this->hedis_hpv($pid);
-        }
-        // LSC
-        if ($dob >= $this->age_calc(2, 'year')) {
-            $return['lsc'] = $this->hedis_lsc($pid);
-        }
-        // BCS
-        if ($dob <= $this->age_calc(40, 'year') && $dob >= $this->age_calc(69, 'year') && $demographics->sex == 'f') {
-            $return['bcs'] = $this->hedis_bcs($pid);
-        }
-        // CCS
-        if ($dob <= $this->age_calc(21, 'year') && $dob >= $this->age_calc(64, 'year') && $demographics->sex == 'f') {
-            $return['ccs'] = $this->hedis_ccs($pid);
-        }
-        // COL
-        if ($dob <= $this->age_calc(50, 'year') && $dob >= $this->age_calc(75, 'year')) {
-            $return['col'] = $this->hedis_col($pid);
-        }
-        // CHL
-        if ($dob <= $this->age_calc(16, 'year') && $dob >= $this->age_calc(24, 'year') && $demographics->sex == 'f') {
-            $return['chl'] = $this->hedis_chl($pid);
-        }
-        // GSO
-        if ($dob <= $this->age_calc(65, 'year')) {
-            $return['gso'] = $this->hedis_gso($pid);
-        }
-        // CWP
-        $cwp_assessment_item_array = ['462', 'J02.9', '034.0', 'J02.0', 'J03.00', '074.0', 'B08.5', '474.00', 'J35.01', '099.51', 'A56.4', '032.0', 'A36.0', '472.1', 'J31.2', '098.6', 'A54.5'];
-        $cwp_result = $this->hedis_assessment_query($pid, $type, $cwp_assessment_item_array);
-        if ($cwp_result && $dob <= $this->age_calc(2, 'year') && $dob >= $this->age_calc(18, 'year')) {
-            $return['cwp'] = $this->hedis_cwp($cwp_result);
-        }
-        // URI
-        $uri_assessment_item_array = ['465.9', 'J06.9', '487.1', 'J10.1', 'J11.1'];
-        $uri_result = $this->hedis_assessment_query($pid, $type, $uri_assessment_item_array);
-        if ($uri_result && $dob <= $this->age_calc(3, 'month') && $dob >= $this->age_calc(18, 'year')) {
-            $return['uri'] = $this->hedis_uri($uri_result);
-        }
-        // AAB
-        $aab_assessment_item_array = ['466.0', 'J20.9'];
-        $aab_result = $this->hedis_assessment_query($pid, $type, $aab_assessment_item_array);
-        if ($aab_result && $dob <= $this->age_calc(3, 'month') && $dob >= $this->age_calc(18, 'year')) {
-            $return['aab'] = $this->hedis_uri($aab_result);
-        }
-        // SPR
-        $spr_issues_item_array = ['496', 'J44.9'];
-        $spr_query = $this->hedis_issue_query($pid, $spr_issues_item_array);
-        if ($spr_query && $dob <= $this->age_calc(40, 'year')) {
-            $return['spr'] = $this->hedis_spr($pid);
-        }
-        // PCE
-        $pce_assessment_item_array = ['491.21', 'J44.1'];
-        $pce_result = $this->hedis_assessment_query($pid, $type, $pce_assessment_item_array);
-        if ($pce_result && $dob <= $this->age_calc(40, 'year')) {
-            $return['pce'] = $this->hedis_pce($pce_result);
-        }
-        // ASM and AMR
-        $asm_issues_item_array = ['493.90', 'J45.909', 'J45.998', '493.00', 'J45.20', '493.01', 'J45.22', '493.02', 'J45.21', '493.10', '493.11', '493.12', '493.20', 'J44.9', '493.21', 'J44.0', '493.22', 'J44.1', '493.81', 'J45.990', '493.82', 'J45.991', '493.91', 'J45.902', '493.92', 'J45.901'];
-        $asm_query = $this->hedis_issue_query($pid, $asm_issues_item_array);
-        if ($asm_query && $dob <= $this->age_calc(5, 'year') && $dob >= $this->age_calc(56, 'year')) {
-            $return['asm'] = $this->hedis_asm($pid);
-            $return['amr'] = $this->hedis_amr($pid);
-        }
-        // CMC and PBH
-        $cmc_issues_item_array = ['410', 'I20', 'I21', 'I22', 'I23', 'I24', 'I25', '414.8'];
-        $cmc_query = $this->hedis_issue_query($pid, $cmc_issues_item_array);
-        if ($cmc_query && $dob <= $this->age_calc(18, 'year') && $dob >= $this->age_calc(75, 'year')) {
-            $return['cmc'] = $this->hedis_cmc($pid);
-        }
-        if ($cmc_query && $dob <= $this->age_calc(18, 'year')) {
-            $return['pbh'] = $this->hedis_pbh($pid);
-        }
-        // CBP
-        $cbp_issues_item_array = ['401', '402', '403', '404', '405', 'I10', 'I11', 'I12', 'I13', 'I15'];
-        $cbp_query = $this->hedis_issue_query($pid, $cbp_issues_item_array);
-        if ($cbp_query && $dob <= $this->age_calc(18, 'year') && $dob >= $this->age_calc(85, 'year')) {
-            $return['cbp'] = $this->hedis_cbp($pid);
-        }
-        // CDC
-        $cdc_issues_item_array = ['250', 'E08', 'E09', 'E10', 'E11', 'E13'];
-        $cdc_query = $this->hedis_issue_query($pid, $cdc_issues_item_array);
-        if ($cdc_query && $dob <= $this->age_calc(18, 'year') && $dob >= $this->age_calc(75, 'year')) {
-            $return['cdc'] = $this->hedis_cdc($pid);
-        }
-        // ART
-        $art_issues_item_array = ['714.0', 'M05', 'M06'];
-        $art_query = $this->hedis_issue_query($pid, $art_issues_item_array);
-        if ($art_query) {
-            $return['art'] = $this->hedis_art($pid);
-        }
-        // OMW
-        $omw_assessment_item_array = ['800', '801', '802', '803', '804', '805', '806', '807', '808', '809', '810', '811', '812', '813', '814', '815', '816', '817', '818', '819', '820', '821', '822', '823', '824', '825', '826', '827', '828', '829', 'S02', 'S12', 'S22', 'S32', 'S42', 'S52', 'S62', 'S72', 'S82', 'S92'];
-        $omw_result = $this->hedis_assessment_query($pid, $type, $omw_assessment_item_array);
-        if ($omw_result && $dob <= $this->age_calc(67, 'year') && $demographics->sex == 'f') {
-            $return['omw'] = $this->hedis_omw($pid);
-        }
-        // LBP
-        $lbp_assessment_item_array = ['724.2', 'M54.5'];
-        $lbp_result = $this->hedis_assessment_query($pid, $type, $lbp_assessment_item_array);
-        if ($lbp_result) {
-            $return['lbp'] = $this->hedis_lbp($lbp_result);
-        }
-        // AMM
-        $amm_issues_item_array = ['311', '296.2', '296.3', 'F32', 'F33'];
-        $amm_query = $this->hedis_issue_query($pid, $amm_issues_item_array);
-        if ($amm_query && $dob <= $this->age_calc(18, 'year')) {
-            $return['amm'] = $this->hedis_amm($pid);
-        }
-        // ADD
-        $add_issues_item_array = ['314.0', 'F90'];
-        $add_query = $this->hedis_issue_query($pid, $add_issues_item_array);
-        if ($add_query && $dob <= $this->age_calc(6, 'year') && $dob >= $this->age_calc(12, 'year')) {
-            $return['add'] = $this->hedis_add($pid, $add_query->issue_date_active);
-        }
-        if (!empty($return)) {
-            foreach ($return as $item => $row) {
-                if ($item != 'cwp' && $item != 'uri' && $item != 'aab' && $item != 'pce' && $item != 'lbp') {
-                    $html .= $row['html'] . '<br><br>';
-                    if (!empty($row['fix'])) {
-                        $html .= '<div class="alert alert-danger"><strong>Fixes:</strong><ul>';
-                        foreach ($row['fix'] as $row1) {
-                            $html .= '<li>' . $row1 . '</li>';
-                        }
-                        $html .= '</ul></div>';
-                    }
-                } else {
-                    if ($item == 'cwp') {
-                        $html .= '<strong>Appropriate Testing for Children With Pharyngitis:</strong>';
-                        $html .= '<ul><li>Percentage tested: ' . $row['percent_test'] . '</li>';
-                        $html .= '<li>Percentage treated with antibiotics: ' . $row['percent_abx'] . '</li>';
-                        $html .= '<li>Percentage treated with antibiotics without testing: ' . $row['percent_abx_no_test'] . '</li></ul>';
-                    }
-                    if ($item == 'uri') {
-                        $html .= '<strong>Appropriate Treatment for Children With Upper Respiratory Infection:</strong>';
-                        $html .= '<ul><li>Percentage treated with antibiotics: ' . $row['percent_abx'] . '</li></ul>';
-                    }
-                    if ($item == 'aab') {
-                        $html .= '<strong>Avoidance of Antibiotic Treatment for Adults with Acute Bronchitis:</strong>';
-                        $html .= '<ul><li>Percentage treated with antibiotics: ' . $row['percent_abx'] . '</li></ul>';
-                    }
-                    if ($item == 'pce') {
-                        $html .= '<strong>Pharmacotherapy Management of COPD Exacerbation:</strong>';
-                        $html .= '<ul><li>Percentage treated for COPD exacerbations: ' . $row['percent_tx'] . '</li></ul>';
-                    }
-                    if ($item == 'lbp') {
-                        $html .= '<strong>Use of Imaging Studies for Low Back Pain:</strong>';
-                        $html .= '<ul><li>Percentage of instances where no imaging study was performed for a diagnosis of low back pain: ' . $row['percent_no_rad'] . '</li></ul>';
-                    }
-                }
-                $html .= '<hr class="ui-state-default"/>';
+
+        if ($demographics) {
+            $dob = $this->human_to_unix($demographics->DOB);
+
+            // ABA
+            if ($dob <= $this->age_calc(18, 'year') && $dob >= $this->age_calc(74, 'year')) {
+                $return['aba'] = $this->hedis_aba($pid);
             }
-        }
-        if ($function == 'chart') {
-            return $html;
-        } else {
-            return $return;
+            // WCC
+            if ($dob <= $this->age_calc(3, 'year') && $dob >= $this->age_calc(18, 'year')) {
+                $return['wcc'] = $this->hedis_wcc($pid);
+            }
+            // CIS
+            if ($dob >= $this->age_calc(3, 'year')) {
+                $return['cis'] = $this->hedis_cis($pid);
+            }
+            // IMA
+            if ($dob <= $this->age_calc(13, 'year') && $dob >= $this->age_calc(18, 'year')) {
+                $return['ima'] = $this->hedis_ima($pid);
+            }
+            // HPV
+            if ($dob <= $this->age_calc(9, 'year') && $dob >= $this->age_calc(13, 'year') && $demographics->sex == 'f') {
+                $return['hpv'] = $this->hedis_hpv($pid);
+            }
+            // LSC
+            if ($dob >= $this->age_calc(2, 'year')) {
+                $return['lsc'] = $this->hedis_lsc($pid);
+            }
+            // BCS
+            if ($dob <= $this->age_calc(40, 'year') && $dob >= $this->age_calc(69, 'year') && $demographics->sex == 'f') {
+                $return['bcs'] = $this->hedis_bcs($pid);
+            }
+            // CCS
+            if ($dob <= $this->age_calc(21, 'year') && $dob >= $this->age_calc(64, 'year') && $demographics->sex == 'f') {
+                $return['ccs'] = $this->hedis_ccs($pid);
+            }
+            // COL
+            if ($dob <= $this->age_calc(50, 'year') && $dob >= $this->age_calc(75, 'year')) {
+                $return['col'] = $this->hedis_col($pid);
+            }
+            // CHL
+            if ($dob <= $this->age_calc(16, 'year') && $dob >= $this->age_calc(24, 'year') && $demographics->sex == 'f') {
+                $return['chl'] = $this->hedis_chl($pid);
+            }
+            // GSO
+            if ($dob <= $this->age_calc(65, 'year')) {
+                $return['gso'] = $this->hedis_gso($pid);
+            }
+            // CWP
+            $cwp_assessment_item_array = ['462', 'J02.9', '034.0', 'J02.0', 'J03.00', '074.0', 'B08.5', '474.00', 'J35.01', '099.51', 'A56.4', '032.0', 'A36.0', '472.1', 'J31.2', '098.6', 'A54.5'];
+            $cwp_result = $this->hedis_assessment_query($pid, $type, $cwp_assessment_item_array);
+            if ($cwp_result && $dob <= $this->age_calc(2, 'year') && $dob >= $this->age_calc(18, 'year')) {
+                $return['cwp'] = $this->hedis_cwp($cwp_result);
+            }
+            // URI
+            $uri_assessment_item_array = ['465.9', 'J06.9', '487.1', 'J10.1', 'J11.1'];
+            $uri_result = $this->hedis_assessment_query($pid, $type, $uri_assessment_item_array);
+            if ($uri_result && $dob <= $this->age_calc(3, 'month') && $dob >= $this->age_calc(18, 'year')) {
+                $return['uri'] = $this->hedis_uri($uri_result);
+            }
+            // AAB
+            $aab_assessment_item_array = ['466.0', 'J20.9'];
+            $aab_result = $this->hedis_assessment_query($pid, $type, $aab_assessment_item_array);
+            if ($aab_result && $dob <= $this->age_calc(3, 'month') && $dob >= $this->age_calc(18, 'year')) {
+                $return['aab'] = $this->hedis_uri($aab_result);
+            }
+            // SPR
+            $spr_issues_item_array = ['496', 'J44.9'];
+            $spr_query = $this->hedis_issue_query($pid, $spr_issues_item_array);
+            if ($spr_query && $dob <= $this->age_calc(40, 'year')) {
+                $return['spr'] = $this->hedis_spr($pid);
+            }
+            // PCE
+            $pce_assessment_item_array = ['491.21', 'J44.1'];
+            $pce_result = $this->hedis_assessment_query($pid, $type, $pce_assessment_item_array);
+            if ($pce_result && $dob <= $this->age_calc(40, 'year')) {
+                $return['pce'] = $this->hedis_pce($pce_result);
+            }
+            // ASM and AMR
+            $asm_issues_item_array = ['493.90', 'J45.909', 'J45.998', '493.00', 'J45.20', '493.01', 'J45.22', '493.02', 'J45.21', '493.10', '493.11', '493.12', '493.20', 'J44.9', '493.21', 'J44.0', '493.22', 'J44.1', '493.81', 'J45.990', '493.82', 'J45.991', '493.91', 'J45.902', '493.92', 'J45.901'];
+            $asm_query = $this->hedis_issue_query($pid, $asm_issues_item_array);
+            if ($asm_query && $dob <= $this->age_calc(5, 'year') && $dob >= $this->age_calc(56, 'year')) {
+                $return['asm'] = $this->hedis_asm($pid);
+                $return['amr'] = $this->hedis_amr($pid);
+            }
+            // CMC and PBH
+            $cmc_issues_item_array = ['410', 'I20', 'I21', 'I22', 'I23', 'I24', 'I25', '414.8'];
+            $cmc_query = $this->hedis_issue_query($pid, $cmc_issues_item_array);
+            if ($cmc_query && $dob <= $this->age_calc(18, 'year') && $dob >= $this->age_calc(75, 'year')) {
+                $return['cmc'] = $this->hedis_cmc($pid);
+            }
+            if ($cmc_query && $dob <= $this->age_calc(18, 'year')) {
+                $return['pbh'] = $this->hedis_pbh($pid);
+            }
+            // CBP
+            $cbp_issues_item_array = ['401', '402', '403', '404', '405', 'I10', 'I11', 'I12', 'I13', 'I15'];
+            $cbp_query = $this->hedis_issue_query($pid, $cbp_issues_item_array);
+            if ($cbp_query && $dob <= $this->age_calc(18, 'year') && $dob >= $this->age_calc(85, 'year')) {
+                $return['cbp'] = $this->hedis_cbp($pid);
+            }
+            // CDC
+            $cdc_issues_item_array = ['250', 'E08', 'E09', 'E10', 'E11', 'E13'];
+            $cdc_query = $this->hedis_issue_query($pid, $cdc_issues_item_array);
+            if ($cdc_query && $dob <= $this->age_calc(18, 'year') && $dob >= $this->age_calc(75, 'year')) {
+                $return['cdc'] = $this->hedis_cdc($pid);
+            }
+            // ART
+            $art_issues_item_array = ['714.0', 'M05', 'M06'];
+            $art_query = $this->hedis_issue_query($pid, $art_issues_item_array);
+            if ($art_query) {
+                $return['art'] = $this->hedis_art($pid);
+            }
+            // OMW
+            $omw_assessment_item_array = ['800', '801', '802', '803', '804', '805', '806', '807', '808', '809', '810', '811', '812', '813', '814', '815', '816', '817', '818', '819', '820', '821', '822', '823', '824', '825', '826', '827', '828', '829', 'S02', 'S12', 'S22', 'S32', 'S42', 'S52', 'S62', 'S72', 'S82', 'S92'];
+            $omw_result = $this->hedis_assessment_query($pid, $type, $omw_assessment_item_array);
+            if ($omw_result && $dob <= $this->age_calc(67, 'year') && $demographics->sex == 'f') {
+                $return['omw'] = $this->hedis_omw($pid);
+            }
+            // LBP
+            $lbp_assessment_item_array = ['724.2', 'M54.5'];
+            $lbp_result = $this->hedis_assessment_query($pid, $type, $lbp_assessment_item_array);
+            if ($lbp_result) {
+                $return['lbp'] = $this->hedis_lbp($lbp_result);
+            }
+            // AMM
+            $amm_issues_item_array = ['311', '296.2', '296.3', 'F32', 'F33'];
+            $amm_query = $this->hedis_issue_query($pid, $amm_issues_item_array);
+            if ($amm_query && $dob <= $this->age_calc(18, 'year')) {
+                $return['amm'] = $this->hedis_amm($pid);
+            }
+            // ADD
+            $add_issues_item_array = ['314.0', 'F90'];
+            $add_query = $this->hedis_issue_query($pid, $add_issues_item_array);
+            if ($add_query && $dob <= $this->age_calc(6, 'year') && $dob >= $this->age_calc(12, 'year')) {
+                $return['add'] = $this->hedis_add($pid, $add_query->issue_date_active);
+            }
+
+            if (!empty($return)) {
+                foreach ($return as $item => $row) {
+                    if ($item != 'cwp' && $item != 'uri' && $item != 'aab' && $item != 'pce' && $item != 'lbp') {
+                        $html .= $row['html'] . '<br><br>';
+                        if (!empty($row['fix'])) {
+                            $html .= '<div class="alert alert-danger"><strong>Fixes:</strong><ul>';
+                            foreach ($row['fix'] as $row1) {
+                                $html .= '<li>' . $row1 . '</li>';
+                            }
+                            $html .= '</ul></div>';
+                        }
+                    } else {
+                        if ($item == 'cwp') {
+                            $html .= '<strong>Appropriate Testing for Children With Pharyngitis:</strong>';
+                            $html .= '<ul><li>Percentage tested: ' . $row['percent_test'] . '</li>';
+                            $html .= '<li>Percentage treated with antibiotics: ' . $row['percent_abx'] . '</li>';
+                            $html .= '<li>Percentage treated with antibiotics without testing: ' . $row['percent_abx_no_test'] . '</li></ul>';
+                        }
+                        if ($item == 'uri') {
+                            $html .= '<strong>Appropriate Treatment for Children With Upper Respiratory Infection:</strong>';
+                            $html .= '<ul><li>Percentage treated with antibiotics: ' . $row['percent_abx'] . '</li></ul>';
+                        }
+                        if ($item == 'aab') {
+                            $html .= '<strong>Avoidance of Antibiotic Treatment for Adults with Acute Bronchitis:</strong>';
+                            $html .= '<ul><li>Percentage treated with antibiotics: ' . $row['percent_abx'] . '</li></ul>';
+                        }
+                        if ($item == 'pce') {
+                            $html .= '<strong>Pharmacotherapy Management of COPD Exacerbation:</strong>';
+                            $html .= '<ul><li>Percentage treated for COPD exacerbations: ' . $row['percent_tx'] . '</li></ul>';
+                        }
+                        if ($item == 'lbp') {
+                            $html .= '<strong>Use of Imaging Studies for Low Back Pain:</strong>';
+                            $html .= '<ul><li>Percentage of instances where no imaging study was performed for a diagnosis of low back pain: ' . $row['percent_no_rad'] . '</li></ul>';
+                        }
+                    }
+                    $html .= '<hr class="ui-state-default"/>';
+                }
+            }
+
+            if ($function == 'chart') {
+                return $html;
+            } else {
+                return $return;
+            }
         }
     }
 
@@ -11850,32 +11860,34 @@ class Controller extends BaseController {
         $data1 = [];
         if (isset($html)) {
             $main = $html->find('div.HwContent', 0);
-            $return = $main->outertext;
-            $imgs = $main->find('img');
-            $url_arr = explode('/', $url);
-            array_pop($url_arr);
-            $img_url = implode('/', $url_arr);
-            $i = 0;
-            foreach ($imgs as $img) {
-                $img_link = $img->src;
-                $img_url1 = $img_url . '/' . $img_link;
-                $ch1 = curl_init();
-                curl_setopt($ch1, CURLOPT_URL, $img_url1);
-                curl_setopt($ch1, CURLOPT_RETURNTRANSFER, true);
-                curl_setopt($ch1, CURLOPT_BINARYTRANSFER, true);
-                $raw = curl_exec($ch1);
-                curl_close($ch1);
-                $file_path_name = time() . '_img_' . $i . '.jpg';
-                $file_path = public_path() . '/temp/' . $file_path_name;
-                $new_url = asset('temp/' . $file_path_name);
-                File::put($file_path, $raw);
-                $return = str_replace($img_link, $new_url, $return);
-                $i++;
-            }
-            $as = $main->find('a.HwSectionNameTag');
-            foreach ($as as $a) {
-                $a1 = $a->outertext;
-                $return = str_replace($a1, '', $return);
+            if ($main) {
+                $return = $main->outertext;
+                $imgs = $main->find('img');
+                $url_arr = explode('/', $url);
+                array_pop($url_arr);
+                $img_url = implode('/', $url_arr);
+                $i = 0;
+                foreach ($imgs as $img) {
+                    $img_link = $img->src;
+                    $img_url1 = $img_url . '/' . $img_link;
+                    $ch1 = curl_init();
+                    curl_setopt($ch1, CURLOPT_URL, $img_url1);
+                    curl_setopt($ch1, CURLOPT_RETURNTRANSFER, true);
+                    curl_setopt($ch1, CURLOPT_BINARYTRANSFER, true);
+                    $raw = curl_exec($ch1);
+                    curl_close($ch1);
+                    $file_path_name = time() . '_img_' . $i . '.jpg';
+                    $file_path = public_path() . '/temp/' . $file_path_name;
+                    $new_url = asset('temp/' . $file_path_name);
+                    File::put($file_path, $raw);
+                    $return = str_replace($img_link, $new_url, $return);
+                    $i++;
+                }
+                $as = $main->find('a.HwSectionNameTag');
+                foreach ($as as $a) {
+                    $a1 = $a->outertext;
+                    $return = str_replace($a1, '', $return);
+                }
             }
         }
         return $return;
@@ -16038,7 +16050,7 @@ class Controller extends BaseController {
         if ($result->billing_notes !== '' && $result->billing_notes !== null) {
             $billing_notes = nl2br($result->billing_notes);
         }
-        $note = "<strong>Total Balance: $" . number_format($total_balance, 2, '.', ',') . "</strong><br><br><strong>Billing Notes: </strong>" . $billing_notes . "<br>";
+        $note = "<strong>Total Balance: ₹" . number_format($total_balance, 2, '.', ',') . "</strong><br><br><strong>Billing Notes: </strong>" . $billing_notes . "<br>";
         return $note;
     }
 

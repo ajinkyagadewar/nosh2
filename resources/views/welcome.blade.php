@@ -295,7 +295,7 @@
             </div>
         </div>
         @endif
-        @if (route('dashboard') == 'https://cloud.noshchartingsystem.com/nosh')
+        @if (route('dashboard') == 'https://care.drjio.com')
         <div class="col-lg-3 col-md-3">
             <div class="panel panel-red nosh-dash">
                 <div class="panel-heading">

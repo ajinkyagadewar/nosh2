@@ -27,18 +27,19 @@
                         </div>
                         <div class="form-group">
                             <ul>
-                                <li>You will be allowing physicians using mdNOSH the potential to access your health information</li>
-                                <!-- <li>You will be able to make your authorization server identifiable in a patient directory for future physicians using mdNOSH to access your health information</li> -->
+                                <li>You will be allowing physicians using mdCare 
+                                    the potential to access your health information</li>
+                                <!-- <li>You will be able to make your authorization server identifiable in a patient directory for future physicians using mdCare to access your health information</li> -->
                                 <li>For more information about how your email address identifies you, <abbr data-toggle="tooltip" id="more_info" title="Click here">click here</abbr>
                             </ul>
                         </div>
                         <div class="form_group" id="more_info_div">
-                            <h4 style="color:yellow;">How mdNOSH will contact your authorization server</h4>
+                            <h4 style="color:yellow;">How mdCare will contact your authorization server</h4>
                             <ol>
-                                <li>mdNOSH will be contacting the server to validate if a user tied to this e-mail address exists.</li>
-                                <li>mdNOSH will then determine if an authorization service (like HIE of One) exists on the domain.</li>
-                                <li>mdNOSH will then make a call to register itself as a client to the authorization service so that physicians who have an account with mdNOSH that you invite can access your health-related resources.</li>
-                                <li>You will be prompted to accept or deny the registration of mdNOSH to your HIE of One authorization service.</li>
+                                <li>mdCare will be contacting the server to validate if a user tied to this e-mail address exists.</li>
+                                <li>mdCare will then determine if an authorization service (like HIE of One) exists on the domain.</li>
+                                <li>mdCare will then make a call to register itself as a client to the authorization service so that physicians who have an account with mdCare that you invite can access your health-related resources.</li>
+                                <li>You will be prompted to accept or deny the registration of mdCare to your HIE of One authorization service.</li>
                             </ol>
                         </div>
 
@@ -46,7 +47,9 @@
                             <label for="email" class="col-md-4 control-label">E-Mail Address:</label>
 
                             <div class="col-md-6">
-                                <input id="email" type="email" class="form-control" name="email" value="shihjay2@shihjay.xyz" data-toggle="tooltip" title="Email: shihjay2@shihjay.xyz">
+                                <input id="email" type="email" class="form-control" name="email" 
+                                       value="" data-toggle="tooltip" 
+                                       title="">
 
                                 @if ($errors->has('email'))
                                     <span class="help-block">

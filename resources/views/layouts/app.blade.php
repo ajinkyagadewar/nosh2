@@ -32,7 +32,7 @@
 
                 <!-- Branding Image -->
                 <span class="navbar-brand" id="logo" data-toggle="offcanvas">
-                    <a href="https://pulse-sme.drjio.com/" class="navbar-left"><img src="{{ URL::asset('assets/images/pulse.png') }}"></a>
+                    <a href="#" class="navbar-left"><img src="{{ URL::asset('assets/images/pulse.png') }}"></a>
                 </span>
                 @if (Session::has('pid'))
                     <div class="navbar-brand">
@@ -153,7 +153,7 @@
                                 @endif
                                
                                     <li><a href="{{ route('fhir_connect') }}"><i class="fa fa-btn fa-plug"></i>{{ trans('nosh.fhir_connect') }}</a></li>
-                                    <li><a href="https://hie.drjio.com"><i class="fa fa-btn fa-openid"></i>{{ trans('nosh.hieofone') }}</a></li>
+                                    <li><a href="https://hie.drjio.com/"><i class="fa fa-btn fa-openid"></i>{{ trans('nosh.hieofone') }}</a></li>
                               
                                 <li><a href="{{ route('password_change') }}"><i class="fa fa-btn fa-cog"></i>{{ trans('nosh.password_change') }}</a></li>
                                 <li><a href="{{ route('logout') }}"><i class="fa fa-btn fa-sign-out"></i>{{ trans('nosh.logout') }}</a></li>
@@ -266,7 +266,18 @@
                                 <span class="badge">{{ $encounters_badge }}</span>
                             </a>
                         </li>
-                        <li @if(isset($documents_active)) class="active" @endif>
+                        <li @if(isset($sh_active)) class="active" @endif>
+                            <a href="{{ route('social_history') }}">
+                                <i class="fa fa-users fa-fw fa-lg"></i>
+                                <span class="sidebar-item">{{ trans('nosh.social_history') }}</span>
+                            </a>
+                        </li>
+                        <li @if(isset($fh_active)) class="active" @endif>
+                            <a href="{{ route('family_history') }}">
+                                <i class="fa fa-sitemap fa-fw fa-lg"></i>
+                                <span class="sidebar-item">{{ trans('nosh.family_history') }}</span>
+                            </a>
+                        </li><li @if(isset($documents_active)) class="active" @endif>
                             <a href="{{ route('documents_list', ['type' => 'Laboratory']) }}">
                                 <i class="fa fa-file-text-o fa-fw fa-lg"></i>
                                 <span class="sidebar-item">{{ trans('nosh.documents_list') }}</span>
@@ -303,18 +314,7 @@
                                 </ul>
                             </li>
                         @endif
-                        <li @if(isset($sh_active)) class="active" @endif>
-                            <a href="{{ route('social_history') }}">
-                                <i class="fa fa-users fa-fw fa-lg"></i>
-                                <span class="sidebar-item">{{ trans('nosh.social_history') }}</span>
-                            </a>
-                        </li>
-                        <li @if(isset($fh_active)) class="active" @endif>
-                            <a href="{{ route('family_history') }}">
-                                <i class="fa fa-sitemap fa-fw fa-lg"></i>
-                                <span class="sidebar-item">{{ trans('nosh.family_history') }}</span>
-                            </a>
-                        </li>
+                        
                         <li @if(isset($care_active)) class="active" @endif>
                             <a href="{{ route('care_opportunities', ['prevention']) }}">
                                 <i class="fa fa-info fa-fw fa-lg"></i>

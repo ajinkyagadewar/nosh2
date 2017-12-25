@@ -282,7 +282,7 @@ oh_sh:
       text: 'Spouse or partner name:'
       input: text
     -
-      text: 'Family memebers in the household:'
+      text: 'Family members in the household:'
       input: text
     -
       text: 'Children:'

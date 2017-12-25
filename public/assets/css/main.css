@@ -348,3 +348,8 @@ div.list-category li.list-group-item:first-child {
 .navbar-brand .fa-btn {
     display:none;
 }
+
+.panel-body{
+    font-size: 14px;
+    color: #178acc;
+}
